@@ -21,7 +21,7 @@ public enum PromotionTypeEnum {
     COUPON("优惠券"),
     PLATFORM_COUPON("平台优惠券"),
     FULL_DISCOUNT("满减"),
-    POINTS_GOODS("积分商品"),
+    POINTS_GOODS("喵币商品"),
     KANJIA("砍价"),
     COUPON_ACTIVITY("优惠券活动");
 

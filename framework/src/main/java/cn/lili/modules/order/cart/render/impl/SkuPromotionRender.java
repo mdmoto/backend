@@ -107,11 +107,11 @@ public class SkuPromotionRender implements CartRenderStep {
 
         switch (tradeDTO.getCartTypeEnum()) {
 
-            //这里是双重循环，但是实际积分购买或者是砍价购买时，购物车只有一个商品，所以没有循环操作数据库或者其他的问题
+            //这里是双重循环，但是实际喵币购买或者是砍价购买时，购物车只有一个商品，所以没有循环操作数据库或者其他的问题
             case POINTS:
                 Member userInfo = memberService.getUserInfo();
                 long totalPayPoints = 0;
-                //处理积分商品购买
+                //处理喵币商品购买
                 for (CartVO cartVO : tradeDTO.getCartList()) {
                     for (CartSkuVO cartSkuVO : cartVO.getCheckedSkuList()) {
                         cartSkuVO.getPriceDetailDTO().setPayPoint(cartSkuVO.getPoint());
@@ -280,7 +280,7 @@ public class SkuPromotionRender implements CartRenderStep {
      */
     private boolean ignorePromotion(String promotionKey) {
 
-        // 忽略积分活动活动 忽略砍价活动 忽略优惠券活动 忽略拼团活动
+        // 忽略喵币活动活动 忽略砍价活动 忽略优惠券活动 忽略拼团活动
         return promotionKey.contains(PromotionTypeEnum.POINTS_GOODS.name())
                 || promotionKey.contains(PromotionTypeEnum.KANJIA.name())
                 || promotionKey.contains(PromotionTypeEnum.COUPON.name())

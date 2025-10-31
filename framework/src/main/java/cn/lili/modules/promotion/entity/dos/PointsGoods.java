@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
 @EqualsAndHashCode(callSuper = true)
 @Data
 @TableName("li_points_goods")
-@ApiModel(value = "积分商品")
+@ApiModel(value = "喵币商品")
 @AllArgsConstructor
 @NoArgsConstructor
 public class PointsGoods extends BasePromotions {
@@ -40,7 +40,7 @@ public class PointsGoods extends BasePromotions {
     @ApiModelProperty(value = "结算价格")
     private Double settlementPrice;
 
-    @ApiModelProperty(value = "积分商品分类编号")
+    @ApiModelProperty(value = "喵币商品分类编号")
     private String pointsGoodsCategoryId;
 
     @ApiModelProperty(value = "分类名称")
@@ -52,7 +52,7 @@ public class PointsGoods extends BasePromotions {
     @ApiModelProperty(value = "活动库存数量")
     private Integer activeStock;
 
-    @ApiModelProperty(value = "兑换积分")
+    @ApiModelProperty(value = "兑换喵币")
     private Long points;
 
 }

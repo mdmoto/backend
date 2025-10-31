@@ -11,9 +11,9 @@ public enum OrderMetaKeyEnum {
     /**
      * 订单属性
      */
-    POINT("使用的积分"),
+    POINT("使用的喵币"),
     DISCOUNT_PRICE("优惠金额"),
-    GIFT_POINT("赠送的积分"),
+    GIFT_POINT("赠送的喵币"),
     GIFT_COUPON("赠送的优惠券"),
     GIFT_SKU("赠品");
 

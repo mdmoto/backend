@@ -89,7 +89,7 @@ public class PromotionGoods extends BaseEntity {
     @ApiModelProperty(value = "促销价格")
     private Double price;
 
-    @ApiModelProperty(value = "兑换积分")
+    @ApiModelProperty(value = "兑换喵币")
     private Long points;
 
     @ApiModelProperty(value = "限购数量")

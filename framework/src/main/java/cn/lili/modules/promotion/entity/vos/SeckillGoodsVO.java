@@ -25,7 +25,7 @@ public class SeckillGoodsVO implements Serializable {
     @ApiModelProperty(value = "商品id")
     private String goodsId;
 
-    @ApiModelProperty(value = "以积分渠道购买需要积分数量")
+    @ApiModelProperty(value = "以积分渠道购买需要喵币数量")
     private Integer point;
 
     @ApiModelProperty(value = "skuID")

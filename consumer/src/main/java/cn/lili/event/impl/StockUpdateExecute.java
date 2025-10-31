@@ -308,7 +308,7 @@ public class StockUpdateExecute implements OrderStatusChangeEvent {
                                     kanjiaActivityGoodsDTO.setStock(stock);
 
                                     kanjiaActivityGoodsService.updateById(kanjiaActivityGoodsDTO);
-                                    //修改积分商品库存
+                                    //修改喵币商品库存
                                 } else if (promotionTypeEnum.equals(PromotionTypeEnum.POINTS_GOODS)) {
                                     PointsGoodsVO pointsGoodsVO = pointsGoodsService.getPointsGoodsDetail(promotionId);
                                     Integer stock = Integer.parseInt(cache.get(PromotionGoodsService.getPromotionGoodsStockCacheKey(promotionTypeEnum, promotionId, orderItem.getSkuId())).toString());
@@ -405,7 +405,7 @@ public class StockUpdateExecute implements OrderStatusChangeEvent {
                                     kanjiaActivityGoodsDTO.setStock(stock);
 
                                     kanjiaActivityGoodsService.updateById(kanjiaActivityGoodsDTO);
-                                    //修改积分商品库存
+                                    //修改喵币商品库存
                                 } else if (promotionTypeEnum.equals(PromotionTypeEnum.POINTS_GOODS)) {
                                     PointsGoodsVO pointsGoodsVO = pointsGoodsService.getPointsGoodsDetail(promotionId);
                                     Integer stock = Integer.parseInt(cache.get(PromotionGoodsService.getPromotionGoodsStockCacheKey(promotionTypeEnum, promotionId, orderItem.getSkuId())).toString());

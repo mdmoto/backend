@@ -19,7 +19,7 @@ import java.math.BigDecimal;
  **/
 @Data
 @TableName("li_points_goods_category")
-@ApiModel(value = "积分商品分类")
+@ApiModel(value = "喵币商品分类")
 @AllArgsConstructor
 @NoArgsConstructor
 public class PointsGoodsCategory extends BaseEntity {

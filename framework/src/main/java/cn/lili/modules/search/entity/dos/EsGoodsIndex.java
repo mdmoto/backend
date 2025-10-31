@@ -161,7 +161,7 @@ public class EsGoodsIndex implements Serializable {
      * 如果是积分商品需要使用的积分
      */
     @Field(type = FieldType.Integer)
-    @ApiModelProperty("积分商品需要使用的积分")
+    @ApiModelProperty("积分商品需要使用的喵币")
     private Integer point;
 
     /**

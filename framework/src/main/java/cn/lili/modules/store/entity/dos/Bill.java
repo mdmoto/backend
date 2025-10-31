@@ -100,10 +100,10 @@ public class Bill extends BaseIdEntity {
     @ApiModelProperty(value = "退货平台优惠券补贴返还")
     private Double siteCouponRefundCommission;
 
-    @ApiModelProperty(value = "积分商品结算价格")
+    @ApiModelProperty(value = "喵币商品结算价格")
     private Double pointSettlementPrice;
 
-    @ApiModelProperty(value = "退货积分补贴返还")
+    @ApiModelProperty(value = "退货喵币补贴返还")
     private Double pointRefundSettlementPrice;
 
     @ApiModelProperty(value = "砍价商品结算价格")

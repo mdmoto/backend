@@ -31,7 +31,7 @@ public class MemberPointsHistoryServiceImpl extends ServiceImpl<MemberPointsHist
 
     @Override
     public MemberPointsHistoryVO getMemberPointsHistoryVO(String memberId) {
-        //获取会员积分历史
+        //获取会员喵币历史
         Member member = memberService.getById(memberId);
         MemberPointsHistoryVO memberPointsHistoryVO = new MemberPointsHistoryVO();
         if (member != null) {

@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @since 2020-02-25 14:10:16
  */
 @RestController
-@Api(tags = "买家端,会员积分历史接口")
+@Api(tags = "买家端,会员喵币历史接口")
 @RequestMapping("/buyer/member/memberPointsHistory")
 public class PointsHistoryBuyerController {
     @Autowired
@@ -42,7 +42,7 @@ public class PointsHistoryBuyerController {
         return ResultUtil.data(memberPointsHistoryService.page(PageUtil.initPage(page), queryWrapper));
     }
 
-    @ApiOperation(value = "获取会员积分VO")
+    @ApiOperation(value = "获取会员喵币VO")
     @GetMapping(value = "/getMemberPointsHistoryVO")
     public ResultMessage<MemberPointsHistoryVO> getMemberPointsHistoryVO() {
         return ResultUtil.data(memberPointsHistoryService.getMemberPointsHistoryVO(UserContext.getCurrentUser().getId()));

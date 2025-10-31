@@ -98,7 +98,7 @@ public class MemberMessageListener implements RocketMQListener<MessageExt> {
                 MemberSign memberSign = JSONUtil.toBean(new String(messageExt.getBody()), MemberSign.class);
                 memberSignService.memberSignSendPoint(memberSign.getMemberId(), memberSign.getSignDay());
                 break;
-            //会员积分变动
+            //会员喵币变动
             case MEMBER_POINT_CHANGE:
                 for (MemberPointChangeEvent memberPointChangeEvent : memberPointChangeEvents) {
                     try {

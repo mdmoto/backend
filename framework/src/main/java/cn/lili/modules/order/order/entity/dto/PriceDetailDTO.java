@@ -36,7 +36,7 @@ public class PriceDetailDTO implements Serializable {
 
     //============discount price============
 
-    @ApiModelProperty(value = "支付积分")
+    @ApiModelProperty(value = "支付喵币")
     private Long payPoint;
 
     @ApiModelProperty(value = "优惠金额")
@@ -91,7 +91,7 @@ public class PriceDetailDTO implements Serializable {
             "discountPrice(优惠金额) - couponPrice(优惠券金额) + updatePrice(订单修改金额)")
     private Double flowPrice;
 
-    @ApiModelProperty(value = "结算价格 与 商家/供应商 结算价格（例如积分商品/砍价商品）")
+    @ApiModelProperty(value = "结算价格 与 商家/供应商 结算价格（例如喵币商品/砍价商品）")
     private Double settlementPrice;
 
     @ApiModelProperty(value = "最终结算金额 = flowPrice(流水金额) - platFormCommission(平台收取交易佣金) - distributionCommission(单品分销返现支出)")

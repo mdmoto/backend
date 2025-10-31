@@ -61,11 +61,11 @@ public class Member extends BaseEntity {
     private String mobile;
 
     @Min(message = "必须为数字", value = 0)
-    @ApiModelProperty(value = "积分数量")
+    @ApiModelProperty(value = "喵币数量")
     private Long point;
 
     @Min(message = "必须为数字", value = 0)
-    @ApiModelProperty(value = "积分总数量")
+    @ApiModelProperty(value = "喵币总数量")
     private Long totalPoint;
 
     @ApiModelProperty(value = "会员头像")

@@ -59,10 +59,10 @@ public class MemberPointExecute implements MemberRegisterEvent, GoodsCommentComp
      */
     @Override
     public void memberRegister(Member member) {
-        //获取积分设置
+        //获取喵币设置
         PointSetting pointSetting = getPointSetting();
-        //赠送会员积分
-        memberService.updateMemberPoint(pointSetting.getRegister().longValue(), PointTypeEnum.INCREASE.name(), member.getId(), "会员注册，赠送积分" + pointSetting.getRegister() + "分");
+        //赠送会员喵币
+        memberService.updateMemberPoint(pointSetting.getRegister().longValue(), PointTypeEnum.INCREASE.name(), member.getId(), "会员注册，赠送喵币" + pointSetting.getRegister() + "分");
     }
 
     /**
@@ -72,10 +72,10 @@ public class MemberPointExecute implements MemberRegisterEvent, GoodsCommentComp
      */
     @Override
     public void goodsComment(MemberEvaluation memberEvaluation) {
-        //获取积分设置
+        //获取喵币设置
         PointSetting pointSetting = getPointSetting();
-        //赠送会员积分
-        memberService.updateMemberPoint(pointSetting.getComment().longValue(), PointTypeEnum.INCREASE.name(), memberEvaluation.getMemberId(), "会员评价，赠送积分" + pointSetting.getComment() + "分");
+        //赠送会员喵币
+        memberService.updateMemberPoint(pointSetting.getComment().longValue(), PointTypeEnum.INCREASE.name(), memberEvaluation.getMemberId(), "会员评价，赠送喵币" + pointSetting.getComment() + "分");
     }
 
     /**
@@ -97,27 +97,27 @@ public class MemberPointExecute implements MemberRegisterEvent, GoodsCommentComp
                 if (order.getPayStatus().equals(PayStatusEnum.UNPAID.name())) {
                     return;
                 }
-                String content = "订单取消，积分返还：" + point + "分";
-                //赠送会员积分
+                String content = "订单取消，喵币返还：" + point + "分";
+                //赠送会员喵币
                 memberService.updateMemberPoint(point, PointTypeEnum.INCREASE.name(), order.getMemberId(), content);
                 break;
             }
             case COMPLETED: {
                 Order order = orderService.getBySn(orderMessage.getOrderSn());
-                //如果是积分订单 则直接返回
+                //如果是喵币订单 则直接返回
                 if (CharSequenceUtil.isNotEmpty(order.getOrderPromotionType())
                         && order.getOrderPromotionType().equals(OrderPromotionTypeEnum.POINTS.name())) {
                     return;
                 }
-                //获取积分设置
+                //获取喵币设置
                 PointSetting pointSetting = getPointSetting();
                 if (pointSetting.getConsumer() == 0) {
                     return;
                 }
-                //计算赠送积分数量
+                //计算赠送喵币数量
                 Double point = CurrencyUtil.mul(pointSetting.getConsumer(), order.getFlowPrice(), 0);
-                //赠送会员积分
-                memberService.updateMemberPoint(point.longValue(), PointTypeEnum.INCREASE.name(), order.getMemberId(), "会员下单，赠送积分" + point + "分");
+                //赠送会员喵币
+                memberService.updateMemberPoint(point.longValue(), PointTypeEnum.INCREASE.name(), order.getMemberId(), "会员下单，赠送喵币" + point + "分");
                 break;
             }
 
@@ -136,15 +136,15 @@ public class MemberPointExecute implements MemberRegisterEvent, GoodsCommentComp
     public void afterSaleStatusChange(AfterSale afterSale) {
         if (afterSale.getServiceStatus().equals(AfterSaleStatusEnum.COMPLETE.name())) {
             Order order = orderService.getBySn(afterSale.getOrderSn());
-            //获取积分设置
+            //获取喵币设置
             PointSetting pointSetting = getPointSetting();
             if (pointSetting.getConsumer() == 0 || !OrderStatusEnum.COMPLETED.name().equals(order.getOrderStatus())) {
                 return;
             }
-            //计算扣除积分数量
+            //计算扣除喵币数量
             Double point = CurrencyUtil.mul(pointSetting.getConsumer(), afterSale.getActualRefundPrice(), 0);
-            //扣除会员积分
-            memberService.updateMemberPoint(point.longValue(), PointTypeEnum.REDUCE.name(), afterSale.getMemberId(), "会员退款，回退消费赠送积分" + point + "分");
+            //扣除会员喵币
+            memberService.updateMemberPoint(point.longValue(), PointTypeEnum.REDUCE.name(), afterSale.getMemberId(), "会员退款，回退消费赠送喵币" + point + "分");
 
         }
     }

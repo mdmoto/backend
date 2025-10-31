@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @since 2020-02-25 14:10:16
  */
 @RestController
-@Api(tags = "管理端,会员积分历史接口")
+@Api(tags = "管理端,会员喵币历史接口")
 @RequestMapping("/manager/member/memberPointsHistory")
 public class MemberPointsHistoryManagerController {
     @Autowired
@@ -39,7 +39,7 @@ public class MemberPointsHistoryManagerController {
         return ResultUtil.data(memberPointsHistoryService.MemberPointsHistoryList(page, memberId, memberName));
     }
 
-    @ApiOperation(value = "获取会员积分VO")
+    @ApiOperation(value = "获取会员喵币VO")
     @ApiImplicitParam(name = "memberId", value = "会员ID", paramType = "query")
     @GetMapping(value = "/getMemberPointsHistoryVO")
     public ResultMessage<MemberPointsHistoryVO> getMemberPointsHistoryVO(String memberId) {

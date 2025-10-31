@@ -92,7 +92,7 @@ public class MemberSignServiceImpl extends ServiceImpl<MemberSignMapper, MemberS
             memberSign.setDay(DateUtil.getDayOfStart().intValue());
             try {
                 this.baseMapper.insert(memberSign);
-                //签到成功后发送消息赠送积分
+                //签到成功后发送消息赠送喵币
                 String destination = rocketmqCustomProperties.getMemberTopic() + ":" + MemberTagsEnum.MEMBER_SING.name();
                 rocketMQTemplate.asyncSend(destination, memberSign, RocketmqSendCallbackBuilder.commonCallback());
                 return true;
@@ -116,28 +116,28 @@ public class MemberSignServiceImpl extends ServiceImpl<MemberSignMapper, MemberS
     @Override
     public void memberSignSendPoint(String memberId, Integer day) {
         try {
-            //获取签到积分赠送设置
+            //获取签到喵币赠送设置
             Setting setting = settingService.get(SettingEnum.POINT_SETTING.name());
             if (setting != null) {
                 PointSetting pointSetting = new Gson().fromJson(setting.getSettingValue(), PointSetting.class);
                 String content = "";
-                //赠送积分
+                //赠送喵币
                 Long point = null;
                 List<PointSettingItem> pointSettingItems = pointSetting.getPointSettingItems();
                 if (!pointSettingItems.isEmpty()) {
                     for (PointSettingItem item : pointSettingItems) {
                         if (item.getDay().equals(day)) {
                             point = item.getPoint().longValue();
-                            content = "会员连续签到" + day + "天，赠送积分" + point + "分";
+                            content = "会员连续签到" + day + "天，赠送喵币" + point + "分";
                         }
                     }
                 }
-                //如果他不处于连续赠送阶段，则只赠送签到积分数
+                //如果他不处于连续赠送阶段，则只赠送签到喵币数
                 if (point == null && pointSetting.getSignIn() != null) {
                     point = Long.valueOf(pointSetting.getSignIn().toString());
-                    content = "会员签到第" + day + "天，赠送积分" + point + "分";
+                    content = "会员签到第" + day + "天，赠送喵币" + point + "分";
                 }
-                //赠送会员积分
+                //赠送会员喵币
                 memberService.updateMemberPoint(point, PointTypeEnum.INCREASE.name(), memberId, content);
             }
         } catch (Exception e) {

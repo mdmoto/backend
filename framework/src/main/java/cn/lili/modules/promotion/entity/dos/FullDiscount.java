@@ -41,10 +41,10 @@ public class FullDiscount extends BasePromotions {
     @ApiModelProperty(value = "打折")
     private Double fullRate;
 
-    @ApiModelProperty(value = "是否赠送积分")
+    @ApiModelProperty(value = "是否赠送喵币")
     private Boolean pointFlag;
 
-    @ApiModelProperty(value = "赠送多少积分")
+    @ApiModelProperty(value = "赠送多少喵币")
     private Integer point;
 
     @ApiModelProperty(value = "是否包邮")

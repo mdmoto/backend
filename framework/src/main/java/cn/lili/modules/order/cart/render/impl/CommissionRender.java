@@ -71,7 +71,7 @@ public class CommissionRender implements CartRenderStep {
                     priceDetailDTO.setPlatFormCommissionPoint(commissionRate);
                 }
 
-                //如果积分订单 积分订单，单独操作订单结算金额和商家结算字段
+                //如果积分订单 喵币订单，单独操作订单结算金额和商家结算字段
                 if (tradeDTO.getCartTypeEnum().equals(CartTypeEnum.POINTS) && tradeDTO.getSkuList().get(0).getPromotionMap() != null && !tradeDTO.getSkuList().get(0).getPromotionMap().isEmpty()) {
                     Optional<Map.Entry<String, Object>> pointsPromotions = tradeDTO.getSkuList().get(0).getPromotionMap().entrySet().stream().filter(i -> i.getKey().contains(PromotionTypeEnum.POINTS_GOODS.name())).findFirst();
                     if (pointsPromotions.isPresent()) {

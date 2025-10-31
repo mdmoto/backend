@@ -28,7 +28,7 @@ public class AfterSalePriceDetailDTO implements Serializable {
 
     //============discount price============
 
-    @ApiModelProperty(value = "支付积分")
+    @ApiModelProperty(value = "支付喵币")
     private Integer payPoint;
 
     @ApiModelProperty(value = "优惠金额")

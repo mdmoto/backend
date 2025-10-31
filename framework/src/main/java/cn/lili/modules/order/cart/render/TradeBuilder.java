@@ -110,7 +110,7 @@ public class TradeBuilder {
      * @return 返回是否单品
      */
     private boolean isSingle(CartTypeEnum checkedWay) {
-        //拼团   积分   砍价商品
+        //拼团   喵币   砍价商品
 
         return (checkedWay.equals(CartTypeEnum.POINTS) || checkedWay.equals(CartTypeEnum.KANJIA));
     }

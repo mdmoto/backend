@@ -62,7 +62,7 @@ public class FullDiscountVO extends FullDiscount {
         }
 
         if (Boolean.TRUE.equals(this.getPointFlag())) {
-            stringBuffer.append(" 赠").append(this.getPoint()).append("积分 ");
+            stringBuffer.append(" 赠").append(this.getPoint()).append("喵币 ");
         }
         if (Boolean.TRUE.equals(this.getCouponFlag())) {
             stringBuffer.append(" 赠").append("优惠券 ");

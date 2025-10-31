@@ -12,10 +12,10 @@ import lombok.Data;
 @Data
 public class MemberPointMessage {
 
-    @ApiModelProperty(value = "积分")
+    @ApiModelProperty(value = "喵币")
     private Long point;
 
-    @ApiModelProperty(value = "是否增加积分")
+    @ApiModelProperty(value = "是否增加喵币")
     private String type;
 
     @ApiModelProperty(value = "会员id")

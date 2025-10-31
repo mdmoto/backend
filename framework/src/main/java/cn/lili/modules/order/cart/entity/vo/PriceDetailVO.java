@@ -26,7 +26,7 @@ public class PriceDetailVO implements Serializable {
     @ApiModelProperty(value = "优惠金额")
     private Double discountPrice;
 
-    @ApiModelProperty(value = "支付积分")
+    @ApiModelProperty(value = "支付喵币")
     private Long payPoint;
 
     @ApiModelProperty(value = "最终成交金额")

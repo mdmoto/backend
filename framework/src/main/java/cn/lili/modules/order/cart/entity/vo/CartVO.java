@@ -57,7 +57,7 @@ public class CartVO extends CartBase implements Serializable {
     @ApiModelProperty(value = "赠送优惠券列表")
     private List<String> giftCouponList;
 
-    @ApiModelProperty(value = "赠送积分")
+    @ApiModelProperty(value = "赠送喵币")
     private Integer giftPoint;
 
     @ApiModelProperty(value = "重量")

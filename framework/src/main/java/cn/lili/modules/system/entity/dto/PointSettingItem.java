@@ -19,7 +19,7 @@ public class PointSettingItem implements Comparable<PointSettingItem>, Serializa
     private Integer day;
 
 
-    @ApiModelProperty(value = "赠送积分")
+    @ApiModelProperty(value = "赠送喵币")
     private Integer point;
 
     public Integer getPoint() {

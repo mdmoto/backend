@@ -80,7 +80,7 @@ public class CartController {
     @ApiOperation(value = "获取购物车可用优惠券数量")
     @GetMapping("/coupon/num")
     @ApiImplicitParams({
-            @ApiImplicitParam(name = "way", value = "购物车购买：CART/立即购买：BUY_NOW/拼团购买：PINTUAN / 积分购买：POINT ", required = true, paramType = "query")
+            @ApiImplicitParam(name = "way", value = "购物车购买：CART/立即购买：BUY_NOW/拼团购买：PINTUAN / 喵币购买：POINT ", required = true, paramType = "query")
     })
     public ResultMessage<Long> cartCouponNum(String way) {
         return ResultUtil.data(this.cartService.getCanUseCoupon(CartTypeEnum.valueOf(way)));
@@ -153,7 +153,7 @@ public class CartController {
 
     @ApiOperation(value = "获取结算页面购物车详情")
     @ApiImplicitParams({
-            @ApiImplicitParam(name = "way", value = "购物车购买：CART/立即购买：BUY_NOW/拼团购买：PINTUAN / 积分购买：POINT ", required = true, paramType = "query")
+            @ApiImplicitParam(name = "way", value = "购物车购买：CART/立即购买：BUY_NOW/拼团购买：PINTUAN / 喵币购买：POINT ", required = true, paramType = "query")
     })
     @GetMapping("/checked")
     public ResultMessage<TradeDTO> cartChecked(@NotNull(message = "读取选中列表") String way) {
@@ -248,7 +248,7 @@ public class CartController {
 
     @ApiOperation(value = "选择发票")
     @ApiImplicitParams({
-            @ApiImplicitParam(name = "way", value = "购物车购买：CART/立即购买：BUY_NOW/拼团购买：PINTUAN / 积分购买：POINT ", required = true, paramType = "query"),
+            @ApiImplicitParam(name = "way", value = "购物车购买：CART/立即购买：BUY_NOW/拼团购买：PINTUAN / 喵币购买：POINT ", required = true, paramType = "query"),
     })
     @GetMapping("/select/receipt")
     public ResultMessage<Object> selectReceipt(String way, ReceiptVO receiptVO) {
@@ -258,7 +258,7 @@ public class CartController {
 
     @ApiOperation(value = "选择优惠券")
     @ApiImplicitParams({
-            @ApiImplicitParam(name = "way", value = "购物车购买：CART/立即购买：BUY_NOW/拼团购买：PINTUAN / 积分购买：POINT ", required = true, paramType = "query"),
+            @ApiImplicitParam(name = "way", value = "购物车购买：CART/立即购买：BUY_NOW/拼团购买：PINTUAN / 喵币购买：POINT ", required = true, paramType = "query"),
             @ApiImplicitParam(name = "memberCouponId", value = "优惠券id ", required = true, paramType = "query"),
             @ApiImplicitParam(name = "used", value = "使用true 弃用false ", required = true, paramType = "query")
     })

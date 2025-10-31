@@ -14,18 +14,18 @@ import lombok.Data;
 public class ExchangeVO {
 
     /** 是否允许兑换 */
-    @ApiModelProperty(value="是否允许积分兑换")
+    @ApiModelProperty(value="是否允许喵币兑换")
     private Integer enableExchange;
 
     /** 兑换所需金额 */
     @ApiModelProperty(value="兑换所需金额 ")
     private Double exchangeMoney;
 
-    /** 商品所属积分分类 */
-    @ApiModelProperty(value="积分兑换所属分类 ")
+    /** 商品所属喵币分类 */
+    @ApiModelProperty(value="喵币兑换所属分类 ")
     private Integer categoryId;
 
-    /** 兑换所需积分 */
-    @ApiModelProperty(value="积分兑换使用的积分 ")
+    /** 兑换所需喵币 */
+    @ApiModelProperty(value="积分兑换使用的喵币 ")
     private Integer exchangePoint;
 }

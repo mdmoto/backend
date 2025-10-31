@@ -88,9 +88,9 @@ ALTER TABLE li_order_item ADD `is_refund` varchar(255) DEFAULT NULL COMMENT '是
 ALTER TABLE li_order_item ADD `refund_price` decimal(10,2) DEFAULT NULL COMMENT '退款金额';
 
 /**
-  结算单表，增加砍价/积分退款金额字段
+  结算单表，增加砍价/喵币退款金额字段
  */
-ALTER TABLE li_bill  ADD `point_refund_settlement_price` decimal(10,2) DEFAULT NULL COMMENT '退货积分补贴返还';
+ALTER TABLE li_bill  ADD `point_refund_settlement_price` decimal(10,2) DEFAULT NULL COMMENT '退货喵币补贴返还';
 ALTER TABLE li_bill  ADD `kanjia_refund_settlement_price` decimal(10,2) DEFAULT NULL COMMENT '退货砍价补贴返还';
 
 UPDATE li_bill b

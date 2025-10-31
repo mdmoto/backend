@@ -68,9 +68,9 @@ public enum ResultCode {
     GOODS_UNDER_ERROR(11003, "商品下架失败"),
     GOODS_UPPER_ERROR(11004, "商品上架失败"),
     GOODS_AUTH_ERROR(11005, "商品审核失败"),
-    POINT_GOODS_ERROR(11006, "积分商品业务异常，请稍后重试"),
-    POINT_GOODS_NOT_EXIST(11020, "积分商品不存在"),
-    POINT_GOODS_CATEGORY_EXIST(11021, "当前积分商品分类已存在"),
+    POINT_GOODS_ERROR(11006, "喵币商品业务异常，请稍后重试"),
+    POINT_GOODS_NOT_EXIST(11020, "喵币商品不存在"),
+    POINT_GOODS_CATEGORY_EXIST(11021, "当前喵币商品分类已存在"),
     GOODS_SKU_SN_ERROR(11007, "商品SKU货号不能为空"),
     GOODS_SKU_PRICE_ERROR(11008, "商品SKU价格不能小于等于0"),
     GOODS_SKU_COST_ERROR(11009, "商品SKU成本价不能小于等于0"),
@@ -142,7 +142,7 @@ public enum ResultCode {
     USER_OVERDUE_CONNECT_ERROR(20022, "授权信息已过期，请重新授权/登录"),
     USER_CONNECT_BANDING_ERROR(20023, "当前联合登陆方式，已绑定其他账号，需进行解绑操作"),
     USER_CONNECT_NOT_EXIST_ERROR(20024, "暂无联合登陆信息，无法实现一键注册功能，请点击第三方登录进行授权"),
-    USER_POINTS_ERROR(20024, "用户积分不足"),
+    USER_POINTS_ERROR(20024, "用户喵币不足"),
     CLERK_SUPPER(20025, "店主无法操作"),
     CLERK_SAVE_ERROR(20026, "店员保存失败"),
     CLERK_NOT_FOUND_ERROR(20027, "店员不存在"),
@@ -206,7 +206,7 @@ public enum ResultCode {
     ORDER_CAN_NOT_CANCEL(31012, "当前订单状态不可取消"),
     ORDER_BATCH_DELIVER_ERROR(31013, "批量发货,文件读取失败"),
     ORDER_ITEM_NOT_EXIST(31014, "当前订单项不存在！"),
-    POINT_NOT_ENOUGH(31015, "当前会员积分不足购买当前积分商品！"),
+    POINT_NOT_ENOUGH(31015, "当前会员积分不足购买当前喵币商品！"),
     ORDER_LABEL_ORDER_ERROR(31016, "订单不能打印电子面单"),
     ORDER_PRICE_ERROR(31017,"订单金额不能小于等于0"),
     ORDER_PACKAGE_NOT_EXIST(31017, "当前订单包裹不存在！"),
@@ -225,7 +225,7 @@ public enum ResultCode {
     PAY_PARTIAL_ERROR(32007, "该订单已部分支付，请前往订单中心进行支付"),
     PAY_NOT_SUPPORT(32008, "支付暂不支持"),
     PAY_CLIENT_TYPE_ERROR(32009, "错误的客户端"),
-    PAY_POINT_ENOUGH(32010, "积分不足，不能兑换"),
+    PAY_POINT_ENOUGH(32010, "喵币不足，不能兑换"),
     PAY_NOT_EXIST_ORDER(32011, "支付订单不存在"),
     CAN_NOT_RECHARGE_WALLET(32012, "不能使用余额进行充值"),
     RECHARGE_PRICE_ERROR(32013, "充值金额错误"),
@@ -393,7 +393,7 @@ public enum ResultCode {
      */
     MEMBER_SIGN_REPEAT(47001, "请勿重复签到"),
     POINT_GOODS_ACTIVE_STOCK_ERROR(47002, "活动库存数量不能高于商品库存"),
-    POINT_GOODS_ACTIVE_STOCK_INSUFFICIENT(47003, "积分商品库存不足"),
+    POINT_GOODS_ACTIVE_STOCK_INSUFFICIENT(47003, "喵币商品库存不足"),
 
     /**
      * 砍价活动

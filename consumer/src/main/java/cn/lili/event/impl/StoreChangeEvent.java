@@ -166,7 +166,7 @@ public class StoreChangeEvent implements StoreSettingChangeEvent {
         couponActivityService.update(updateWrapper);
         //修改砍价活动商品中店铺名称
         kanjiaActivityGoodsService.update(updateWrapper);
-        //修改积分商品中店铺名称
+        //修改喵币商品中店铺名称
         pointsGoodsService.update(updateWrapper);
         //修改促销商品中店铺名称
         promotionGoodsService.update(updateWrapper);

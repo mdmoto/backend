@@ -34,7 +34,7 @@ public class PointLogInterceptor {
         //参数
         Object[] obj = pjp.getArgs();
         try {
-            //变动积分
+            //变动喵币
             Long point = 0L;
             if (obj[0] != null) {
                 point = Long.valueOf(obj[0].toString());
@@ -49,7 +49,7 @@ public class PointLogInterceptor {
             if (obj[2] != null) {
                 memberId = obj[2].toString();
             }
-            // 变动积分为0，则直接返回
+            // 变动喵币为0，则直接返回
             if (point == 0) {
                 return;
             }
@@ -75,7 +75,7 @@ public class PointLogInterceptor {
                 memberPointsHistoryService.save(memberPointsHistory);
             }
         } catch (Exception e) {
-            log.error("积分操作错误", e);
+            log.error("喵币操作错误", e);
         }
 
 

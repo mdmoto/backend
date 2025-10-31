@@ -15,11 +15,11 @@ public enum NoticeMessageParameterEnum {
     /**
      * 消费积分
      */
-    EXPENDITURE_POINTS("expenditure_points", "消费积分"),
+    EXPENDITURE_POINTS("expenditure_points", "消费喵币"),
     /**
      * 获得积分
      */
-    INCOME_POINTS("income_points", "获得积分"),
+    INCOME_POINTS("income_points", "获得喵币"),
     /**
      * 支出金额
      */

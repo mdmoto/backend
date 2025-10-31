@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @since 2021/1/19
  **/
 @RestController
-@Api(tags = "买家端,积分商品接口")
+@Api(tags = "买家端,喵币商品接口")
 @RequestMapping("/buyer/promotion/pointsGoods")
 public class PointsGoodsBuyerController {
     @Autowired
@@ -36,7 +36,7 @@ public class PointsGoodsBuyerController {
     private PointsGoodsCategoryService pointsGoodsCategoryService;
 
     @GetMapping
-    @ApiOperation(value = "分页获取积分商品")
+    @ApiOperation(value = "分页获取喵币商品")
     public ResultMessage<IPage<PointsGoods>> getPointsGoodsPage(PointsGoodsSearchParams searchParams, PageVO page) {
         searchParams.setPromotionStatus(PromotionsStatusEnum.START.name());
         IPage<PointsGoods> pointsGoodsByPage = pointsGoodsService.pageFindAll(searchParams, page);
@@ -44,14 +44,14 @@ public class PointsGoodsBuyerController {
     }
 
     @GetMapping("/category")
-    @ApiOperation(value = "获取积分商品分类分页")
+    @ApiOperation(value = "获取喵币商品分类分页")
     public ResultMessage<IPage<PointsGoodsCategory>> page(String name, PageVO page) {
         return ResultUtil.data(pointsGoodsCategoryService.getCategoryByPage(name, page));
     }
 
     @GetMapping("/{id}")
-    @ApiOperation(value = "获取积分活动商品")
-    @ApiImplicitParam(name = "id", value = "积分商品ID", required = true, paramType = "path")
+    @ApiOperation(value = "获取喵币活动商品")
+    @ApiImplicitParam(name = "id", value = "喵币商品ID", required = true, paramType = "path")
     public ResultMessage<PointsGoodsVO> getPointsGoodsPage(@PathVariable String id) {
         return ResultUtil.data(pointsGoodsService.getPointsGoodsDetail(id));
     }

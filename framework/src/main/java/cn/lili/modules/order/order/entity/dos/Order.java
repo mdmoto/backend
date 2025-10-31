@@ -294,7 +294,7 @@ public class Order extends BaseEntity {
             this.setOrderType(OrderTypeEnum.VIRTUAL.name());
             this.setOrderPromotionType(OrderPromotionTypeEnum.NORMAL.name());
         } else {
-            //促销订单（拼团、积分）-判断购买的是虚拟商品还是实物商品
+            //促销订单（拼团、喵币）-判断购买的是虚拟商品还是实物商品
             String goodsType = cartVO.getCheckedSkuList().get(0).getGoodsSku().getGoodsType();
             if (CharSequenceUtil.isEmpty(goodsType) || goodsType.equals(GoodsTypeEnum.PHYSICAL_GOODS.name())) {
                 this.setOrderType(OrderTypeEnum.NORMAL.name());

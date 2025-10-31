@@ -1,0 +1,259 @@
+server:
+  servlet:
+    context-path: /
+
+  tomcat:
+    uri-encoding: UTF-8
+    threads:
+      min-spare: 50
+      max: 1000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+
+spring:
+  mail:
+    host: smtp.qq.com
+    port: 465
+    username: YOUR_EMAIL@qq.com
+    password: YOUR_EMAIL_PASSWORD
+    protocol: smtps
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+  boot:
+    admin:
+      client:
+        url: http://127.0.0.1:8000
+  cache:
+    type: redis
+  # Redis - 连接 Docker 容器
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    password: lilishop
+    lettuce:
+      pool:
+        max-active: 200
+        max-wait: 20
+        max-idle: 10
+        min-idle: 8
+  
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+  
+  jackson:
+    time-zone: GMT+8
+    serialization:
+      fail-on-empty-beans: false
+
+  shardingsphere:
+    datasource:
+      names: default-datasource
+      default-datasource:
+        type: com.alibaba.druid.pool.DruidDataSource
+        driverClassName: com.mysql.cj.jdbc.Driver
+        url: jdbc:mysql://127.0.0.1:3306/lilishop?useUnicode=true&characterEncoding=utf-8&useSSL=false&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+        username: root
+        password: lilishop
+        maxActive: 50
+        initialSize: 20
+        maxWait: 60000
+        minIdle: 5
+        timeBetweenEvictionRunsMillis: 60000
+        minEvictableIdleTimeMillis: 300000
+        validationQuery: SELECT 1 FROM DUAL
+        testWhileIdle: true
+        testOnBorrow: false
+        testOnReturn: false
+        poolPreparedStatements: false
+        maxOpenPreparedStatements: -1
+        filters: stat,wall,log4j2
+        connectionProperties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000
+        useGlobalDataSourceStat: true
+        loginUsername: druid
+        loginPassword: druid
+    props:
+      sql:
+        show: false
+
+# 忽略鉴权url
+ignored:
+  urls:
+    - /editor-app/**
+    - /actuator**
+    - /actuator/**
+    - /MP_verify_qSyvBPhDsPdxvOhC.txt
+    - /weixin/**
+    - /source/**
+    - /store/passport/login/**
+    - /store/passport/login/refresh/**
+    - /common/common/slider/**
+    - /common/common/sms/**
+    - /common/common/site
+    - /buyer/payment/cashier/**
+    - /buyer/other/pageData/**
+    - /buyer/other/article/**
+    - /buyer/goods/**
+    - /buyer/store/**
+    - /buyer/passport/connect/**
+    - /buyer/members/**
+    - /buyer/passport/member/**
+    - /buyer/passport/member/refresh/**
+    - /buyer/promotion/pintuan/**
+    - /buyer/promotion/seckill/**
+    - /buyer/promotion/pointsGoods/**
+    - /buyer/promotion/coupon
+    - /buyer/member/evaluation/**/goodsEvaluation
+    - /buyer/member/evaluation/**/evaluationNumber
+    - /buyer/other/appVersion/**
+    - /buyer/broadcast/studio/**
+    - /manager/passport/user/login
+    - /manager/passport/user/refresh/**
+    - /manager/other/elasticsearch
+    - /manager/other/customWords
+    - /druid/**
+    - /swagger-ui.html
+    - /doc.html
+    - /swagger-resources/**
+    - /swagger/**
+    - /webjars/**
+    - /v2/api-docs**
+    - /configuration/ui
+    - /boot-admin
+    - /manager/promotion/seckill/init
+    - /**/*.js
+    - /**/*.css
+    - /**/*.png
+    - /**/*.ico
+
+# Swagger 配置
+swagger:
+  title: lilishop API接口文档
+  description: lilishop Api Documentation
+  version: 4.3.0
+  termsOfServiceUrl: https://docs.pickmall.cn
+  contact:
+    name: lili
+    url: https://docs.pickmall.cn
+    email: admin@pickmall.com
+
+# Mybatis-plus
+mybatis-plus:
+  mapper-locations: classpath*:mapper/*.xml
+  configuration:
+    cache-enabled: true
+
+# 日志
+logging:
+  level:
+    cn.lili: info
+  file:
+    path: logs
+  logback:
+    rollingpolicy:
+      max-history: 7
+      max-file-size: 5MB
+
+# 加密参数
+jasypt:
+  encryptor:
+    password: lili
+
+lili:
+  verification-code:
+    effectiveTime: 300
+    watermark: LILI-SHOP
+    interfereNum: 1
+    faultTolerant: 3
+  system:
+    isDemoSite: false
+    sensitiveLevel: 1
+  statistics:
+    onlineMember: 48
+    currentOnlineUpdate: 600
+  lbs:
+    key: 4BYBZ-7MT6S-PUAOA-6BNWL-FJUD7-UUFXT
+    sk: zhNKVrJK6UPOhqIjn8AQvG37b9sz6
+  # 域名配置 - 根据实际域名修改
+  domain:
+    pc: https://www.maollar.com
+    wap: https://m.maollar.com
+    seller: https://seller.maollar.com
+    admin: https://admin.maollar.com
+  # API 地址配置
+  api:
+    buyer: https://api.maollar.com
+    base: https://api.maollar.com
+    manager: https://api.maollar.com
+    seller: https://api.maollar.com
+
+  jwt-setting:
+    tokenExpireTime: 30
+
+  cache:
+    timeout: 1500
+  thread:
+    corePoolSize: 5
+    maxPoolSize: 50
+    queueCapacity: 50
+  data:
+    elasticsearch:
+      cluster-name: elasticsearch
+      cluster-nodes: 127.0.0.1:9200
+      index:
+        number-of-replicas: 0
+        number-of-shards: 3
+      index-prefix: lili
+      schema: http
+
+    logstash:
+      server: 127.0.0.1:4560
+    rocketmq:
+      promotion-topic: shop_lili_promotion_topic
+      promotion-group: shop_lili_promotion_group
+      msg-ext-topic: shop_lili_msg_topic
+      msg-ext-group: shop_lili_msg_group
+      goods-topic: shop_lili_goods_topic
+      goods-group: shop_lili_goods_group
+      order-topic: shop_lili_order_topic
+      order-group: shop_lili_order_group
+      member-topic: shop_lili_member_topic
+      member-group: shop_lili_member_group
+      other-topic: shop_lili_other_topic
+      other-group: shop_lili_other_group
+      notice-topic: shop_lili_notice_topic
+      notice-group: shop_lili_notice_group
+      notice-send-topic: shop_lili_send_notice_topic
+      notice-send-group: shop_lili_send_notice_group
+      after-sale-topic: shop_lili_after_sale_topic
+      after-sale-group: shop_lili_after_sale_group
+
+rocketmq:
+  name-server: 127.0.0.1:9876
+  isVIPChannel: false
+  producer:
+    group: lili_group
+    send-message-timeout: 30000
+
+xxl:
+  job:
+    admin:
+      addresses: http://127.0.0.1:9001/xxl-job-admin
+    executor:
+      appname: xxl-job-executor-lilishop
+      address:
+      ip:
+      port: 8891
+      logpath: ./xxl-job/executor
+      logretentiondays: 7
+

@@ -458,7 +458,7 @@ public class AfterSaleServiceImpl extends ServiceImpl<AfterSaleMapper, AfterSale
         //写入状态
         afterSale.setServiceStatus(AfterSaleStatusEnum.APPLY.name());
 
-        //TODO 退还积分
+        //TODO 退还喵币
 
         //创建售后单号
         afterSale.setSn(SnowFlake.createStr("A"));

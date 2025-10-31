@@ -118,14 +118,14 @@ public class FullDiscountExecute implements TradeEvent, OrderStatusChangeEvent {
             return;
         }
         Order order = orderService.getBySn(orderMessage.getOrderSn());
-        //赠送积分判定
+        //赠送喵币判定
         try {
             if (cartVO.getGiftPoint() != null && cartVO.getGiftPoint() > 0) {
                 memberService.updateMemberPoint(cartVO.getGiftPoint().longValue(), PointTypeEnum.INCREASE.name(),
-                        order.getMemberId(), "订单满优惠赠送积分" + cartVO.getGiftPoint());
+                        order.getMemberId(), "订单满优惠赠送喵币" + cartVO.getGiftPoint());
             }
         } catch (Exception e) {
-            log.error("订单赠送积分异常", e);
+            log.error("订单赠送喵币异常", e);
         }
 
 

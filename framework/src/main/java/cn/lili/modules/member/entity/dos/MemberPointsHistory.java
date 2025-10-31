@@ -25,7 +25,7 @@ import java.util.Date;
  */
 @Data
 @TableName("li_member_points_history")
-@ApiModel(value = "会员积分历史")
+@ApiModel(value = "会员喵币历史")
 public class MemberPointsHistory extends BaseIdEntity {
 
     private static final long serialVersionUID = 1L;
@@ -50,13 +50,13 @@ public class MemberPointsHistory extends BaseIdEntity {
     @ApiModelProperty(value = "会员名称")
     private String memberName;
 
-    @ApiModelProperty(value = "当前积分")
+    @ApiModelProperty(value = "当前喵币")
     private Long point;
 
-    @ApiModelProperty(value = "消费之前积分")
+    @ApiModelProperty(value = "消费之前喵币")
     private Long beforePoint;
 
-    @ApiModelProperty(value = "变动积分")
+    @ApiModelProperty(value = "变动喵币")
     private Long variablePoint;
 
     @ApiModelProperty(value = "content")
@@ -65,7 +65,7 @@ public class MemberPointsHistory extends BaseIdEntity {
     /**
      * @see cn.lili.modules.member.entity.enums.PointTypeEnum
      */
-    @ApiModelProperty(value = "积分类型")
+    @ApiModelProperty(value = "喵币类型")
     private String pointType;
 
 }

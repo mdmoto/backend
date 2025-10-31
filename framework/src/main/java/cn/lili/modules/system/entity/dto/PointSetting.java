@@ -20,19 +20,19 @@ public class PointSetting implements Serializable {
     @ApiModelProperty(value = "注册")
     private Integer register;
 
-    @ApiModelProperty(value = "消费1元赠送多少积分")
+    @ApiModelProperty(value = "消费1元赠送多少喵币")
     private Integer consumer;
 
-    @ApiModelProperty(value = "积分付款X积分=1元")
+    @ApiModelProperty(value = "积分付款X喵币=1元")
     private Integer money;
 
-    @ApiModelProperty(value = "每日签到积分")
+    @ApiModelProperty(value = "每日签到喵币")
     private Integer signIn;
 
-    @ApiModelProperty(value = "订单评价赠送积分")
+    @ApiModelProperty(value = "订单评价赠送喵币")
     private Integer comment;
 
-    @ApiModelProperty(value = "积分具体设置")
+    @ApiModelProperty(value = "喵币具体设置")
     private List<PointSettingItem> pointSettingItems = new ArrayList<>();
 
     public Integer getRegister() {

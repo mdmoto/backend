@@ -159,7 +159,7 @@ public class WechatMessageServiceImpl extends ServiceImpl<WechatMessageMapper, W
         msg.add(new WechatMessageData(
                 "订单完成",
                 "您的订单已完成，是否有什么想对掌柜说的话呢",
-                "诚邀您来评价，评价还赠送积分哦",
+                "诚邀您来评价，评价还赠送喵币哦",
                 "OPENTM416131050",
                 WechatMessageItemEnums.MEMBER_NAME.name() + "," + WechatMessageItemEnums.ORDER_SN.name() + "," +
                         WechatMessageItemEnums.PRICE.name() + "," + WechatMessageItemEnums.GOODS_INFO.name(),

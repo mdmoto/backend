@@ -16,10 +16,10 @@
 
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
-/** 添加结算单积分、砍价结算价信息**/
-ALTER TABLE li_bill ADD point_settlement_price double DEFAULT 0.00 COMMENT '积分商品结算金额 ';
+/** 添加结算单喵币、砍价结算价信息**/
+ALTER TABLE li_bill ADD point_settlement_price double DEFAULT 0.00 COMMENT '喵币商品结算金额 ';
 ALTER TABLE li_bill ADD kanjia_settlement_price double DEFAULT 0.00 COMMENT '砍价商品结算金额';
-ALTER TABLE li_store_flow ADD point_settlement_price double DEFAULT 0.00 COMMENT '积分商品结算金额';
+ALTER TABLE li_store_flow ADD point_settlement_price double DEFAULT 0.00 COMMENT '喵币商品结算金额';
 ALTER TABLE li_store_flow ADD kanjia_settlement_price double DEFAULT 0.00 COMMENT '砍价商品结算金额';
 ALTER TABLE li_order ADD order_promotion_type varchar(255) DEFAULT null COMMENT '订单促销类型';
 
@@ -129,8 +129,8 @@ INSERT INTO `li_menu` VALUES (1367053087121866752, 'admin', '2021-03-03 10:03:49
 INSERT INTO `li_menu` VALUES (1372807928452481024, 'admin', '2021-03-19 02:11:30', b'0', NULL, NULL, NULL, 'Main', 'ios-aperture', 1, 'flow', '1367039534616805376', '/', 3.00, '流水', NULL, NULL);
 INSERT INTO `li_menu` VALUES (1372808148565360640, 'admin', '2021-03-19 02:12:23', b'0', 'admin', '2021-07-27 16:03:57', NULL, 'order/flow/paymentLog', 'md-alert', 2, 'paymentLog', '1372807928452481024', 'paymentLog', 1.00, '收款记录', NULL, '/manager/paymentLog*');
 INSERT INTO `li_menu` VALUES (1372808352295288832, 'admin', '2021-03-19 02:13:11', b'0', 'admin', '2021-07-27 16:04:01', NULL, 'order/flow/refundLog', 'ios-aperture', 2, 'refundLog', '1372807928452481024', 'refundLog', 2.00, '退款流水', NULL, '/manager/refundLog*');
-INSERT INTO `li_menu` VALUES (1373166892465782784, 'admin', '2021-03-20 01:57:54', b'0', 'admin', '2021-03-22 20:13:48', 'null', 'Main', 'ios-aperture', 1, '/', '1367038467288072192', '/', 0.00, '积分', 'null', NULL);
-INSERT INTO `li_menu` VALUES (1373167227385151488, 'admin', '2021-03-20 01:59:14', b'0', 'admin', '2021-07-27 16:02:40', 'null', 'member/point/point', 'ios-aperture', 2, 'point', '1373166892465782784', 'point', 0.00, '积分历史', 'null', '/manager/member/memberPointsHistory*');
+INSERT INTO `li_menu` VALUES (1373166892465782784, 'admin', '2021-03-20 01:57:54', b'0', 'admin', '2021-03-22 20:13:48', 'null', 'Main', 'ios-aperture', 1, '/', '1367038467288072192', '/', 0.00, '喵币', 'null', NULL);
+INSERT INTO `li_menu` VALUES (1373167227385151488, 'admin', '2021-03-20 01:59:14', b'0', 'admin', '2021-07-27 16:02:40', 'null', 'member/point/point', 'ios-aperture', 2, 'point', '1373166892465782784', 'point', 0.00, '喵币历史', 'null', '/manager/member/memberPointsHistory*');
 INSERT INTO `li_menu` VALUES (1373791578371391488, 'admin', '2021-03-21 19:20:11', b'0', 'admin', '2021-07-27 16:05:38', NULL, 'seller/bill/accountStatementBill', 'md-alert', 2, 'accountStatementBill', '1367048754229673984', 'accountStatementBill', 0.00, '商家对账', NULL, '/manager/store/bill*');
 INSERT INTO `li_menu` VALUES (1374154349697040384, 'admin', '2021-03-22 19:21:42', b'0', 'admin', '2021-07-27 16:06:55', 'null', 'Main', 'md-aperture', 1, 'feedback', '1367040599596728320', '/', 3.00, '意见反馈', 'null', '/manager/feedback*');
 INSERT INTO `li_menu` VALUES (1374155741123837952, 'admin', '2021-03-22 19:27:14', b'0', 'admin', '2021-07-27 15:41:40', 'null', 'page/feedback/feedback', 'md-aperture', 2, 'feedback', '1374154349697040384', 'feedback', 0.00, '意见反馈', 'null', 'null');
@@ -149,13 +149,13 @@ INSERT INTO `li_menu` VALUES (1384035281702748160, 'admin', '2021-04-19 14:45:00
 INSERT INTO `li_menu` VALUES (1403988156444962818, 'admin', '2021-06-13 16:10:36', b'0', 'admin', '2021-07-27 16:04:48', 'null', 'promotion/couponActivity/coupon', '', 2, 'coupon-activity', '1367049214198022144', 'coupon-activity', 0.00, '券活动', 'null', '/manager/promotion/couponActivity*');
 INSERT INTO `li_menu` VALUES (1407601962899230721, 'admin', '2021-06-23 15:30:35', b'0', 'admin', '2021-07-27 16:05:08', NULL, 'Main', '', 1, 'liveManage', '1367040067201138688', '/', 2.00, '直播管理', NULL, '/manager/broadcast*');
 INSERT INTO `li_menu` VALUES (1407602049759072258, 'admin', '2021-06-23 15:30:55', b'0', NULL, NULL, NULL, 'promotion/live/live', '', 2, 'live', '1407601962899230721', 'live', 1.00, '直播管理', NULL, NULL);
-INSERT INTO `li_menu` VALUES (1407602441964244994, 'admin', '2021-06-23 15:32:29', b'0', NULL, NULL, NULL, 'Main', '', 1, 'pointManage', '1367040067201138688', '/', 3.00, '积分活动', NULL, NULL);
-INSERT INTO `li_menu` VALUES (1407602516912263170, 'admin', '2021-06-23 15:32:47', b'0', 'admin', '2021-07-27 16:05:14', NULL, 'promotion/pointsGoods/pointsGoods', '', 2, 'pointsGoods', '1407602441964244994', 'pointsGoods', 1.00, '积分商品', NULL, '/manager/promotion/pointsGoods*,/manager/goods*');
-INSERT INTO `li_menu` VALUES (1407602673334636546, 'admin', '2021-06-23 15:33:24', b'0', 'admin', '2021-07-27 16:05:18', NULL, 'promotion/pointsGoodsCategory/pointsGoodsCategory', '', 2, 'pointsGoodsCategory', '1407602441964244994', 'pointsGoodsCategory', 2.00, '积分分类', NULL, '/manager/promotion/pointsGoodsCategory*');
+INSERT INTO `li_menu` VALUES (1407602441964244994, 'admin', '2021-06-23 15:32:29', b'0', NULL, NULL, NULL, 'Main', '', 1, 'pointManage', '1367040067201138688', '/', 3.00, '喵币活动', NULL, NULL);
+INSERT INTO `li_menu` VALUES (1407602516912263170, 'admin', '2021-06-23 15:32:47', b'0', 'admin', '2021-07-27 16:05:14', NULL, 'promotion/pointsGoods/pointsGoods', '', 2, 'pointsGoods', '1407602441964244994', 'pointsGoods', 1.00, '喵币商品', NULL, '/manager/promotion/pointsGoods*,/manager/goods*');
+INSERT INTO `li_menu` VALUES (1407602673334636546, 'admin', '2021-06-23 15:33:24', b'0', 'admin', '2021-07-27 16:05:18', NULL, 'promotion/pointsGoodsCategory/pointsGoodsCategory', '', 2, 'pointsGoodsCategory', '1407602441964244994', 'pointsGoodsCategory', 2.00, '喵币分类', NULL, '/manager/promotion/pointsGoodsCategory*');
 INSERT INTO `li_menu` VALUES (1410862675914764290, 'admin', '2021-07-02 15:27:29', b'0', 'admin', '2021-07-27 16:06:26', 'null', 'distribution/distributionCash', '', 2, 'distributionCash', '1374173575405109248', 'distributionCash', 5.00, '分销提现', 'null', '/manager/distribution/cash*');
 INSERT INTO `li_menu` VALUES (1419926569920536578, 'admin', '2021-07-27 15:44:10', b'0', 'admin', '2021-07-27 16:07:10', NULL, 'customWords/index', NULL, 2, 'customWords', '1367050250249830400', 'customWords', 4.00, 'ES分词', NULL, '/manager/manager/custom-words*');
 COMMIT;
 SET FOREIGN_KEY_CHECKS = 1;
 
-/** 新增会员获的总积分 **/
-ALTER TABLE li_member ADD total_point bigint ( 20 ) DEFAULT 0 COMMENT '积分总数量';
+/** 新增会员获的总喵币 **/
+ALTER TABLE li_member ADD total_point bigint ( 20 ) DEFAULT 0 COMMENT '喵币总数量';

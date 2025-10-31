@@ -94,7 +94,7 @@ public class PointsGoodsCategoryServiceImpl extends ServiceImpl<PointsGoodsCateg
             queryWrapper.ne(PointsGoodsCategory::getId, id);
         }
         if (this.getOne(queryWrapper) != null) {
-            log.error("当前积分商品分类名称" + name + "已存在！");
+            log.error("当前喵币商品分类名称" + name + "已存在！");
             throw new ServiceException(ResultCode.POINT_GOODS_CATEGORY_EXIST);
         }
     }
@@ -108,7 +108,7 @@ public class PointsGoodsCategoryServiceImpl extends ServiceImpl<PointsGoodsCateg
     private PointsGoodsCategory checkExist(String id) {
         PointsGoodsCategory category = this.getById(id);
         if (category == null) {
-            log.error("积分商品分类id为" + id + "的分类不存在");
+            log.error("喵币商品分类id为" + id + "的分类不存在");
             throw new ServiceException();
         }
         return category;

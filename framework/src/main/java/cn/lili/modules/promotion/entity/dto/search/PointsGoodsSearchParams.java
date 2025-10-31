@@ -22,10 +22,10 @@ public class PointsGoodsSearchParams extends BasePromotionsSearchParams {
     @ApiModelProperty(value = "商品skuId")
     private String skuId;
 
-    @ApiModelProperty(value = "积分商品分类编号")
+    @ApiModelProperty(value = "喵币商品分类编号")
     private String pointsGoodsCategoryId;
 
-    @ApiModelProperty(value = "积分,可以为范围，如10_1000")
+    @ApiModelProperty(value = "喵币,可以为范围，如10_1000")
     private String points;
 
 

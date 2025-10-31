@@ -150,7 +150,7 @@ public class BillServiceImpl extends ServiceImpl<BillMapper, Bill> implements Bi
             bill.setDistributionCommission(orderBill.getDistributionCommission() != null ? orderBill.getDistributionCommission() : 0D);
             //平台优惠券补贴
             bill.setSiteCouponCommission(orderBill.getSiteCouponCommission() != null ? orderBill.getSiteCouponCommission() : 0D);
-            //积分商品结算价格
+            //喵币商品结算价格
             bill.setPointSettlementPrice(orderBill.getPointSettlementPrice() != null ? orderBill.getPointSettlementPrice() : 0D);
             //砍价商品结算价格
             bill.setKanjiaSettlementPrice(orderBill.getKanjiaSettlementPrice() != null ? orderBill.getKanjiaSettlementPrice() : 0D);
@@ -275,11 +275,11 @@ public class BillServiceImpl extends ServiceImpl<BillMapper, Bill> implements Bi
         writer.setColumnWidth(17, 15);
         map.put("退单退回平台优惠券补贴", bill.getSiteCouponRefundCommission());
         writer.setColumnWidth(18, 25);
-        map.put("积分商品补贴", bill.getSiteCouponCommission());
+        map.put("喵币商品补贴", bill.getSiteCouponCommission());
         writer.setColumnWidth(19, 15);
-        map.put("积分商品补贴", bill.getPointSettlementPrice());
+        map.put("喵币商品补贴", bill.getPointSettlementPrice());
         writer.setColumnWidth(20, 15);
-        map.put("退单退回积分商品补贴", bill.getPointRefundSettlementPrice());
+        map.put("退单退回喵币商品补贴", bill.getPointRefundSettlementPrice());
         writer.setColumnWidth(21, 25);
         map.put("砍价商品补贴", bill.getKanjiaSettlementPrice());
         writer.setColumnWidth(22, 15);
@@ -305,7 +305,7 @@ public class BillServiceImpl extends ServiceImpl<BillMapper, Bill> implements Bi
         writer.addHeaderAlias("siteCouponPrice", "平台优惠券");
         writer.setColumnWidth(7, 12);
         writer.addHeaderAlias("distributionRebate", "分销金额");
-        writer.addHeaderAlias("pointSettlementPrice", "积分结算金额");
+        writer.addHeaderAlias("pointSettlementPrice", "喵币结算金额");
         writer.setColumnWidth(9, 12);
         writer.addHeaderAlias("kanjiaSettlementPrice", "砍价结算金额");
         writer.setColumnWidth(10, 12);
@@ -332,7 +332,7 @@ public class BillServiceImpl extends ServiceImpl<BillMapper, Bill> implements Bi
         writer.addHeaderAlias("siteCouponPrice", "平台优惠券");
         writer.setColumnWidth(8, 12);
         writer.addHeaderAlias("distributionRebate", "分销金额");
-        writer.addHeaderAlias("pointSettlementPrice", "积分结算金额");
+        writer.addHeaderAlias("pointSettlementPrice", "喵币结算金额");
         writer.setColumnWidth(10, 12);
         writer.addHeaderAlias("kanjiaSettlementPrice", "砍价结算金额");
         writer.setColumnWidth(11, 12);

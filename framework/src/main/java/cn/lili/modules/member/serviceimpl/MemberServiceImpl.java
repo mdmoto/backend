@@ -519,17 +519,17 @@ public class MemberServiceImpl extends ServiceImpl<MemberMapper, Member> impleme
         //获取当前会员信息
         Member member = this.getById(memberId);
         if (member != null) {
-            //积分变动后的会员积分
+            //积分变动后的会员喵币
             long currentPoint;
-            //会员总获得积分
+            //会员总获得喵币
             long totalPoint = member.getTotalPoint();
-            //如果增加积分
+            //如果增加喵币
             if (type.equals(PointTypeEnum.INCREASE.name())) {
                 currentPoint = member.getPoint() + point;
-                //如果是增加积分 需要增加总获得积分
+                //如果是增加积分 需要增加总获得喵币
                 totalPoint = totalPoint + point;
             }
-            //否则扣除积分
+            //否则扣除喵币
             else {
                 currentPoint = member.getPoint() - point < 0 ? 0 : member.getPoint() - point;
             }

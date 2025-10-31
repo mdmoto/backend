@@ -34,7 +34,7 @@ ALTER TABLE li_promotion_goods DROP COLUMN promotion_status;
 ALTER TABLE li_promotion_goods ADD `scope_id` mediumtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin COMMENT '范围关联的ID';
 ALTER TABLE li_promotion_goods ADD `scope_type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT 'PORTION_GOODS' COMMENT '关联范围类型';
 ALTER TABLE li_promotion_goods ADD `original_price` double(10,2) DEFAULT NULL COMMENT '原价';
-ALTER TABLE li_promotion_goods ADD `points` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '兑换积分';
+ALTER TABLE li_promotion_goods ADD `points` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '兑换喵币';
 ALTER TABLE li_promotion_goods ADD `goods_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '商品编号';
 
 ALTER TABLE li_seckill DROP COLUMN promotion_status;

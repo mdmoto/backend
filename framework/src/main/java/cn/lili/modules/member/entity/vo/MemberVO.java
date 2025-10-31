@@ -53,10 +53,10 @@ public class MemberVO implements Serializable {
     @Sensitive(strategy = SensitiveStrategy.PHONE)
     private String mobile;
 
-    @ApiModelProperty(value = "积分数量")
+    @ApiModelProperty(value = "喵币数量")
     private Long point;
 
-    @ApiModelProperty(value = "积分总数量")
+    @ApiModelProperty(value = "喵币总数量")
     private Long totalPoint;
 
     @ApiModelProperty(value = "会员头像")

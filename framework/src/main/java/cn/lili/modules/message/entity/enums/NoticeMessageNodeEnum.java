@@ -42,7 +42,7 @@ public enum NoticeMessageNodeEnum {
     /**
      * 积分
      */
-    POINT_CHANGE("积分变更通知"),
+    POINT_CHANGE("喵币变更通知"),
 
     /**
      * 用户余额

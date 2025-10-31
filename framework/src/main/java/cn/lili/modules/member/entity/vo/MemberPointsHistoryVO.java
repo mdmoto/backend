@@ -12,10 +12,10 @@ import lombok.Data;
 @Data
 public class MemberPointsHistoryVO {
 
-    @ApiModelProperty(value = "当前会员积分")
+    @ApiModelProperty(value = "当前会员喵币")
     private Long point;
 
-    @ApiModelProperty(value = "累计获得积分")
+    @ApiModelProperty(value = "累计获得喵币")
     private Long totalPoint;
 
 

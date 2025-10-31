@@ -72,10 +72,10 @@ public class PointsGoodsServiceImpl extends AbstractPromotionsServiceImpl<Points
             this.initPromotion(pointsGoods);
             this.checkPromotions(pointsGoods);
             if (this.checkSkuDuplicate(pointsGoods.getSkuId(), null) == null) {
-                pointsGoods.setPromotionName("积分商品活动");
+                pointsGoods.setPromotionName("喵币商品活动");
             } else {
                 throw new ServiceException(ResultCode.PROMOTION_LOG_EXIST, "商品id为" + pointsGoods.getSkuId() +
-                        "的商品已参加积分商品活动！");
+                        "的商品已参加喵币商品活动！");
             }
             GoodsSku goodsSku = this.checkSkuExist(pointsGoods.getSkuId());
             pointsGoods.setStoreId(goodsSku.getStoreId());
@@ -170,7 +170,7 @@ public class PointsGoodsServiceImpl extends AbstractPromotionsServiceImpl<Points
         queryWrapper.and(PromotionTools.queryPromotionStatus(PromotionsStatusEnum.START));
         PointsGoods pointsGoods = this.getOne(queryWrapper, false);
         if (pointsGoods == null) {
-            log.error("skuId为" + skuId + "的积分商品不存在！");
+            log.error("skuId为" + skuId + "的喵币商品不存在！");
             throw new ServiceException();
         }
         PointsGoodsVO pointsGoodsVO = new PointsGoodsVO();
@@ -247,7 +247,7 @@ public class PointsGoodsServiceImpl extends AbstractPromotionsServiceImpl<Points
     private PointsGoods checkExist(String id) {
         PointsGoods pointsGoods = this.getById(id);
         if (pointsGoods == null) {
-            log.error("id为{}的积分商品不存在！", id);
+            log.error("id为{}的喵币商品不存在！", id);
             throw new ServiceException();
         }
         return pointsGoods;

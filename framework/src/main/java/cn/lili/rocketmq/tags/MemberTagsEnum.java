@@ -34,7 +34,7 @@ public enum MemberTagsEnum {
     /**
      * 会员积分变动
      */
-    MEMBER_POINT_CHANGE("会员积分变动"),
+    MEMBER_POINT_CHANGE("会员喵币变动"),
     /**
      * 会员使用联合登录
      */

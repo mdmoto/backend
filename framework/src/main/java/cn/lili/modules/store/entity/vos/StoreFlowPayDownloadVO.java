@@ -50,7 +50,7 @@ public class StoreFlowPayDownloadVO {
     @ApiModelProperty(value = "单品分销返现支出")
     private Double distributionRebate;
 
-    @ApiModelProperty(value = "积分活动商品结算价格")
+    @ApiModelProperty(value = "喵币活动商品结算价格")
     private Double pointSettlementPrice;
 
     @ApiModelProperty(value = "砍价活动商品结算价格")

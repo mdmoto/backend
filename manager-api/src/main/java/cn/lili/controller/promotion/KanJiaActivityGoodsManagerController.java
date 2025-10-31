@@ -50,7 +50,7 @@ public class KanJiaActivityGoodsManagerController {
 
 
     @GetMapping("/{id}")
-    @ApiOperation(value = "获取积分商品详情")
+    @ApiOperation(value = "获取喵币商品详情")
     public ResultMessage<Object> getPointsGoodsDetail(@PathVariable("id") String goodsId) {
         KanjiaActivityGoodsDTO kanJiaActivityGoodsDTO = kanJiaActivityGoodsService.getKanjiaGoodsDetail(goodsId);
         return ResultUtil.data(kanJiaActivityGoodsDTO);

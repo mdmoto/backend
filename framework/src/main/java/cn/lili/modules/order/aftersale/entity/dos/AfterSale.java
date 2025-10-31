@@ -126,7 +126,7 @@ public class AfterSale extends BaseEntity {
     @ApiModelProperty(value = "实际退款金额")
     private Double actualRefundPrice;
 
-    @ApiModelProperty(value = "退还积分")
+    @ApiModelProperty(value = "退还喵币")
     private Integer refundPoint;
 
     @ApiModelProperty(value = "退款时间")

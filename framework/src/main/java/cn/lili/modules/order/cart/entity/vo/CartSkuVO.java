@@ -76,10 +76,10 @@ public class CartSkuVO extends CartBase implements Serializable {
     @ApiModelProperty(value = "砍价ID")
     private String kanjiaId;
 
-    @ApiModelProperty(value = "积分兑换ID")
+    @ApiModelProperty(value = "喵币兑换ID")
     private String pointsId;
 
-    @ApiModelProperty(value = "积分购买 积分数量")
+    @ApiModelProperty(value = "积分购买 喵币数量")
     private Long point;
 
     @ApiModelProperty("商品促销活动集合，key 为 促销活动类型，value 为 促销活动实体信息 ")
