@@ -11,6 +11,9 @@ public enum ConnectEnum {
     /**
      * 联合登陆枚举各个类型
      */
+    GOOGLE("Google登录"),
+    
+    // 保留以下枚举以保持代码兼容性（已禁用）
     QQ("QQ登录"),
     WEIBO("微博联合登录"),
     //只存放unionid
@@ -22,6 +25,10 @@ public enum ConnectEnum {
 
     ConnectEnum(String description) {
         this.description = description;
+    }
+
+    public String getDescription() {
+        return description;
     }
 
 }

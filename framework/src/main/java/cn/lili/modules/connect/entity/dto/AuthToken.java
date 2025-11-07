@@ -54,4 +54,12 @@ public class AuthToken implements Serializable {
      * 范围
      */
     private String scope;
+    /**
+     * Google等平台返回的ID Token
+     */
+    private String idToken;
+    /**
+     * Token类型
+     */
+    private String tokenType;
 }

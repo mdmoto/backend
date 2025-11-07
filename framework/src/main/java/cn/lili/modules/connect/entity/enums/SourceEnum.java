@@ -11,6 +11,9 @@ import cn.lili.common.enums.ClientTypeEnum;
  */
 public enum SourceEnum {
 
+    GOOGLE_OPEN_ID("Google OAuth openid登录"),
+    
+    // 保留以下枚举以保持代码兼容性（已禁用）
     WECHAT_PC_OPEN_ID("微信PC应用 openid登录"),
     WECHAT_OFFIACCOUNT_OPEN_ID("微信公众号 openid登录"),
     WECHAT_MP_OPEN_ID("微信小程序 openid登录"),
@@ -20,7 +23,7 @@ public enum SourceEnum {
     QQ_PC_OPEN_ID("QQ PC应用 openid登录"),
     QQ_H5_OPEN_ID("QQ H5应用 openid登录"),
 
-    APPLE_OPEN_ID("苹果 openid登录"),
+    APPLE_OPEN_ID("苹果 openid登录")
     ;
 
 
@@ -30,7 +33,16 @@ public enum SourceEnum {
         this.description = description;
     }
 
+    public String getDescription() {
+        return description;
+    }
+
     public static SourceEnum getSourceEnum(ConnectEnum source, ClientTypeEnum type) {
+        // Google OAuth 适用于所有客户端类型 (APP, H5, PC)
+        if (source == ConnectEnum.GOOGLE) {
+            return GOOGLE_OPEN_ID;
+        }
+        // 保留旧代码以保持兼容性
         switch (source) {
             case WECHAT:
                 switch (type) {

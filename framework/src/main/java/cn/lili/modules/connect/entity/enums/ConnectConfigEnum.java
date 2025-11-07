@@ -10,19 +10,9 @@ package cn.lili.modules.connect.entity.enums;
 public enum ConnectConfigEnum {
 
     /**
-     * 微信网页
-     * 微信小程序
-     * 微信APP
-     * 支付宝
-     * 微博
-     * qq
+     * Google OAuth 2.0
      */
-    WEIXIN_WEB("微信网页配置", "app_key,app_secret"),
-    WEIXIN_MP("微信小程序配置", "app_key,app_secret"),
-    WEIXIN_APP("微信APP配置", "app_key,app_secret"),
-    ALIPAY("支付宝配置", "app_id,private_key,public_key"),
-    QQ("QQ配置", "app_id,app_key"),
-    WEIBO("微博配置", "app_key,app_secret"),
+    GOOGLE("Google登录配置", "client_id,client_secret,redirect_uri")
     ;
 
     /**

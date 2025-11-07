@@ -36,9 +36,11 @@ public enum SettingEnum {
 
     //登录设置
     CONNECT_SUPPORT,
-    //微信 联合登陆设置
+    //Google OAuth 2.0 联合登录设置
+    GOOGLE_CONNECT,
+    //微信 联合登陆设置（保留以保持兼容性）
     WECHAT_CONNECT,
-    //QQ 浏览器 联合登录设置
+    //QQ 浏览器 联合登录设置（保留以保持兼容性）
     QQ_CONNECT,
     //登录设置
     CONNECT_SETTING,
