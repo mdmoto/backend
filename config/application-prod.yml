@@ -198,7 +198,11 @@ lili:
     seller: https://api.maollar.com
 
   jwt-setting:
-    tokenExpireTime: 30
+    # token过期时间（分钟）
+    # 30分钟 = 0.5小时
+    # 1440分钟 = 1天
+    # 10080分钟 = 7天（1周）
+    tokenExpireTime: 10080  # 1周有效期，适合Chrome插件长期使用
 
   cache:
     timeout: 1500
