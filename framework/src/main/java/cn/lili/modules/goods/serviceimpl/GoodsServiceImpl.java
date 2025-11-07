@@ -288,6 +288,18 @@ public class GoodsServiceImpl extends ServiceImpl<GoodsMapper, Goods> implements
         
         // 获取基础查询条件
         QueryWrapper<Goods> baseWrapper = goodsSearchParams.queryWrapper();
+
+        // 兜底保障：必须携带店铺ID，防止商家看到其他店铺数据
+        String storeId = goodsSearchParams.getStoreId();
+        if (CharSequenceUtil.isEmpty(storeId)) {
+            AuthUser currentUser = UserContext.getCurrentUser();
+            if (currentUser != null && CharSequenceUtil.isNotEmpty(currentUser.getStoreId())) {
+                storeId = currentUser.getStoreId();
+            }
+        }
+        if (CharSequenceUtil.isNotEmpty(storeId)) {
+            baseWrapper.eq("store_id", storeId);
+        }
         
         // 使用聚合查询一次性获取所有状态的商品数量
         List<Map<String, Object>> results = this.baseMapper.selectMaps(

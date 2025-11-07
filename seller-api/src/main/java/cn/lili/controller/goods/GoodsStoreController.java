@@ -85,6 +85,9 @@ public class GoodsStoreController {
     @ApiOperation(value = "获取商品数量")
     @GetMapping(value = "/goodsNumber")
     public ResultMessage<GoodsNumVO> getGoodsNumVO(GoodsSearchParams goodsSearchParams) {
+        //获取当前登录商家账号
+        String storeId = Objects.requireNonNull(UserContext.getCurrentUser()).getStoreId();
+        goodsSearchParams.setStoreId(storeId);
         return ResultUtil.data(goodsService.getGoodsNumVO(goodsSearchParams));
     }
 
@@ -127,6 +130,13 @@ public class GoodsStoreController {
     @ApiOperation(value = "修改商品预警库存")
     @PutMapping(value = "/update/alert/stocks", consumes = "application/json")
     public ResultMessage<Object> updateAlertQuantity(@RequestBody GoodsSkuStockDTO goodsSkuStockDTO) {
+        //获取当前登录商家账号，确保只能修改自己店铺的商品
+        String storeId = Objects.requireNonNull(UserContext.getCurrentUser()).getStoreId();
+        // 验证商品是否属于当前店铺
+        GoodsSku goodsSku = goodsSkuService.getById(goodsSkuStockDTO.getSkuId());
+        if (goodsSku == null || !goodsSku.getStoreId().equals(storeId)) {
+            throw new ServiceException(ResultCode.USER_AUTHORITY_ERROR);
+        }
         goodsSkuService.updateAlertQuantity(goodsSkuStockDTO);
         return ResultUtil.success();
     }
