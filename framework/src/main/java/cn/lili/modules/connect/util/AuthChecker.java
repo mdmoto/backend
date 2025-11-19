@@ -28,9 +28,11 @@ public class AuthChecker {
      * @since 1.6.1-beta
      */
     public static boolean isSupportedAuth(AuthConfig config, ConnectAuth connectAuth) {
-        return StringUtils.isNotEmpty(config.getClientId())
-                && StringUtils.isNotEmpty(config.getClientSecret())
-                && StringUtils.isNotEmpty(config.getRedirectUri());
+        boolean isSupported = StringUtils.isNotEmpty(config.getClientId()) && StringUtils.isNotEmpty(config.getClientSecret()) && StringUtils.isNotEmpty(config.getRedirectUri());
+        if (isSupported && ConnectAuthEnum.ALIPAY == connectAuth) {
+            isSupported = StringUtils.isNotEmpty(config.getAlipayPublicKey());
+        }
+        return isSupported;
     }
 
     /**
@@ -43,6 +45,11 @@ public class AuthChecker {
     public static void checkConfig(AuthConfig config, ConnectAuth connectAuth) {
         String redirectUri = config.getRedirectUri();
         if (!GlobalAuthUtils.isHttpProtocol(redirectUri) && !GlobalAuthUtils.isHttpsProtocol(redirectUri)) {
+            throw new AuthException(AuthResponseStatus.ILLEGAL_REDIRECT_URI, connectAuth);
+        }
+        //支付宝在创建回调地址时，不允许使用localhost或者106.124.130.167
+        if (ConnectAuthEnum.ALIPAY == connectAuth && GlobalAuthUtils.isLocalHost(redirectUri)) {
+            //The redirect uri of alipay is forbidden to use localhost or 106.124.130.167
             throw new AuthException(AuthResponseStatus.ILLEGAL_REDIRECT_URI, connectAuth);
         }
     }
@@ -58,6 +65,9 @@ public class AuthChecker {
      */
     public static void checkCode(ConnectAuth connectAuth, AuthCallback callback) {
         String code = callback.getCode();
+        if (connectAuth == ConnectAuthEnum.ALIPAY) {
+            code = callback.getAuthCode();
+        }
         if (StringUtils.isEmpty(code)) {
             throw new AuthException(AuthResponseStatus.ILLEGAL_CODE, connectAuth);
         }

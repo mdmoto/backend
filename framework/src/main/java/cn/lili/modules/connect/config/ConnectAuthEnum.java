@@ -11,6 +11,36 @@ package cn.lili.modules.connect.config;
 public enum ConnectAuthEnum implements ConnectAuth {
 
     /**
+     * 支付宝
+     */
+    ALIPAY {
+        @Override
+        public String authorize() {
+            return "https://openauth.alipay.com/oauth2/publicAppAuthorize.htm";
+        }
+
+        @Override
+        public String accessToken() {
+            return "https://openapi.alipay.com/gateway.do";
+        }
+
+        @Override
+        public String userInfo() {
+            return "https://openapi.alipay.com/gateway.do";
+        }
+
+        @Override
+        public String revoke() {
+            return "https://openapi.alipay.com/gateway.do";
+        }
+
+        @Override
+        public String refresh() {
+            return "https://openapi.alipay.com/gateway.do";
+        }
+    },
+
+    /**
      * Google OAuth 2.0
      */
     GOOGLE {

@@ -128,6 +128,7 @@ ignored:
     - /MP_verify_qSyvBPhDsPdxvOhC.txt
     - /weixin/**
     - /source/**
+    - /pdd/oauth/**
     - /buyer/payment/cashier/**
     - /buyer/payment/cashierRefund/**
     - /buyer/other/pageData/**
@@ -146,6 +147,7 @@ ignored:
     - /buyer/member/evaluation/**/evaluationNumber
     - /buyer/other/appVersion/**
     - /buyer/broadcast/studio/**
+    - /buyer/statistics/realtime/**
     - /druid/**
     - /swagger-ui.html
     - /doc.html

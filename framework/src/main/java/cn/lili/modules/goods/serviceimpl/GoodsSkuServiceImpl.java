@@ -483,17 +483,14 @@ public class GoodsSkuServiceImpl extends ServiceImpl<GoodsSkuMapper, GoodsSku> i
         List<String> goodsGalleryList = new ArrayList<>();
         //循环提交的sku表单
         for (Map.Entry<String, Object> entry : jsonObject.entrySet()) {
-            SpecValueVO specValueVO = new SpecValueVO();
             if ("images".equals(entry.getKey())) {
-                specValueVO.setSpecName(entry.getKey());
-                List<String> specImages = JSONUtil.toList(JSONUtil.parseArray(entry.getValue()),
-                        String.class);
-                specValueVO.setSpecImage(specImages);
+                List<String> specImages = JSONUtil.toList(JSONUtil.parseArray(entry.getValue()), String.class);
                 goodsGalleryList = new ArrayList<>(specImages);
-            } else {
-                specValueVO.setSpecName(entry.getKey());
-                specValueVO.setSpecValue(entry.getValue().toString());
+                continue;
             }
+            SpecValueVO specValueVO = new SpecValueVO();
+            specValueVO.setSpecName(entry.getKey());
+            specValueVO.setSpecValue(entry.getValue().toString());
             specValueVOS.add(specValueVO);
         }
         goodsSkuVO.setGoodsGalleryList(goodsGalleryList);

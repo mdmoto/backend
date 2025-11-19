@@ -141,21 +141,6 @@ public class BaseAuthGoogleRequest extends BaseAuthRequest {
     }
 
     /**
-     * POST 请求获取 Authorization Code
-     */
-    protected String doPostAuthorizationCode(String code) {
-        String url = UrlBuilder.fromBaseUrl(source.accessToken())
-                .queryParam("code", code)
-                .queryParam("client_id", config.getClientId())
-                .queryParam("client_secret", config.getClientSecret())
-                .queryParam("redirect_uri", config.getRedirectUri())
-                .queryParam("grant_type", "authorization_code")
-                .build();
-
-        return new HttpUtils(config.getHttpConfig()).post(url);
-    }
-
-    /**
      * 获取用户信息
      */
     protected String doGetUserInfo(AuthToken authToken) {

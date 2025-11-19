@@ -27,6 +27,10 @@ public class AuthToken implements Serializable {
      */
     private String accessToken;
     /**
+     * token 类型
+     */
+    private String tokenType;
+    /**
      * 第三方刷新token
      */
     private String refreshToken;
@@ -55,11 +59,7 @@ public class AuthToken implements Serializable {
      */
     private String scope;
     /**
-     * Google等平台返回的ID Token
+     * OpenID Connect ID Token
      */
     private String idToken;
-    /**
-     * Token类型
-     */
-    private String tokenType;
 }

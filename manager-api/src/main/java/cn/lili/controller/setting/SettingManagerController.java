@@ -10,6 +10,7 @@ import cn.lili.common.vo.ResultMessage;
 import cn.lili.modules.system.entity.dos.Setting;
 import cn.lili.modules.system.entity.dto.*;
 import cn.lili.modules.system.entity.dto.connect.ConnectSetting;
+import cn.lili.modules.system.entity.dto.connect.GoogleConnectSetting;
 import cn.lili.modules.system.entity.dto.connect.QQConnectSetting;
 import cn.lili.modules.system.entity.dto.connect.WechatConnectSetting;
 import cn.lili.modules.system.entity.dto.payment.AlipayPaymentSetting;
@@ -50,7 +51,7 @@ public class SettingManagerController {
     @ApiOperation(value = "更新配置")
     @PutMapping(value = "/put/{key}")
     @ApiImplicitParam(name = "key", value = "配置key", paramType = "path",
-            allowableValues = "BASE_SETTING,EMAIL_SETTING,GOODS_SETTING,KUAIDI_SETTING,ORDER_SETTING,OSS_SETTING,POINT_SETTING," +
+            allowableValues = "BASE_SETTING,EMAIL_SETTING,GOODS_SETTING,LOGISTICS_SETTING,ORDER_SETTING,OSS_SETTING,POINT_SETTING," +
                     "WECHAT_PC_CONNECT,WECHAT_WAP_CONNECT,WECHAT_APP_CONNECT,WECHAT_MP_CONNECT," +
                     "QQ_WEB_CONNECT,QQ_APP_CONNECT," +
                     "QQ_WEB_CONNECT,QQ_APP_CONNECT,WEIBO_CONNECT,ALIPAY_CONNECT," +
@@ -80,7 +81,8 @@ public class SettingManagerController {
             "WECHAT_PC_CONNECT,WECHAT_WAP_CONNECT,WECHAT_APP_CONNECT,WECHAT_MP_CONNECT," +
             "QQ_WEB_CONNECT,QQ_APP_CONNECT," +
             "QQ_WEB_CONNECT,QQ_APP_CONNECT,WEIBO_CONNECT,ALIPAY_CONNECT," +
-            "PAYMENT_SUPPORT,ALIPAY_PAYMENT,WECHAT_PAYMENT,SECKILL_SETTING,EXPERIENCE_SETTING,IM"
+            "PAYMENT_SUPPORT,ALIPAY_PAYMENT,WECHAT_PAYMENT,SECKILL_SETTING,EXPERIENCE_SETTING,IM," +
+            "GOOGLE_CONNECT,CONNECT_SETTING"
     )
     public ResultMessage settingGet(@PathVariable String key) {
         return createSetting(key);
@@ -165,6 +167,10 @@ public class SettingManagerController {
                 return setting == null ?
                         ResultUtil.data(new QQConnectSetting()) :
                         ResultUtil.data(JSONUtil.toBean(setting.getSettingValue(), QQConnectSetting.class));
+            case GOOGLE_CONNECT:
+                return setting == null ?
+                        ResultUtil.data(new GoogleConnectSetting()) :
+                        ResultUtil.data(JSONUtil.toBean(setting.getSettingValue(), GoogleConnectSetting.class));
             case CONNECT_SETTING:
                 return setting == null ?
                         ResultUtil.data(new ConnectSetting()) :

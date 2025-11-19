@@ -140,8 +140,11 @@ public class ConnectUtil {
      * @return
      */
     public AuthRequest getAuthRequest(String type) {
-        ConnectAuthEnum authInterface = ConnectAuthEnum.valueOf(type);
-        if (authInterface == null) {
+        ConnectAuthEnum authInterface;
+        try {
+            authInterface = ConnectAuthEnum.valueOf(type);
+        } catch (IllegalArgumentException e) {
+            log.error("不支持的登录类型: {}", type, e);
             throw new ServiceException(ResultCode.CONNECT_NOT_EXIST);
         }
         AuthRequest authRequest = null;
@@ -149,13 +152,38 @@ public class ConnectUtil {
             case GOOGLE: {
                 // 获取 Google 连接配置
                 Setting setting = settingService.get(SettingEnum.GOOGLE_CONNECT.name());
-                GoogleConnectSetting googleConnectSetting = JSONUtil.toBean(setting.getSettingValue(), GoogleConnectSetting.class);
+                if (setting == null || setting.getSettingValue() == null) {
+                    log.error("Google OAuth 配置不存在，请先在管理后台配置 GOOGLE_CONNECT");
+                    throw new ServiceException(ResultCode.CONNECT_NOT_EXIST, "Google OAuth 配置不存在，请先在管理后台配置");
+                }
+                
+                GoogleConnectSetting googleConnectSetting;
+                try {
+                    googleConnectSetting = JSONUtil.toBean(setting.getSettingValue(), GoogleConnectSetting.class);
+                } catch (Exception e) {
+                    log.error("Google OAuth 配置解析失败", e);
+                    throw new ServiceException(ResultCode.CONNECT_NOT_EXIST, "Google OAuth 配置格式错误");
+                }
+                
+                if (googleConnectSetting == null || !Boolean.TRUE.equals(googleConnectSetting.getEnabled())) {
+                    log.error("Google OAuth 未启用");
+                    throw new ServiceException(ResultCode.CONNECT_NOT_EXIST, "Google OAuth 未启用");
+                }
                 
                 // 登录设置
-                ConnectSetting connectSetting = JSONUtil.toBean(
-                    settingService.get(SettingEnum.CONNECT_SETTING.name()).getSettingValue(), 
-                    ConnectSetting.class
-                );
+                Setting connectSettingObj = settingService.get(SettingEnum.CONNECT_SETTING.name());
+                if (connectSettingObj == null || connectSettingObj.getSettingValue() == null) {
+                    log.error("联合登录设置不存在，请先在管理后台配置 CONNECT_SETTING");
+                    throw new ServiceException(ResultCode.CONNECT_NOT_EXIST, "联合登录设置不存在");
+                }
+                
+                ConnectSetting connectSetting;
+                try {
+                    connectSetting = JSONUtil.toBean(connectSettingObj.getSettingValue(), ConnectSetting.class);
+                } catch (Exception e) {
+                    log.error("联合登录设置解析失败", e);
+                    throw new ServiceException(ResultCode.CONNECT_NOT_EXIST, "联合登录设置格式错误");
+                }
 
                 authRequest = new BaseAuthGoogleRequest(
                     AuthConfig.builder()
