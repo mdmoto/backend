@@ -175,10 +175,22 @@ public class GoodsSku extends BaseEntity {
     }
 
     public Integer getAlertQuantity() {
-        if(alertQuantity == null){
+        if (alertQuantity == null) {
             return 0;
         }
         return alertQuantity;
+    }
+
+    public Boolean getPromotionFlag() {
+        return promotionFlag;
+    }
+
+    public Double getPromotionPrice() {
+        return promotionPrice;
+    }
+
+    public Double getPrice() {
+        return price;
     }
 
     @Override
@@ -196,7 +208,7 @@ public class GoodsSku extends BaseEntity {
      * @param goods 基本商品信息
      */
     public GoodsSku(Goods goods) {
-        //商品基本信息
+        // 商品基本信息
         this.goodsId = goods.getId();
         this.goodsName = goods.getGoodsName();
         this.goodsType = goods.getGoodsType();
@@ -211,10 +223,10 @@ public class GoodsSku extends BaseEntity {
         this.goodsUnit = goods.getGoodsUnit();
         this.grade = 100D;
         this.alertQuantity = 0;
-        //商品状态
+        // 商品状态
         this.authFlag = goods.getAuthFlag();
         this.salesModel = goods.getSalesModel();
-        //卖家信息
+        // 卖家信息
         this.storeId = goods.getStoreId();
         this.storeName = goods.getStoreName();
         this.storeCategoryPath = goods.getStoreCategoryPath();

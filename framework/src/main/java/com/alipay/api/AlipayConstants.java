@@ -23,6 +23,7 @@ public class AlipayConstants {
     public static final String RETURN_URL = "return_url";
     public static final String ENCRYPT_TYPE = "encrypt_type";
     public static final String BIZ_CONTENT = "biz_content";
+    public static final String BIZ_CONTENT_KEY = "biz_content";
     public static final String PROD_CODE = "prod_code";
     public static final String ERROR_RESPONSE = "error_response";
     public static final String RESPONSE_SUFFIX = "_response";
@@ -31,7 +32,21 @@ public class AlipayConstants {
     public static final String SUB_CODE_KEY = "sub_code";
     public static final String SUB_MSG_KEY = "sub_msg";
     public static final String CODE_KEY = "code";
-    
-    // PATCHED VERSION
-    public static final String SDK_VERSION = "alipay-sdk-java-4.22.32.ALL"; 
+
+    public static final String CHARSET_UTF8 = "UTF-8";
+    public static final String CHARSET_GBK = "GBK";
+    public static final String FORMAT_JSON = "json";
+    public static final String FORMAT_XML = "xml";
+    public static final String SIGN_TYPE_SM2 = "SM2";
+
+    public static final String TARGET_APP_ID = "target_app_id";
+    public static final String APP_CERT_SN = "app_cert_sn";
+    public static final String ALIPAY_CERT_SN = "alipay_cert_sn";
+    public static final String ALIPAY_ROOT_CERT_SN = "alipay_root_cert_sn";
+
+    public static final String DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
+    public static final String DATE_TIMEZONE = "GMT+8";
+
+    public static final String BATCH_REQUEST_ID = "batch_request_id";
+    public static final String SDK_VERSION = "alipay-sdk-java-4.22.32.ALL";
 }
