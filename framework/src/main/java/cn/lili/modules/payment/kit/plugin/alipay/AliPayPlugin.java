@@ -76,34 +76,89 @@ public class AliPayPlugin implements Payment {
 
     @Override
     public ResultMessage<Object> h5pay(HttpServletRequest request, HttpServletResponse response, PayParam payParam) {
-
-        CashierParam cashierParam = cashierSupport.cashierParam(payParam);
-        AlipayPaymentSetting alipayPaymentSetting = alipayPaymentSetting();
-        //请求订单编号
-        String outTradeNo = SnowFlake.getIdStr();
-        //准备支付参数
-        AlipayTradeWapPayModel payModel = new AlipayTradeWapPayModel();
-        payModel.setBody(cashierParam.getTitle());
-        payModel.setSubject(cashierParam.getDetail());
-        payModel.setTotalAmount(cashierParam.getPrice() + "");
-        //3分钟超时
-        payModel.setTimeoutExpress("3m");
-        payModel.setOutTradeNo(outTradeNo);
-        payModel.setProductCode("QUICK_WAP_PAY");
+        String outTradeNo = null;
         try {
-            // Passback params moved into try to handle checked exception
-            payModel.setPassbackParams(java.net.URLEncoder.encode(BeanUtil.formatKeyValuePair(payParam), "UTF-8"));
+            log.error("========== H5支付开始 ==========");
+            log.error("PayParam: {}", payParam);
 
-            log.info("支付宝H5支付：{}", JSONUtil.toJsonStr(payModel));
-            AliPayRequest.wapPay(response, payModel, callbackUrl(alipayPaymentSetting.getCallbackUrl(), PaymentMethodEnum.ALIPAY),
+            CashierParam cashierParam = cashierSupport.cashierParam(payParam);
+            log.error("CashierParam获取成功: price={}, title={}", cashierParam.getPrice(), cashierParam.getTitle());
+
+            AlipayPaymentSetting alipayPaymentSetting = alipayPaymentSetting();
+            log.error("AlipayPaymentSetting获取成功: appId={}, callbackUrl={}",
+                    alipayPaymentSetting.getAppId(), alipayPaymentSetting.getCallbackUrl());
+
+            // 验证配置
+            if (StringUtils.isEmpty(alipayPaymentSetting.getAppId())) {
+                log.error("支付宝配置错误：appId为空");
+                throw new ServiceException(ResultCode.ALIPAY_NOT_SETTING);
+            }
+
+            // 请求订单编号
+            outTradeNo = SnowFlake.getIdStr();
+            log.error("生成订单号: {}", outTradeNo);
+
+            // 准备支付参数
+            AlipayTradeWapPayModel payModel = new AlipayTradeWapPayModel();
+            payModel.setBody(cashierParam.getTitle());
+            payModel.setSubject(cashierParam.getDetail());
+            payModel.setTotalAmount(cashierParam.getPrice() + "");
+            // 3分钟超时
+            payModel.setTimeoutExpress("3m");
+            payModel.setOutTradeNo(outTradeNo);
+            payModel.setProductCode("QUICK_WAP_PAY");
+
+            // Passback params
+            try {
+                String passbackParams = java.net.URLEncoder.encode(BeanUtil.formatKeyValuePair(payParam), "UTF-8");
+                payModel.setPassbackParams(passbackParams);
+                log.error("Passback params设置成功");
+            } catch (java.io.UnsupportedEncodingException e) {
+                log.warn("编码passback_params失败，继续支付", e);
+            }
+
+            log.info("支付宝H5支付请求-订单号：{}, 金额：{}, 标题：{}", outTradeNo, cashierParam.getPrice(), cashierParam.getTitle());
+
+            log.error("========== 准备调用 AliPayRequest.wapPayStr ==========");
+            log.error("ReturnUrl: {}", callbackUrl(alipayPaymentSetting.getCallbackUrl(), PaymentMethodEnum.ALIPAY));
+            log.error("NotifyUrl: {}", notifyUrl(alipayPaymentSetting.getCallbackUrl(), PaymentMethodEnum.ALIPAY));
+
+            // 获取支付表单HTML字符串
+            // FIX: returnUrl should be the Frontend URL (WAP domain), not the backend
+            // callback URL
+            // User reported redirecting to 127.0.0.1 because backward callback URL returns
+            // JSON
+            String returnUrl = domainProperties.getWap() + "/pages/cart/payment/success";
+            log.info("设置前端同步跳转地址(returnUrl): {}", returnUrl);
+
+            String htmlForm = AliPayRequest.wapPayStr(payModel,
+                    returnUrl,
                     notifyUrl(alipayPaymentSetting.getCallbackUrl(), PaymentMethodEnum.ALIPAY));
+
+            log.info("支付宝H5支付表单生成成功，长度：{}", htmlForm.length());
+            log.error("========== H5支付成功，返回表单 ==========");
+
+            // 返回HTML字符串，让Controller处理响应格式
+            return ResultUtil.data(htmlForm);
+        } catch (AlipayApiException e) {
+            log.error("========== AlipayApiException 异常 ==========");
+            log.error("订单号：{}", outTradeNo);
+            log.error("ErrCode: {}", e.getErrCode());
+            log.error("ErrMsg: {}", e.getErrMsg());
+            log.error("完整异常栈：", e);
+            throw new ServiceException(ResultCode.ALIPAY_EXCEPTION);
+        } catch (ServiceException e) {
+            log.error("========== ServiceException 异常: {} ==========", e.getMessage(), e);
+            throw e;
         } catch (Exception e) {
-            log.error("H5支付异常", e);
+            log.error("========== 未知Exception异常 ==========");
+            log.error("订单号：{}", outTradeNo);
+            log.error("异常类型: {}", e.getClass().getName());
+            log.error("异常信息: {}", e.getMessage());
+            log.error("完整异常栈：", e);
             throw new ServiceException(ResultCode.ALIPAY_EXCEPTION);
         }
-        return null;
     }
-
 
     @Override
     public ResultMessage<Object> jsApiPay(HttpServletRequest request, PayParam payParam) {
@@ -116,7 +171,7 @@ public class AliPayPlugin implements Payment {
 
             CashierParam cashierParam = cashierSupport.cashierParam(payParam);
             AlipayPaymentSetting alipayPaymentSetting = alipayPaymentSetting();
-            //请求订单编号
+            // 请求订单编号
             String outTradeNo = SnowFlake.getIdStr();
 
             AlipayTradeAppPayModel payModel = new AlipayTradeAppPayModel();
@@ -125,15 +180,16 @@ public class AliPayPlugin implements Payment {
             payModel.setSubject(cashierParam.getDetail());
             payModel.setTotalAmount(cashierParam.getPrice() + "");
 
-            //3分钟超时
+            // 3分钟超时
             payModel.setTimeoutExpress("3m");
-            //回传数据（替换 Hutool 的 URLEncoder 为 JDK 的 java.net.URLEncoder）
+            // 回传数据（替换 Hutool 的 URLEncoder 为 JDK 的 java.net.URLEncoder）
             payModel.setPassbackParams(java.net.URLEncoder.encode(BeanUtil.formatKeyValuePair(payParam), "UTF-8"));
             payModel.setOutTradeNo(outTradeNo);
             payModel.setProductCode("QUICK_MSECURITY_PAY");
 
             log.info("支付宝APP支付：{}", payModel);
-            String orderInfo = AliPayRequest.appPayToResponse(payModel, notifyUrl(alipayPaymentSetting.getCallbackUrl(), PaymentMethodEnum.ALIPAY)).getBody();
+            String orderInfo = AliPayRequest.appPayToResponse(payModel,
+                    notifyUrl(alipayPaymentSetting.getCallbackUrl(), PaymentMethodEnum.ALIPAY)).getBody();
             log.info("支付宝APP支付返回内容：{}", orderInfo);
             return ResultUtil.data(orderInfo);
         } catch (AlipayApiException e) {
@@ -154,20 +210,20 @@ public class AliPayPlugin implements Payment {
 
             AlipayTradePrecreateModel payModel = new AlipayTradePrecreateModel();
 
-            //请求订单编号
+            // 请求订单编号
             String outTradeNo = SnowFlake.getIdStr();
 
             payModel.setBody(cashierParam.getTitle());
             payModel.setSubject(cashierParam.getDetail());
             payModel.setTotalAmount(cashierParam.getPrice() + "");
 
-            //回传数据（替换 Hutool 的 URLEncoder 为 JDK 的 java.net.URLEncoder）
+            // 回传数据（替换 Hutool 的 URLEncoder 为 JDK 的 java.net.URLEncoder）
             payModel.setPassbackParams(java.net.URLEncoder.encode(BeanUtil.formatKeyValuePair(payParam), "UTF-8"));
             payModel.setTimeoutExpress("3m");
             payModel.setOutTradeNo(outTradeNo);
             log.info("支付宝扫码：{}", payModel);
-            String resultStr =
-                    AliPayRequest.tradePrecreatePayToResponse(payModel, notifyUrl(alipayPaymentSetting.getCallbackUrl(), PaymentMethodEnum.ALIPAY)).getBody();
+            String resultStr = AliPayRequest.tradePrecreatePayToResponse(payModel,
+                    notifyUrl(alipayPaymentSetting.getCallbackUrl(), PaymentMethodEnum.ALIPAY)).getBody();
 
             log.info("支付宝扫码交互返回：{}", resultStr);
             JSONObject jsonObject = JSONObject.parseObject(resultStr);
@@ -178,11 +234,10 @@ public class AliPayPlugin implements Payment {
         }
     }
 
-
     @Override
     public void refund(RefundLog refundLog) {
         AlipayTradeRefundModel model = new AlipayTradeRefundModel();
-        //这里取支付回调时返回的流水
+        // 这里取支付回调时返回的流水
         if (StringUtils.isNotEmpty(refundLog.getPaymentReceivableNo())) {
             model.setTradeNo(refundLog.getPaymentReceivableNo());
         } else {
@@ -191,7 +246,7 @@ public class AliPayPlugin implements Payment {
         model.setRefundAmount(refundLog.getTotalAmount() + "");
         model.setRefundReason(refundLog.getRefundReason());
         model.setOutRequestNo(refundLog.getOutOrderNo());
-        //交互退款
+        // 交互退款
         try {
             AlipayTradeRefundResponse alipayTradeRefundResponse = AliPayApi.tradeRefundToResponse(model);
             log.error("支付宝退款，参数：{},支付宝响应：{}", JSONUtil.toJsonStr(model), JSONUtil.toJsonStr(alipayTradeRefundResponse));
@@ -212,7 +267,7 @@ public class AliPayPlugin implements Payment {
 
     @Override
     public void refundNotify(HttpServletRequest request) {
-        //不需要实现
+        // 不需要实现
     }
 
     @Override
@@ -250,15 +305,18 @@ public class AliPayPlugin implements Payment {
         model.setTransAmount(memberWithdrawApply.getApplyMoney().toString());
         model.setProductCode("TRANS_ACCOUNT_NO_PWD");
         model.setOrderTitle("用户提现");
-        //交互退款
+        // 交互退款
         try {
-            AlipayFundTransUniTransferResponse alipayFundTransUniTransferResponse = AliPayApi.uniTransferToResponse(model, null);
-            log.error("支付宝退款，参数：{},支付宝响应：{}", JSONUtil.toJsonStr(model), JSONUtil.toJsonStr(alipayFundTransUniTransferResponse));
+            AlipayFundTransUniTransferResponse alipayFundTransUniTransferResponse = AliPayApi
+                    .uniTransferToResponse(model, null);
+            log.error("支付宝退款，参数：{},支付宝响应：{}", JSONUtil.toJsonStr(model),
+                    JSONUtil.toJsonStr(alipayFundTransUniTransferResponse));
             if (alipayFundTransUniTransferResponse.isSuccess()) {
                 return TransferResultDTO.builder().result(true).build();
             } else {
                 log.error(alipayFundTransUniTransferResponse.getSubMsg());
-                return TransferResultDTO.builder().result(false).response(alipayFundTransUniTransferResponse.getSubMsg()).build();
+                return TransferResultDTO.builder().result(false)
+                        .response(alipayFundTransUniTransferResponse.getSubMsg()).build();
             }
         } catch (Exception e) {
             log.error("用户提现异常：", e);
@@ -274,10 +332,11 @@ public class AliPayPlugin implements Payment {
     private void checkPaymentResult(HttpServletRequest request) {
         try {
             AlipayPaymentSetting alipayPaymentSetting = alipayPaymentSetting();
-            //获取支付宝反馈信息
+            // 获取支付宝反馈信息
             Map<String, String> map = AliPayApi.toMap(request);
             log.info("同步回调：{}", JSONUtil.toJsonStr(map));
-            boolean verifyResult = AlipaySignature.rsaCertCheckV1(map, alipayPaymentSetting.getAlipayPublicCertPath(), "UTF-8",
+            boolean verifyResult = AlipaySignature.rsaCertCheckV1(map, alipayPaymentSetting.getAlipayPublicCertPath(),
+                    "UTF-8",
                     "RSA2");
             if (verifyResult) {
                 log.info("支付回调通知：支付成功-参数：{}", map);
@@ -285,7 +344,8 @@ public class AliPayPlugin implements Payment {
                 log.info("支付回调通知：支付失败-参数：{}", map);
             }
 
-            ThreadContextHolder.getHttpResponse().sendRedirect(domainProperties.getWap() + "/pages/order/myOrder?status=0");
+            ThreadContextHolder.getHttpResponse()
+                    .sendRedirect(domainProperties.getWap() + "/pages/order/myOrder?status=0");
         } catch (Exception e) {
             log.error("支付回调同步通知异常", e);
         }
@@ -300,37 +360,69 @@ public class AliPayPlugin implements Payment {
     private void verifyNotify(HttpServletRequest request) {
         try {
             AlipayPaymentSetting alipayPaymentSetting = alipayPaymentSetting();
-            //获取支付宝反馈信息
+            // 获取支付宝反馈信息
             Map<String, String> map = AliPayApi.toMap(request);
             log.info("支付回调响应：{}", JSONUtil.toJsonStr(map));
-            boolean verifyResult = AlipaySignature.rsaCertCheckV1(map, alipayPaymentSetting.getAlipayPublicCertPath(), "UTF-8",
+
+            // 验证签名
+            boolean verifyResult = AlipaySignature.rsaCertCheckV1(map, alipayPaymentSetting.getAlipayPublicCertPath(),
+                    "UTF-8",
                     "RSA2");
-            //支付完成判定
-            if (!"TRADE_FINISHED".equals(map.get("trade_status")) &&
-                    !"TRADE_SUCCESS".equals(map.get("trade_status"))) {
+
+            if (!verifyResult) {
+                log.warn("支付回调签名验证失败-参数：{}", map);
                 return;
             }
+
+            // 支付完成判定
+            String tradeStatus = map.get("trade_status");
+            if (!"TRADE_FINISHED".equals(tradeStatus) &&
+                    !"TRADE_SUCCESS".equals(tradeStatus)) {
+                log.info("支付状态未完成，忽略回调-状态：{}, 参数：{}", tradeStatus, map);
+                return;
+            }
+
+            // 处理回传参数
             String payParamStr = map.get("passback_params");
-            // java.net.URLDecoder.decode throws UnsupportedEncodingException, add catch below
-            String payParamJson = java.net.URLDecoder.decode(payParamStr, "UTF-8");
-            PayParam payParam = BeanUtil.formatKeyValuePair(payParamJson, new PayParam());
+            PayParam payParam = new PayParam();
+            if (StringUtils.isNotEmpty(payParamStr)) {
+                try {
+                    // java.net.URLDecoder.decode throws UnsupportedEncodingException, add catch
+                    // below
+                    String payParamJson = java.net.URLDecoder.decode(payParamStr, "UTF-8");
+                    payParam = BeanUtil.formatKeyValuePair(payParamJson, new PayParam());
+                } catch (java.io.UnsupportedEncodingException e) {
+                    log.warn("URL解码失败，使用空参数-原始参数：{}", payParamStr, e);
+                }
+            } else {
+                log.warn("支付回调缺少passback_params参数");
+            }
 
+            // 获取交易信息
+            String tradeNo = map.get("trade_no");
+            String totalAmountStr = map.get("total_amount");
 
-            if (verifyResult) {
-                String tradeNo = map.get("trade_no");
-                Double totalAmount = Double.parseDouble(map.get("total_amount"));
-                PaymentSuccessParams paymentSuccessParams =
-                        new PaymentSuccessParams(PaymentMethodEnum.ALIPAY.name(), tradeNo, totalAmount, payParam);
+            if (StringUtils.isEmpty(tradeNo) || StringUtils.isEmpty(totalAmountStr)) {
+                log.error("支付回调缺少必要参数-trade_no：{}, total_amount：{}", tradeNo, totalAmountStr);
+                return;
+            }
+
+            try {
+                Double totalAmount = Double.parseDouble(totalAmountStr);
+                PaymentSuccessParams paymentSuccessParams = new PaymentSuccessParams(PaymentMethodEnum.ALIPAY.name(),
+                        tradeNo, totalAmount, payParam);
 
                 paymentService.success(paymentSuccessParams);
-                log.info("支付回调通知：支付成功-参数：{},回调参数:{}", map, payParam);
-            } else {
-                log.info("支付回调通知：支付失败-参数：{}", map);
+                log.info("支付回调通知：支付成功-交易号：{}, 金额：{}, 回调参数：{}", tradeNo, totalAmount, payParam);
+            } catch (NumberFormatException e) {
+                log.error("支付金额格式错误：{}", totalAmountStr, e);
+            } catch (Exception e) {
+                log.error("处理支付成功回调异常", e);
             }
         } catch (AlipayApiException e) {
-            log.error("支付回调通知异常", e);
-        } catch (java.io.UnsupportedEncodingException e) {
-            log.error("URL 解码异常", e);
+            log.error("支付回调通知异常-支付宝API异常", e);
+        } catch (Exception e) {
+            log.error("支付回调通知异常-未知异常", e);
         }
 
     }
@@ -347,6 +439,5 @@ public class AliPayPlugin implements Payment {
         }
         throw new ServiceException(ResultCode.ALIPAY_NOT_SETTING);
     }
-
 
 }

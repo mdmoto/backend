@@ -2,6 +2,7 @@ package cn.lili.controller.passport;
 
 import cn.lili.common.aop.annotation.DemoSite;
 import cn.lili.common.aop.annotation.PreventDuplicateSubmissions;
+import cn.lili.common.enums.ResultCode;
 import cn.lili.common.enums.ResultUtil;
 import cn.lili.common.vo.PageVO;
 import cn.lili.common.vo.ResultMessage;
@@ -21,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -89,5 +91,18 @@ public class MemberManagerController {
         return ResultUtil.data(memberService.getMemberNum(memberSearchVO));
     }
 
+    @DemoSite
+    @PreventDuplicateSubmissions
+    @SystemLogPoint(description = "重置会员密码", customerLog = "'重置的会员ID: ['+#memberIds+']'")
+    @ApiOperation(value = "重置会员密码（重置为123456）")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "memberIds", value = "会员ID列表，多个用逗号分隔", required = true, dataType = "String", paramType = "path")
+    })
+    @PostMapping("/resetPassword/{memberIds}")
+    public ResultMessage<Object> resetPassword(@PathVariable String memberIds) {
+        List<String> ids = Arrays.asList(memberIds.split(","));
+        memberService.resetPassword(ids);
+        return ResultUtil.success(ResultCode.USER_EDIT_SUCCESS);
+    }
 
 }

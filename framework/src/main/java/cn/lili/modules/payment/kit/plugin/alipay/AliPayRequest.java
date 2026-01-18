@@ -130,7 +130,15 @@ public class AliPayRequest {
     }
 
     public static <T extends AlipayResponse> T pageExecute(AlipayRequest<T> request) throws AlipayApiException {
-        return AliPayApiConfigKit.getAliPayApiConfig().pageExecute(request);
+        log.error("========== AliPayRequest.pageExecute 被调用 ==========");
+        try {
+            com.alipay.api.DefaultAlipayClient client = AliPayApiConfigKit.getAliPayApiConfig();
+            log.error("========== 获取到 DefaultAlipayClient，开始执行 pageExecute ==========");
+            return client.pageExecute(request);
+        } catch (AlipayApiException e) {
+            log.error("========== pageExecute 发生异常: {} ==========", e.getMessage(), e);
+            throw e;
+        }
     }
 
     public static <T extends AlipayResponse> T sdkExecute(AlipayRequest<T> request) throws AlipayApiException {

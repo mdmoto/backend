@@ -13,8 +13,11 @@ import cn.lili.modules.member.entity.enums.QRCodeLoginSessionStatusEnum;
 import cn.lili.modules.member.entity.vo.QRLoginResultVo;
 import cn.lili.modules.member.service.MemberService;
 import cn.lili.modules.sms.SmsUtil;
+import cn.lili.modules.email.EmailUtil;
 import cn.lili.modules.verification.entity.enums.VerificationEnums;
 import cn.lili.modules.verification.service.VerificationService;
+import cn.lili.common.utils.RegularUtil;
+import cn.hutool.core.text.CharSequenceUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
@@ -47,6 +50,8 @@ public class MemberBuyerController {
     private MemberService memberService;
     @Autowired
     private SmsUtil smsUtil;
+    @Autowired
+    private EmailUtil emailUtil;
     @Autowired
     private VerificationService verificationService;
 
@@ -191,26 +196,36 @@ public class MemberBuyerController {
         }
     }
 
-    @ApiOperation(value = "注册用户")
+    @ApiOperation(value = "注册用户（仅支持邮箱注册）")
     @ApiImplicitParams({
-            @ApiImplicitParam(name = "username", value = "用户名", required = true, paramType = "query"),
+            @ApiImplicitParam(name = "username", value = "用户名", required = false, paramType = "query"),
             @ApiImplicitParam(name = "password", value = "密码", required = true, paramType = "query"),
-            @ApiImplicitParam(name = "mobilePhone", value = "手机号", required = true, paramType = "query"),
-            @ApiImplicitParam(name = "code", value = "验证码", required = true, paramType = "query")
+            @ApiImplicitParam(name = "email", value = "邮箱", required = true, paramType = "query"),
+            @ApiImplicitParam(name = "code", value = "邮箱验证码", required = true, paramType = "query")
     })
     @PostMapping("/register")
-    public ResultMessage<Object> register(@NotNull(message = "用户名不能为空") @RequestParam String username,
+    public ResultMessage<Object> register(@RequestParam(required = false) String username,
                                           @NotNull(message = "密码不能为空") @RequestParam String password,
-                                          @NotNull(message = "手机号为空") @RequestParam String mobilePhone,
+                                          @NotNull(message = "邮箱不能为空") @RequestParam String email,
                                           @RequestHeader String uuid,
                                           @NotNull(message = "验证码不能为空") @RequestParam String code) {
 
-        if (smsUtil.verifyCode(mobilePhone, VerificationEnums.REGISTER, uuid, code)) {
-            return ResultUtil.data(memberService.register(username, password, mobilePhone));
+        // 验证邮箱格式
+        if (!RegularUtil.email(email)) {
+            throw new ServiceException(ResultCode.USER_PHONE_NOT_EXIST);
+        }
+
+        // 验证邮箱验证码
+        if (emailUtil.verifyCode(email, VerificationEnums.REGISTER, uuid, code)) {
+            // 如果没有提供username，使用邮箱前缀作为用户名
+            if (CharSequenceUtil.isBlank(username)) {
+                username = email.split("@")[0]; // 使用邮箱前缀作为用户名
+            }
+            // 将邮箱存储在mobile字段中（因为Member实体没有email字段）
+            return ResultUtil.data(memberService.register(username, password, email));
         } else {
             throw new ServiceException(ResultCode.VERIFICATION_SMS_CHECKED_ERROR);
         }
-
     }
 
     @ApiOperation(value = "获取当前登录用户接口")

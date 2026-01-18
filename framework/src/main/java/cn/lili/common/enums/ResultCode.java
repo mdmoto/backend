@@ -464,6 +464,8 @@ public enum ResultCode {
     ORDER_SETTING_ERROR(70006, "系统订单配置异常"),
     ALI_SMS_SETTING_ERROR(70007, "您还未配置阿里云短信"),
     SMS_SIGN_EXIST_ERROR(70008, "短信签名已存在"),
+    EMAIL_SETTING_ERROR(70009, "您还未配置邮箱"),
+    EMAIL_SEND_ERROR(70010, "邮件发送失败"),
 
     /**
      * 站内信

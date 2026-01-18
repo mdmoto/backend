@@ -132,6 +132,7 @@ ignored:
     - /store/passport/login/refresh/**
     - /common/common/slider/**
     - /common/common/sms/**
+    - /common/common/email/**
     - /common/common/site
     - /buyer/payment/cashier/**
     - /buyer/other/pageData/**
@@ -220,8 +221,8 @@ lili:
     watermark: LILI-SHOP
     #干扰项数量 最大2 默认0
     interfereNum: 1
-    #允许误差像素
-    faultTolerant: 3
+    #允许误差像素（增加到 10 像素，提高用户体验）
+    faultTolerant: 10
   system:
     isDemoSite: false
     #     脱敏级别：

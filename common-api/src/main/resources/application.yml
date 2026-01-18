@@ -121,6 +121,7 @@ ignored:
     - /source/**
     - /common/common/slider/**
     - /common/common/sms/**
+    - /common/common/email/**
     - /common/common/logo
     - /common/common/site
     - /druid/**

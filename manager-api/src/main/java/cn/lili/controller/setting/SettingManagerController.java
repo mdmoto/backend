@@ -176,9 +176,15 @@ public class SettingManagerController {
                         ResultUtil.data(new ConnectSetting()) :
                         ResultUtil.data(JSONUtil.toBean(setting.getSettingValue(), ConnectSetting.class));
             case PAYMENT_SUPPORT:
-                return setting == null ?
-                        ResultUtil.data(new PaymentSupportSetting(new PaymentSupportForm())) :
-                        ResultUtil.data(JSONUtil.toBean(setting.getSettingValue(), PaymentSupportSetting.class));
+                if (setting == null || setting.getSettingValue() == null || setting.getSettingValue().trim().isEmpty()) {
+                    return ResultUtil.data(new PaymentSupportSetting(new PaymentSupportForm()));
+                }
+                try {
+                    return ResultUtil.data(JSONUtil.toBean(setting.getSettingValue(), PaymentSupportSetting.class));
+                } catch (Exception e) {
+                    // 如果解析失败，返回默认值
+                    return ResultUtil.data(new PaymentSupportSetting(new PaymentSupportForm()));
+                }
             case ALIPAY_PAYMENT:
                 return setting == null ?
                         ResultUtil.data(new AlipayPaymentSetting()) :

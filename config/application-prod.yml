@@ -99,6 +99,7 @@ ignored:
     - /store/passport/login/refresh/**
     - /common/common/slider/**
     - /common/common/sms/**
+    - /common/common/email/**
     - /common/common/site
     - /buyer/payment/cashier/**
     - /buyer/other/pageData/**
@@ -174,7 +175,7 @@ lili:
     effectiveTime: 300
     watermark: LILI-SHOP
     interfereNum: 1
-    faultTolerant: 3
+    faultTolerant: 10  # 增加到 10 像素，提高 PC 端滑块验证通过率
   system:
     isDemoSite: false
     sensitiveLevel: 1
