@@ -30,7 +30,7 @@ import java.util.Map;
  */
 @RestController
 @Api(tags = "Maollar DApp 集成接口")
-@RequestMapping("/api/v1/maollar")
+@RequestMapping({ "/api/v1/maollar", "/buyer/api/v1/maollar" })
 public class MaollarController {
 
     @Autowired

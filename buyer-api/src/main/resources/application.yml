@@ -140,6 +140,8 @@ ignored:
     - /buyer/passport/member/**
     - /buyer/passport/member/refresh/**
     - /api/v1/ai/**
+    - /buyer/api/v1/maollar/rates
+    - /buyer/api/v1/maollar/tier-status
     - /buyer/promotion/pintuan/**
     - /buyer/promotion/seckill/**
     - /buyer/promotion/pointsGoods/**

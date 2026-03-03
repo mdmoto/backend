@@ -52,6 +52,7 @@ public class BuyerSecurityConfig extends WebSecurityConfigurerAdapter {
             registry.antMatchers(url).permitAll();
         }
         registry.antMatchers("/api/v1/ai/**").permitAll();
+        registry.antMatchers("/buyer/api/v1/maollar/rates", "/buyer/api/v1/maollar/tier-status").permitAll();
         registry
                 .and()
                 // 禁止网页iframe
