@@ -181,6 +181,14 @@ public class GoodsSku extends BaseEntity {
         return alertQuantity;
     }
 
+    public String getStoreId() {
+        return storeId;
+    }
+
+    public String getStoreName() {
+        return storeName;
+    }
+
     public Boolean getPromotionFlag() {
         return promotionFlag;
     }
