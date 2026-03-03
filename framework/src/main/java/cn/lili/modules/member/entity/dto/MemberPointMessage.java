@@ -20,4 +20,7 @@ public class MemberPointMessage {
 
     @ApiModelProperty(value = "会员id")
     private String memberId;
+
+    @ApiModelProperty(value = "基金会应拨备金 (Foundation Liability) (USD)")
+    private Double fundReserve;
 }

@@ -18,7 +18,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: '*'
+        include: "*"
 spring:
   mail:
     host: smtp.qq.com
@@ -211,7 +211,6 @@ jasypt:
   encryptor:
     password: lili
 
-
 lili:
   #验证码设置
   verification-code:
@@ -253,10 +252,22 @@ lili:
     manager: http://127.0.0.1:8888
     seller: http://127.0.0.1:8888
 
-  # jwt 细节设定
+  # JWT 细节设定
   jwt-setting:
     # token过期时间（分钟）
     tokenExpireTime: 30
+
+  # Maollar 协议配置
+  maollar:
+    oer:
+      app-id: 18e6ad8643a646efb74968771e9c914e # 已填入 OER 的 API Key
+    solana:
+      # Cloudflare Worker 签名网关地址 (部署后填入真实的 .workers.dev 地址)
+      gateway-url: https://mao-signing-gateway.maollar.workers.dev
+      # 与 Worker 约定的 HMAC 密钥 (务必确保两端一致)
+      gateway-secret: MAOLLAR_PRODUCTION_SECRET_KEY_2026
+      # 每日最大 $MAO 发放总量 (熔断保护)
+      daily-max-issuance: 1000000.0
 
   # 使用Spring @Cacheable注解失效时间
   cache:

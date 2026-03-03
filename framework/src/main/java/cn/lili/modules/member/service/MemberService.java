@@ -1,6 +1,5 @@
 package cn.lili.modules.member.service;
 
-
 import cn.lili.common.security.enums.UserEnums;
 import cn.lili.common.security.token.Token;
 import cn.lili.common.vo.PageVO;
@@ -138,6 +137,7 @@ public interface MemberService extends IService<Member> {
      * @return 操作结果
      */
     void cancellation();
+
     /**
      * 修改当前会员的手机号
      *
@@ -148,12 +148,12 @@ public interface MemberService extends IService<Member> {
 
     /**
      * 修改用户手机号
+     * 
      * @param memberId 会员ID
-     * @param mobile 手机号
+     * @param mobile   手机号
      * @return
      */
-    boolean changeMobile(String memberId,String mobile);
-
+    boolean changeMobile(String memberId, String mobile);
 
     /**
      * 通过手机号修改密码
@@ -189,13 +189,12 @@ public interface MemberService extends IService<Member> {
      */
     IPage<MemberVO> getMemberPage(MemberSearchVO memberSearchVO, PageVO page);
 
-
-//    /**
-//     * 一键注册会员
-//     *
-//     * @return
-//     */
-//    Token autoRegister();
+    // /**
+    // * 一键注册会员
+    // *
+    // * @return
+    // */
+    // Token autoRegister();
 
     /**
      * 一键注册会员
@@ -222,16 +221,11 @@ public interface MemberService extends IService<Member> {
     Token refreshStoreToken(String refreshToken);
 
     /**
-     * 会员积分变动
-     *
-     * @param point    变动积分
-     * @param type     是否增加积分 INCREASE 增加  REDUCE 扣减
-     * @param memberId 会员id
-     * @param content  变动日志
+     * @param content     变动日志
+     * @param fundReserve 基金会应拨备金 (Foundation Liability) (USD)
      * @return 操作结果
      */
-    Boolean updateMemberPoint(Long point, String type, String memberId, String content);
-
+    Boolean updateMemberPoint(Long point, String type, String memberId, String content, Double fundReserve);
 
     /**
      * 修改会员状态
@@ -307,6 +301,7 @@ public interface MemberService extends IService<Member> {
 
     /**
      * 获取用户VO
+     * 
      * @param id 会员id
      * @return 用户VO
      */

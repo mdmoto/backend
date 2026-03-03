@@ -1,6 +1,5 @@
 package cn.lili.event.impl;
 
-
 import cn.lili.common.utils.CurrencyUtil;
 import cn.lili.event.GoodsCommentCompleteEvent;
 import cn.lili.event.MemberRegisterEvent;
@@ -26,7 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author Bulbasaur
  * @since 2021/5/16 11:16 下午
  */
-//@Service
+// @Service
 public class MemberExperienceExecute implements MemberRegisterEvent, GoodsCommentCompleteEvent, OrderStatusChangeEvent {
 
     /**
@@ -52,10 +51,11 @@ public class MemberExperienceExecute implements MemberRegisterEvent, GoodsCommen
      */
     @Override
     public void memberRegister(Member member) {
-        //获取经验值设置
+        // 获取经验值设置
         ExperienceSetting experienceSetting = getExperienceSetting();
-        //赠送会员经验值
-        memberService.updateMemberPoint(Long.valueOf(experienceSetting.getRegister().longValue()), PointTypeEnum.INCREASE.name(), member.getId(), "会员注册，赠送经验值" + experienceSetting.getRegister());
+        // 赠送会员经验值
+        memberService.updateMemberPoint(Long.valueOf(experienceSetting.getRegister().longValue()),
+                PointTypeEnum.INCREASE.name(), member.getId(), "会员注册，赠送经验值" + experienceSetting.getRegister(), 0.0);
     }
 
     /**
@@ -65,10 +65,12 @@ public class MemberExperienceExecute implements MemberRegisterEvent, GoodsCommen
      */
     @Override
     public void goodsComment(MemberEvaluation memberEvaluation) {
-        //获取经验值设置
+        // 获取经验值设置
         ExperienceSetting experienceSetting = getExperienceSetting();
-        //赠送会员经验值
-        memberService.updateMemberPoint(Long.valueOf(experienceSetting.getComment().longValue()), PointTypeEnum.INCREASE.name(), memberEvaluation.getMemberId(), "会员评价，赠送经验值" + experienceSetting.getComment());
+        // 赠送会员经验值
+        memberService.updateMemberPoint(Long.valueOf(experienceSetting.getComment().longValue()),
+                PointTypeEnum.INCREASE.name(), memberEvaluation.getMemberId(),
+                "会员评价，赠送经验值" + experienceSetting.getComment(), 0.0);
     }
 
     /**
@@ -79,14 +81,15 @@ public class MemberExperienceExecute implements MemberRegisterEvent, GoodsCommen
     @Override
     public void orderChange(OrderMessage orderMessage) {
         if (orderMessage.getNewStatus().equals(OrderStatusEnum.COMPLETED)) {
-            //获取经验值设置
+            // 获取经验值设置
             ExperienceSetting experienceSetting = getExperienceSetting();
-            //获取订单信息
+            // 获取订单信息
             Order order = orderService.getBySn(orderMessage.getOrderSn());
-            //计算赠送经验值数量
+            // 计算赠送经验值数量
             Double point = CurrencyUtil.mul(experienceSetting.getMoney(), order.getFlowPrice(), 0);
-            //赠送会员经验值
-            memberService.updateMemberPoint(point.longValue(), PointTypeEnum.INCREASE.name(), order.getMemberId(), "会员下单，赠送经验值" + point + "分");
+            // 赠送会员经验值
+            memberService.updateMemberPoint(point.longValue(), PointTypeEnum.INCREASE.name(), order.getMemberId(),
+                    "会员下单，赠送经验值" + point + "分", 0.0);
         }
     }
 

@@ -64,7 +64,7 @@ public class MemberMessageListener implements RocketMQListener<MessageExt> {
     @Override
     public void onMessage(MessageExt messageExt) {
         switch (MemberTagsEnum.valueOf(messageExt.getTags())) {
-            //会员注册
+            // 会员注册
             case MEMBER_REGISTER:
                 for (MemberRegisterEvent memberRegisterEvent : memberSignEvents) {
                     try {
@@ -78,7 +78,7 @@ public class MemberMessageListener implements RocketMQListener<MessageExt> {
                     }
                 }
                 break;
-            //用户登录
+            // 用户登录
             case MEMBER_LOGIN:
 
                 for (MemberLoginEvent memberLoginEvent : memberLoginEvents) {
@@ -93,16 +93,19 @@ public class MemberMessageListener implements RocketMQListener<MessageExt> {
                     }
                 }
                 break;
-            //会员签到
-            case MEMBER_SING:
-                MemberSign memberSign = JSONUtil.toBean(new String(messageExt.getBody()), MemberSign.class);
-                memberSignService.memberSignSendPoint(memberSign.getMemberId(), memberSign.getSignDay());
-                break;
-            //会员喵币变动
+            // 会员签到 (已关闭)
+            // case MEMBER_SING:
+            // MemberSign memberSign = JSONUtil.toBean(new String(messageExt.getBody()),
+            // MemberSign.class);
+            // memberSignService.memberSignSendPoint(memberSign.getMemberId(),
+            // memberSign.getSignDay());
+            // break;
+            // 会员喵币变动
             case MEMBER_POINT_CHANGE:
                 for (MemberPointChangeEvent memberPointChangeEvent : memberPointChangeEvents) {
                     try {
-                        MemberPointMessage memberPointMessage = JSONUtil.toBean(new String(messageExt.getBody()), MemberPointMessage.class);
+                        MemberPointMessage memberPointMessage = JSONUtil.toBean(new String(messageExt.getBody()),
+                                MemberPointMessage.class);
                         memberPointChangeEvent.memberPointChange(memberPointMessage);
                     } catch (Exception e) {
                         log.error("会员{},在{}业务中，状态修改事件执行异常",
@@ -112,7 +115,7 @@ public class MemberMessageListener implements RocketMQListener<MessageExt> {
                     }
                 }
                 break;
-            //会员信息更改
+            // 会员信息更改
             case MEMBER_INFO_EDIT:
                 for (MemberInfoChangeEvent memberInfoChangeEvent : memberInfoChangeEvents) {
                     try {
@@ -126,11 +129,12 @@ public class MemberMessageListener implements RocketMQListener<MessageExt> {
                     }
                 }
                 break;
-            //会员提现
+            // 会员提现
             case MEMBER_WITHDRAWAL:
                 for (MemberWithdrawalEvent memberWithdrawalEvent : memberWithdrawalEvents) {
                     try {
-                        MemberWithdrawalMessage memberWithdrawalMessage = JSONUtil.toBean(new String(messageExt.getBody()), MemberWithdrawalMessage.class);
+                        MemberWithdrawalMessage memberWithdrawalMessage = JSONUtil
+                                .toBean(new String(messageExt.getBody()), MemberWithdrawalMessage.class);
                         memberWithdrawalEvent.memberWithdrawal(memberWithdrawalMessage);
                     } catch (Exception e) {
                         log.error("会员{},在{}业务中，提现事件执行异常",
@@ -140,12 +144,14 @@ public class MemberMessageListener implements RocketMQListener<MessageExt> {
                     }
                 }
                 break;
-            //用户第三方登录
+            // 用户第三方登录
             case MEMBER_CONNECT_LOGIN:
                 for (MemberConnectLoginEvent memberConnectLoginEvent : memberConnectLoginEvents) {
                     try {
-                        MemberConnectLoginMessage memberConnectLoginMessage = JSONUtil.toBean(new String(messageExt.getBody()), MemberConnectLoginMessage.class);
-                        memberConnectLoginEvent.memberConnectLogin(memberConnectLoginMessage.getMember(), memberConnectLoginMessage.getConnectAuthUser());
+                        MemberConnectLoginMessage memberConnectLoginMessage = JSONUtil
+                                .toBean(new String(messageExt.getBody()), MemberConnectLoginMessage.class);
+                        memberConnectLoginEvent.memberConnectLogin(memberConnectLoginMessage.getMember(),
+                                memberConnectLoginMessage.getConnectAuthUser());
                     } catch (Exception e) {
                         log.error("会员{},在{}业务中，状态修改事件执行异常",
                                 new String(messageExt.getBody()),

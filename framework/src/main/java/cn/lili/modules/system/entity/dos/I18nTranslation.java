@@ -52,6 +52,12 @@ public class I18nTranslation extends BaseEntity {
     @ApiModelProperty(value = "Français")
     private String frFr;
 
+    @ApiModelProperty(value = "Deutsch")
+    private String deDe;
+
+    @ApiModelProperty(value = "العربية")
+    private String arSa;
+
     @ApiModelProperty(value = "Tiếng Việt")
     private String viVn;
 
@@ -64,4 +70,3 @@ public class I18nTranslation extends BaseEntity {
     @ApiModelProperty(value = "删除标志")
     private Boolean deleteFlag;
 }
-

@@ -36,10 +36,7 @@ public class PointSetting implements Serializable {
     private List<PointSettingItem> pointSettingItems = new ArrayList<>();
 
     public Integer getRegister() {
-        if (register == null || register < 0) {
-            return 0;
-        }
-        return register;
+        return 0;
     }
 
     public Integer getMoney() {
@@ -57,16 +54,10 @@ public class PointSetting implements Serializable {
     }
 
     public Integer getSignIn() {
-        if (signIn == null || signIn < 0) {
-            return 0;
-        }
-        return signIn;
+        return 0;
     }
 
     public Integer getComment() {
-        if (comment == null || comment < 0) {
-            return 0;
-        }
-        return comment;
+        return 0;
     }
 }

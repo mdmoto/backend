@@ -32,4 +32,26 @@ public interface MemberPointsHistoryService extends IService<MemberPointsHistory
      */
     IPage<MemberPointsHistory> MemberPointsHistoryList(PageVO page, String memberId, String memberName);
 
+    /**
+     * 获取当前未结算的基金会应拨备金总额 (USD)
+     * 
+     * @return 总额
+     */
+    double getUnsettledLiability();
+
+    /**
+     * 获取最新的全站积分默克尔根
+     * 
+     * @return 默克尔根哈希
+     */
+    String getLatestMerkleRoot();
+
+    /**
+     * 处理 DApp 兑换回调
+     * 
+     * @param memberId 会员 ID
+     * @param points   扣除积分
+     * @return 是否成功
+     */
+    boolean pointExchangeCallback(String memberId, Long points);
 }

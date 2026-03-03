@@ -48,15 +48,15 @@ public class I18nService {
             }
 
             String result = getTranslationByLang(translation, lang);
-            
+
             // 如果指定语言没有翻译，回退到中文
             if (result == null || result.trim().isEmpty()) {
                 log.warn("语言 {} 的翻译不存在，使用中文: {}", lang, key);
                 return translation.getZhCn() != null ? translation.getZhCn() : key;
             }
-            
+
             return result;
-            
+
         } catch (Exception e) {
             log.error("翻译失败: key={}, lang={}", key, lang, e);
             return key;
@@ -73,7 +73,7 @@ public class I18nService {
      */
     public String translate(String key, String lang, Map<String, Object> params) {
         String template = translate(key, lang);
-        
+
         if (params == null || params.isEmpty()) {
             return template;
         }
@@ -119,11 +119,11 @@ public class I18nService {
      */
     public Map<String, String> batchTranslate(List<String> keys, String lang) {
         Map<String, String> result = new HashMap<>();
-        
+
         for (String key : keys) {
             result.put(key, translate(key, lang));
         }
-        
+
         return result;
     }
 
@@ -191,6 +191,16 @@ public class I18nService {
             case "frFR":
             case "fr":
                 return translation.getFrFr();
+            case "de-DE":
+            case "de_DE":
+            case "deDE":
+            case "de":
+                return translation.getDeDe();
+            case "ar-SA":
+            case "ar_SA":
+            case "arSA":
+            case "ar":
+                return translation.getArSa();
             case "vi-VN":
             case "vi_VN":
             case "viVN":
@@ -212,20 +222,32 @@ public class I18nService {
         if (lang == null || lang.trim().isEmpty()) {
             return "zh-CN";
         }
-        
+
         // 统一转换为小写，然后处理
         String lower = lang.toLowerCase().replace("_", "-");
-        
+
         // 处理简写（en → en-US）
-        if (lower.equals("zh")) return "zh-CN";
-        if (lower.equals("en")) return "en-US";
-        if (lower.equals("ja")) return "ja-JP";
-        if (lower.equals("ko")) return "ko-KR";
-        if (lower.equals("th")) return "th-TH";
-        if (lower.equals("es")) return "es-ES";
-        if (lower.equals("fr")) return "fr-FR";
-        if (lower.equals("vi")) return "vi-VN";
-        
+        if (lower.equals("zh"))
+            return "zh-CN";
+        if (lower.equals("en"))
+            return "en-US";
+        if (lower.equals("ja"))
+            return "ja-JP";
+        if (lower.equals("ko"))
+            return "ko-KR";
+        if (lower.equals("th"))
+            return "th-TH";
+        if (lower.equals("es"))
+            return "es-ES";
+        if (lower.equals("fr"))
+            return "fr-FR";
+        if (lower.equals("de"))
+            return "de-DE";
+        if (lower.equals("ar"))
+            return "ar-SA";
+        if (lower.equals("vi"))
+            return "vi-VN";
+
         return lang;
     }
 
@@ -237,4 +259,3 @@ public class I18nService {
         log.info("清除i18n缓存");
     }
 }
-

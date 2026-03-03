@@ -97,6 +97,8 @@ public class Member extends BaseEntity {
     @ApiModelProperty(value = "经验值数量")
     private Long experience;
 
+    @ApiModelProperty(value = "是否实名认证 (KYC)")
+    private Boolean isKycVerified = false;
 
     public Member(String username, String password, String mobile) {
         this.username = username;
@@ -111,7 +113,7 @@ public class Member extends BaseEntity {
         this.lastLoginDate = new Date();
     }
 
-    public Member(String username, String password, String face, String nickName, Integer sex,String mobile) {
+    public Member(String username, String password, String face, String nickName, Integer sex, String mobile) {
         this.username = username;
         this.password = password;
         this.mobile = mobile;

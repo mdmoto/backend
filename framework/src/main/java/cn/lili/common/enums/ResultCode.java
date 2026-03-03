@@ -1,5 +1,7 @@
 package cn.lili.common.enums;
 
+import cn.lili.common.utils.I18nUtil;
+
 /**
  * 返回状态码
  * 第一位 1:商品；2:用户；3:交易,4:促销,5:店铺,6:页面,7:设置,8:其他
@@ -27,7 +29,6 @@ public enum ResultCode {
      * 参数异常
      */
     PARAMS_ERROR(4002, "参数异常"),
-
 
     /**
      * 系统异常
@@ -165,7 +166,6 @@ public enum ResultCode {
     PERMISSION_ROLE_NOT_FOUND_ERROR(21007, "角色不存在"),
     PERMISSION_CLERK_BAND_ERROR(21008, "此手机号码已绑定其他店铺 "),
 
-
     /**
      * 分销
      */
@@ -208,9 +208,8 @@ public enum ResultCode {
     ORDER_ITEM_NOT_EXIST(31014, "当前订单项不存在！"),
     POINT_NOT_ENOUGH(31015, "当前会员积分不足购买当前喵币商品！"),
     ORDER_LABEL_ORDER_ERROR(31016, "订单不能打印电子面单"),
-    ORDER_PRICE_ERROR(31017,"订单金额不能小于等于0"),
+    ORDER_PRICE_ERROR(31017, "订单金额不能小于等于0"),
     ORDER_PACKAGE_NOT_EXIST(31017, "当前订单包裹不存在！"),
-
 
     /**
      * 支付
@@ -253,7 +252,6 @@ public enum ResultCode {
     COMPLAINT_ARBITRATION_RESULT_ERROR(33104, "结束订单投诉时，仲裁结果不能为空"),
     COMPLAINT_APPEAL_CONTENT_ERROR(33105, "商家申诉时，申诉内容不能为空"),
     COMPLAINT_CANCEL_ERROR(33106, "申诉已完成，不需要进行取消申诉操作"),
-
 
     /**
      * 余额
@@ -377,7 +375,6 @@ public enum ResultCode {
     SECKILL_OPEN_ERROR(45010, "该秒杀活动活动的状态不能删除"),
     SECKILL_CLOSE_ERROR(45006, "该秒杀活动活动的状态不能关闭"),
 
-
     /**
      * 优惠券活动
      */
@@ -421,10 +418,10 @@ public enum ResultCode {
     STORE_NOT_OPEN(50004, "该会员未开通店铺"),
     STORE_NOT_LOGIN_ERROR(50005, "未登录店铺"),
     STORE_CLOSE_ERROR(50006, "店铺关闭，请联系管理员"),
-    STORE_DELIVER_GOODS_ADDRESS(50007,"请填写商家发货地址"),
+    STORE_DELIVER_GOODS_ADDRESS(50007, "请填写商家发货地址"),
     FREIGHT_TEMPLATE_NOT_EXIST(50010, "当前模版不存在"),
     STORE_STATUS_ERROR(50011, "店铺在申请中或审核中，请勿重复操作"),
-    STORE_DELIVER_ADDRESS_EXIST(50012,"请填写发货地址"),
+    STORE_DELIVER_ADDRESS_EXIST(50012, "请填写发货地址"),
 
     /**
      * 结算单
@@ -442,7 +439,6 @@ public enum ResultCode {
     ARTICLE_CATEGORY_HAS_ARTICLE(60005, "该文章分类下存在文章，不能删除"),
     ARTICLE_CATEGORY_NO_DELETION(60007, "默认文章分类不能进行删除"),
     ARTICLE_NO_DELETION(60008, "默认文章不能进行删除"),
-
 
     /**
      * 页面
@@ -473,7 +469,6 @@ public enum ResultCode {
     NOTICE_NOT_EXIST(80001, "当前消息模板不存在"),
     NOTICE_ERROR(80002, "修改站内信异常，请稍后重试"),
     NOTICE_SEND_ERROR(80003, "发送站内信异常，请检查系统日志"),
-
 
     /**
      * OSS
@@ -509,8 +504,8 @@ public enum ResultCode {
     /**
      * IM
      */
-    IM_MESSAGE_ADD_ERROR(80400,"IM消息发送错误"),
-    IM_MESSAGE_EDIT_ERROR(80400,"IM消息更新错误"),
+    IM_MESSAGE_ADD_ERROR(80400, "IM消息发送错误"),
+    IM_MESSAGE_EDIT_ERROR(80400, "IM消息更新错误"),
 
     /**
      * 其他
@@ -524,10 +519,8 @@ public enum ResultCode {
     USER_ADD_ERROR(90005, "用户添加失败"),
     INDEX_BUILDING(90005, "索引正在生成");
 
-
     private final Integer code;
     private final String message;
-
 
     ResultCode(Integer code, String message) {
         this.code = code;
@@ -539,7 +532,7 @@ public enum ResultCode {
     }
 
     public String message() {
-        return this.message;
+        return I18nUtil.tDefault("result_code." + this.name().toLowerCase(), this.message);
     }
 
 }

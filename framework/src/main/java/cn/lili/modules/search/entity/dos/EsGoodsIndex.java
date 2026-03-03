@@ -54,6 +54,26 @@ public class EsGoodsIndex implements Serializable {
     @ApiModelProperty("商品名称")
     private String goodsName;
 
+    // Multi-language names
+    @Field(type = FieldType.Text, analyzer = "english")
+    private String title_en;
+    @Field(type = FieldType.Text, analyzer = "ik_max_word")
+    private String title_zh;
+    @Field(type = FieldType.Text, analyzer = "kuromoji")
+    private String title_ja;
+    @Field(type = FieldType.Text, analyzer = "nori")
+    private String title_ko;
+    @Field(type = FieldType.Text, analyzer = "arabic")
+    private String title_ar;
+    @Field(type = FieldType.Text, analyzer = "spanish")
+    private String title_es;
+    @Field(type = FieldType.Text, analyzer = "french")
+    private String title_fr;
+    @Field(type = FieldType.Text, analyzer = "thai")
+    private String title_th;
+    @Field(type = FieldType.Text, analyzer = "german")
+    private String title_de;
+
     /**
      * 商品编号
      */
@@ -276,12 +296,11 @@ public class EsGoodsIndex implements Serializable {
      * key 为 促销活动类型
      *
      * @see PromotionTypeEnum
-     * value 为 促销活动实体信息
+     *      value 为 促销活动实体信息
      */
     @Field(type = FieldType.Text)
     @ApiModelProperty("商品促销活动集合JSON，key 为 促销活动类型，value 为 促销活动实体信息 ")
     private String promotionMapJson;
-
 
     public EsGoodsIndex(GoodsSku sku) {
         if (sku != null) {
@@ -322,27 +341,27 @@ public class EsGoodsIndex implements Serializable {
      */
     public EsGoodsIndex(GoodsSku sku, List<GoodsParamsDTO> goodsParamDTOS) {
         this(sku);
-        //如果参数不为空
+        // 如果参数不为空
         if (goodsParamDTOS != null && !goodsParamDTOS.isEmpty()) {
-            //接受不了参数索引
+            // 接受不了参数索引
             List<EsGoodsAttribute> attributes = new ArrayList<>();
-            //循环参数分组
+            // 循环参数分组
             goodsParamDTOS.forEach(goodsParamGroup -> {
-                //如果参数有配置，则增加索引
-                if (goodsParamGroup.getGoodsParamsItemDTOList() != null && !goodsParamGroup.getGoodsParamsItemDTOList().isEmpty()) {
-                    //循环分组的内容
+                // 如果参数有配置，则增加索引
+                if (goodsParamGroup.getGoodsParamsItemDTOList() != null
+                        && !goodsParamGroup.getGoodsParamsItemDTOList().isEmpty()) {
+                    // 循环分组的内容
                     goodsParamGroup.getGoodsParamsItemDTOList().forEach(goodsParam -> {
-                                //如果字段需要索引，则增加索引字段
-                                if (goodsParam.getIsIndex() != null && goodsParam.getIsIndex() == 1) {
-                                    EsGoodsAttribute attribute = new EsGoodsAttribute();
-                                    attribute.setType(1);
-                                    attribute.setName(goodsParam.getParamName());
-                                    attribute.setValue(goodsParam.getParamValue());
-                                    attribute.setSort(goodsParam.getSort());
-                                    attributes.add(attribute);
-                                }
-                            }
-                    );
+                        // 如果字段需要索引，则增加索引字段
+                        if (goodsParam.getIsIndex() != null && goodsParam.getIsIndex() == 1) {
+                            EsGoodsAttribute attribute = new EsGoodsAttribute();
+                            attribute.setType(1);
+                            attribute.setName(goodsParam.getParamName());
+                            attribute.setValue(goodsParam.getParamValue());
+                            attribute.setSort(goodsParam.getSort());
+                            attributes.add(attribute);
+                        }
+                    });
                 }
 
             });

@@ -9,10 +9,9 @@ import cn.lili.common.security.enums.UserEnums;
  * @author pikachu
  * @version 4.1
  * @since 1.0
- * 2018/3/19
+ *        2018/3/19
  */
 public enum CachePrefix {
-
 
     /**
      * nonce
@@ -23,7 +22,6 @@ public enum CachePrefix {
      * 在线人数
      */
     ONLINE_NUM,
-
 
     /**
      * 会员分布数据
@@ -203,7 +201,7 @@ public enum CachePrefix {
      */
     SHIP_TEMPLATE_ONE,
 
-    //================促销=================
+    // ================促销=================
     /**
      * 促销活动
      */
@@ -245,8 +243,7 @@ public enum CachePrefix {
      */
     MEMBER_COUPON_SIGN,
 
-
-    //================交易=================
+    // ================交易=================
 
     /**
      * 购物车原始数据
@@ -278,7 +275,6 @@ public enum CachePrefix {
      */
     CART_PROMOTION_PREFIX,
 
-
     /**
      * 交易_交易价格的前缀
      */
@@ -288,7 +284,6 @@ public enum CachePrefix {
      * 交易_交易单
      */
     TRADE_SESSION_ID_PREFIX,
-
 
     /**
      * 结算参数
@@ -317,7 +312,6 @@ public enum CachePrefix {
      * 合同编号
      */
     CONTRACT_SN_CACHE_PREFIX,
-
 
     /**
      * 零钱
@@ -363,7 +357,6 @@ public enum CachePrefix {
      * 会员积分
      */
     POINT_ORDER,
-
 
     /**
      * 微博登录
@@ -519,8 +512,12 @@ public enum CachePrefix {
      * @param str
      * @return
      */
-    QR_CODE_LOGIN_SESSION;
+    QR_CODE_LOGIN_SESSION,
 
+    /**
+     * MAO Token 价格
+     */
+    MAO_PRICE;
 
     public static String removePrefix(String str) {
         return str.substring(str.lastIndexOf("}_") + 2);

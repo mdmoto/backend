@@ -23,7 +23,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: '*'
+        include: "*"
 spring:
   application:
     name: consumer
@@ -270,6 +270,16 @@ lili:
       notice-send-group: lili_send_notice_group
       after-sale-topic: lili_after_sale_topic
       after-sale-group: lili_after_sale_group
+  maollar:
+    solana:
+      mint: GH9mvRrmoXhZktsr7tJdQcoGTEqV4PVq7tAm67pRdW7c
+      vault-address: 6sYYNMHjZMeFstSpJj8TmuiaxnuJggCY5gqVgUNMRSj1
+      daily-max-issuance: 1000000
+      gateway-url: https://mao-signing-gateway.mdmoto.workers.dev
+      gateway-secret: YOUR_CLOUDFLARE_WORKER_HMAC_SECRET
+  ai:
+    api-key: AIzaSyAHAOkW-2W96uO0Jo06rGftM2XOBl6L5EA
+    api-url: https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent
 rocketmq:
   name-server: 127.0.0.1:9876
   producer:

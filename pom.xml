@@ -125,8 +125,8 @@
     <repositories>
         <repository>
             <id>central</id>
-            <name>aliyun maven</name>
-            <url>https://maven.aliyun.com/repository/public</url>
+            <name>central maven</name>
+            <url>https://repo.maven.apache.org/maven2/</url>
             <layout>default</layout>
             <!-- 是否开启发布版构件下载 -->
             <releases>

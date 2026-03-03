@@ -1352,4 +1352,16 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 //        sheet.setColumnWidth(30, 20 * 256);
         return workbook;
     }
+
+    @Override
+    public double getCompletedTotalSales() {
+        QueryWrapper<Order> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("order_status", OrderStatusEnum.COMPLETED.name());
+        queryWrapper.select("IFNULL(sum(flow_price), 0) as totalSales");
+        Map<String, Object> result = this.getMap(queryWrapper);
+        if (result != null && result.get("totalSales") != null) {
+            return Double.parseDouble(result.get("totalSales").toString());
+        }
+        return 0.0;
+    }
 }

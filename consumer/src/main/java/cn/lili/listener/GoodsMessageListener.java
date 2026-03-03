@@ -109,6 +109,9 @@ public class GoodsMessageListener implements RocketMQListener<MessageExt> {
      */
     @Autowired
     private BrandService brandService;
+
+    @Autowired
+    private cn.lili.modules.goods.service.ProductTranslationService productTranslationService;
     /**
      * 店铺商品分类
      */
@@ -126,12 +129,12 @@ public class GoodsMessageListener implements RocketMQListener<MessageExt> {
     public void onMessage(MessageExt messageExt) {
 
         switch (GoodsTagsEnum.valueOf(messageExt.getTags())) {
-            //查看商品
+            // 查看商品
             case VIEW_GOODS:
                 FootPrint footPrint = JSONUtil.toBean(new String(messageExt.getBody()), FootPrint.class);
                 footprintService.saveFootprint(footPrint);
                 break;
-            //生成索引
+            // 生成索引
             case GENERATOR_GOODS_INDEX:
                 try {
                     String goodsId = new String(messageExt.getBody());
@@ -160,7 +163,8 @@ public class GoodsMessageListener implements RocketMQListener<MessageExt> {
                     break;
                 }
                 if (CharSequenceUtil.isNotEmpty(jsonObject.getStr("scopeId"))) {
-                    this.goodsIndexService.deleteEsGoodsPromotionByPromotionKey(Arrays.asList(jsonObject.getStr("scopeId").split(",")), promotionKey);
+                    this.goodsIndexService.deleteEsGoodsPromotionByPromotionKey(
+                            Arrays.asList(jsonObject.getStr("scopeId").split(",")), promotionKey);
                 } else {
                     this.goodsIndexService.deleteEsGoodsPromotionByPromotionKey(promotionKey);
                 }
@@ -180,8 +184,10 @@ public class GoodsMessageListener implements RocketMQListener<MessageExt> {
                 try {
                     String updateIndexFieldsJsonStr = new String(messageExt.getBody());
                     JSONObject updateIndexFields = JSONUtil.parseObj(updateIndexFieldsJsonStr);
-                    @SuppressWarnings("unchecked") Map<String, Object> queryFields = updateIndexFields.get("queryFields", Map.class);
-                    @SuppressWarnings("unchecked") Map<String, Object> updateFields = updateIndexFields.get("updateFields", Map.class);
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> queryFields = updateIndexFields.get("queryFields", Map.class);
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> updateFields = updateIndexFields.get("updateFields", Map.class);
                     goodsIndexService.updateIndex(queryFields, updateFields);
                 } catch (Exception e) {
                     log.error("更新商品索引事件执行异常，商品信息: " + new String(messageExt.getBody()), e);
@@ -196,17 +202,18 @@ public class GoodsMessageListener implements RocketMQListener<MessageExt> {
                     log.error("重置商品索引事件执行异常，商品信息: " + new String(messageExt.getBody()), e);
                 }
                 break;
-            //审核商品
+            // 审核商品
             case GOODS_AUDIT:
                 Goods goods = JSONUtil.toBean(new String(messageExt.getBody()), Goods.class);
                 updateGoodsIndex(goods);
                 break;
-            //删除商品
+            // 删除商品
             case GOODS_DELETE:
                 try {
                     String goodsIdsJsonStr = new String(messageExt.getBody());
                     for (String goodsId : JSONUtil.toList(goodsIdsJsonStr, String.class)) {
-                        goodsIndexService.deleteIndex(MapUtil.builder(new HashMap<String, Object>()).put("goodsId", goodsId).build());
+                        goodsIndexService.deleteIndex(
+                                MapUtil.builder(new HashMap<String, Object>()).put("goodsId", goodsId).build());
                     }
 
                     promotionService.removeByGoodsIds(goodsIdsJsonStr);
@@ -218,7 +225,7 @@ public class GoodsMessageListener implements RocketMQListener<MessageExt> {
                 String goodsIdsJsonStr = new String(messageExt.getBody());
                 promotionService.removeByGoodsIds(goodsIdsJsonStr);
                 break;
-            //规格删除
+            // 规格删除
             case SKU_DELETE:
                 String message = new String(messageExt.getBody());
                 List<String> skuIds = JSONUtil.toList(message, String.class);
@@ -227,31 +234,34 @@ public class GoodsMessageListener implements RocketMQListener<MessageExt> {
             case STORE_GOODS_DELETE:
                 try {
                     String storeId = new String(messageExt.getBody());
-                    goodsIndexService.deleteIndex(MapUtil.builder(new HashMap<String, Object>()).put("storeId", storeId).build());
+                    goodsIndexService.deleteIndex(
+                            MapUtil.builder(new HashMap<String, Object>()).put("storeId", storeId).build());
                 } catch (RetryException re) {
                     throw re;
                 } catch (Exception e) {
                     log.error("删除店铺商品索引事件执行异常，商品信息: " + new String(messageExt.getBody()), e);
                 }
                 break;
-            //同步商品分类名称
+            // 同步商品分类名称
             case CATEGORY_GOODS_NAME:
-                //分类ID
+                // 分类ID
                 String id = new String(messageExt.getBody());
                 goodsService.categoryGoodsName(id);
                 break;
-            //商品评价
+            // 商品评价
             case GOODS_COMMENT_COMPLETE:
-                MemberEvaluation memberEvaluation = JSONUtil.toBean(new String(messageExt.getBody()), MemberEvaluation.class);
+                MemberEvaluation memberEvaluation = JSONUtil.toBean(new String(messageExt.getBody()),
+                        MemberEvaluation.class);
                 for (GoodsCommentCompleteEvent goodsCommentCompleteEvent : goodsCommentCompleteEvents) {
                     try {
                         goodsCommentCompleteEvent.goodsComment(memberEvaluation);
                     } catch (Exception e) {
-                        log.error("评价{},在{}业务中，状态修改事件执行异常", new String(messageExt.getBody()), goodsCommentCompleteEvent.getClass().getName(), e);
+                        log.error("评价{},在{}业务中，状态修改事件执行异常", new String(messageExt.getBody()),
+                                goodsCommentCompleteEvent.getClass().getName(), e);
                     }
                 }
                 break;
-            //购买商品完成
+            // 购买商品完成
             case BUY_GOODS_COMPLETE:
                 this.goodsBuyComplete(messageExt);
                 break;
@@ -266,40 +276,45 @@ public class GoodsMessageListener implements RocketMQListener<MessageExt> {
             log.info("更新商品索引促销信息: {}", promotionsJsonStr);
             JSONObject jsonObject = JSONUtil.parseObj(promotionsJsonStr);
             // 转换为详细的促销信息（注：促销信息必须继承自 BasePromotions，且必须保证派生类存在与sdk包下）
-            BasePromotions promotions = (BasePromotions) jsonObject.get("promotions", ClassLoaderUtil.loadClass(jsonObject.get("promotionsType").toString()));
+            BasePromotions promotions = (BasePromotions) jsonObject.get("promotions",
+                    ClassLoaderUtil.loadClass(jsonObject.get("promotionsType").toString()));
             // 获取促销唯一key,由 促销类型 + 促销id 组成
             String esPromotionKey = jsonObject.get("esPromotionKey").toString();
             if (PromotionsScopeTypeEnum.PORTION_GOODS.name().equals(promotions.getScopeType())) {
-                for (int i = 0; ; i++) {
+                for (int i = 0;; i++) {
                     PromotionGoodsSearchParams searchParams = new PromotionGoodsSearchParams();
                     searchParams.setPromotionId(promotions.getId());
                     PageVO pageVO = new PageVO();
                     pageVO.setPageNumber(i);
                     pageVO.setPageSize(BATCH_SIZE);
-                    Page<PromotionGoods> promotionGoodsPage = this.promotionGoodsService.pageFindAll(searchParams, pageVO);
+                    Page<PromotionGoods> promotionGoodsPage = this.promotionGoodsService.pageFindAll(searchParams,
+                            pageVO);
                     if (promotionGoodsPage == null || promotionGoodsPage.getRecords().isEmpty()) {
                         break;
                     }
-                    List<String> skuIds = promotionGoodsPage.getRecords().stream().map(PromotionGoods::getSkuId).collect(Collectors.toList());
+                    List<String> skuIds = promotionGoodsPage.getRecords().stream().map(PromotionGoods::getSkuId)
+                            .collect(Collectors.toList());
                     // 更新商品索引促销信息（删除原索引中相关的促销信息，更新索引中促销信息）
                     this.goodsIndexService.deleteEsGoodsPromotionByPromotionKey(skuIds, esPromotionKey);
-                    this.goodsIndexService.updateEsGoodsIndexByList(promotionGoodsPage.getRecords(), promotions, esPromotionKey);
+                    this.goodsIndexService.updateEsGoodsIndexByList(promotionGoodsPage.getRecords(), promotions,
+                            esPromotionKey);
                 }
 
             } else if (PromotionsScopeTypeEnum.PORTION_GOODS_CATEGORY.name().equals(promotions.getScopeType())) {
-                for (int i = 0; ; i++) {
+                for (int i = 0;; i++) {
                     GoodsSearchParams searchParams = new GoodsSearchParams();
                     searchParams.setCategoryPath(promotions.getScopeId());
                     searchParams.setPageNumber(i);
                     searchParams.setPageSize(BATCH_SIZE);
-                    if (CharSequenceUtil.isNotEmpty(promotions.getStoreId()) && !"0".equals(promotions.getStoreId())){
+                    if (CharSequenceUtil.isNotEmpty(promotions.getStoreId()) && !"0".equals(promotions.getStoreId())) {
                         searchParams.setStoreId(promotions.getStoreId());
                     }
                     IPage<GoodsSku> goodsSkuByPage = this.goodsSkuService.getGoodsSkuByPage(searchParams);
                     if (goodsSkuByPage == null || goodsSkuByPage.getRecords().isEmpty()) {
                         break;
                     }
-                    List<String> skuIds = goodsSkuByPage.getRecords().stream().map(GoodsSku::getId).collect(Collectors.toList());
+                    List<String> skuIds = goodsSkuByPage.getRecords().stream().map(GoodsSku::getId)
+                            .collect(Collectors.toList());
                     // 更新商品索引促销信息（删除原索引中相关的促销信息，更新索引中促销信息）
                     this.goodsIndexService.deleteEsGoodsPromotionByPromotionKey(skuIds, esPromotionKey);
                     this.goodsIndexService.updateEsGoodsIndexPromotions(skuIds, promotions, esPromotionKey);
@@ -324,14 +339,13 @@ public class GoodsMessageListener implements RocketMQListener<MessageExt> {
         }
     }
 
-
     /**
      * 更新商品索引根据店铺id
      *
      * @param storeId 店铺id
      */
     private void updateGoodsIndex(String storeId) {
-        //如果商品通过审核&&并且已上架
+        // 如果商品通过审核&&并且已上架
         GoodsSearchParams searchParams = new GoodsSearchParams();
         searchParams.setStoreId(storeId);
         for (Goods goods : this.goodsService.queryListByParams(searchParams)) {
@@ -346,8 +360,8 @@ public class GoodsMessageListener implements RocketMQListener<MessageExt> {
      * @param goods 商品消息
      */
     private void updateGoodsIndex(Goods goods) {
-        for (int i = 1; ; i++) {
-            //如果商品通过审核&&并且已上架
+        for (int i = 1;; i++) {
+            // 如果商品通过审核&&并且已上架
             GoodsSearchParams searchParams = new GoodsSearchParams();
             searchParams.setGoodsId(goods.getId());
             searchParams.setPageNumber(i);
@@ -359,10 +373,12 @@ public class GoodsMessageListener implements RocketMQListener<MessageExt> {
             }
             log.info("goods：{}", goods);
             log.info("goodsSkuList：{}", goodsSkuByPage.getRecords());
-            if (goods.getAuthFlag().equals(GoodsAuthEnum.PASS.name()) && goods.getMarketEnable().equals(GoodsStatusEnum.UPPER.name()) && Boolean.FALSE.equals(goods.getDeleteFlag())) {
+            if (goods.getAuthFlag().equals(GoodsAuthEnum.PASS.name())
+                    && goods.getMarketEnable().equals(GoodsStatusEnum.UPPER.name())
+                    && Boolean.FALSE.equals(goods.getDeleteFlag())) {
                 this.generatorGoodsIndex(goods, goodsSkuByPage.getRecords());
             } else {
-                //如果商品状态值不支持es搜索，那么将商品信息做下架处理
+                // 如果商品状态值不支持es搜索，那么将商品信息做下架处理
                 for (GoodsSku goodsSku : goodsSkuByPage.getRecords()) {
                     EsGoodsIndex esGoodsOld = goodsIndexService.findById(goodsSku.getId());
                     if (esGoodsOld != null) {
@@ -394,7 +410,8 @@ public class GoodsMessageListener implements RocketMQListener<MessageExt> {
             log.info("生成商品索引 {}", goodsIndex);
             esGoodsIndices.add(goodsIndex);
         }
-        this.goodsIndexService.deleteIndex(MapUtil.builder(new HashMap<String, Object>()).put("goodsId", goods.getId()).build());
+        this.goodsIndexService
+                .deleteIndex(MapUtil.builder(new HashMap<String, Object>()).put("goodsId", goods.getId()).build());
         this.goodsIndexService.addIndex(esGoodsIndices);
     }
 
@@ -406,6 +423,19 @@ public class GoodsMessageListener implements RocketMQListener<MessageExt> {
         }
         goodsIndex.setAuthFlag(goods.getAuthFlag());
         goodsIndex.setMarketEnable(goods.getMarketEnable());
+
+        // Multi-language names
+        List<cn.lili.modules.goods.entity.dos.ProductTranslation> translations = productTranslationService
+                .listBySpuId(goods.getId());
+        for (cn.lili.modules.goods.entity.dos.ProductTranslation translation : translations) {
+            String lang = translation.getLanguageCode();
+            try {
+                cn.hutool.core.util.ReflectUtil.setFieldValue(goodsIndex, "title_" + lang, translation.getTitle());
+            } catch (Exception e) {
+                log.warn("Failed to set multi-language field for goods {}: title_{}", goods.getId(), lang);
+            }
+        }
+
         this.settingUpGoodsIndexOtherParam(goodsIndex);
         return goodsIndex;
     }
@@ -416,7 +446,8 @@ public class GoodsMessageListener implements RocketMQListener<MessageExt> {
      * @param goodsIndex 商品索引信息
      */
     private void settingUpGoodsIndexOtherParam(EsGoodsIndex goodsIndex) {
-        List<Category> categories = categoryService.listByIdsOrderByLevel(Arrays.asList(goodsIndex.getCategoryPath().split(",")));
+        List<Category> categories = categoryService
+                .listByIdsOrderByLevel(Arrays.asList(goodsIndex.getCategoryPath().split(",")));
         if (!categories.isEmpty()) {
             goodsIndex.setCategoryNamePath(ArrayUtil.join(categories.stream().map(Category::getName).toArray(), ","));
         }
@@ -425,19 +456,22 @@ public class GoodsMessageListener implements RocketMQListener<MessageExt> {
             goodsIndex.setBrandName(brand.getName());
             goodsIndex.setBrandUrl(brand.getLogo());
         }
-        if (goodsIndex.getStoreCategoryPath() != null && CharSequenceUtil.isNotEmpty(goodsIndex.getStoreCategoryPath())) {
-            List<StoreGoodsLabel> storeGoodsLabels = storeGoodsLabelService.listByStoreIds(Arrays.asList(goodsIndex.getStoreCategoryPath().split(",")));
+        if (goodsIndex.getStoreCategoryPath() != null
+                && CharSequenceUtil.isNotEmpty(goodsIndex.getStoreCategoryPath())) {
+            List<StoreGoodsLabel> storeGoodsLabels = storeGoodsLabelService
+                    .listByStoreIds(Arrays.asList(goodsIndex.getStoreCategoryPath().split(",")));
             if (!storeGoodsLabels.isEmpty()) {
-                goodsIndex.setStoreCategoryNamePath(ArrayUtil.join(storeGoodsLabels.stream().map(StoreGoodsLabel::getLabelName).toArray(), ","));
+                goodsIndex.setStoreCategoryNamePath(
+                        ArrayUtil.join(storeGoodsLabels.stream().map(StoreGoodsLabel::getLabelName).toArray(), ","));
             }
         }
 
         if (goodsIndex.getOriginPromotionMap() == null || goodsIndex.getOriginPromotionMap().isEmpty()) {
-            Map<String, Object> goodsCurrentPromotionMap = promotionService.getGoodsSkuPromotionMap(goodsIndex.getStoreId(), goodsIndex.getId());
+            Map<String, Object> goodsCurrentPromotionMap = promotionService
+                    .getGoodsSkuPromotionMap(goodsIndex.getStoreId(), goodsIndex.getId());
             goodsIndex.setPromotionMapJson(JSONUtil.toJsonStr(goodsCurrentPromotionMap));
         }
     }
-
 
     /**
      * 删除商品
@@ -451,15 +485,15 @@ public class GoodsMessageListener implements RocketMQListener<MessageExt> {
 
         DistributionGoodsSearchParams searchParams = new DistributionGoodsSearchParams();
         searchParams.setGoodsId(goods.getId());
-        //删除获取分销商品
+        // 删除获取分销商品
         DistributionGoods distributionGoods = distributionGoodsService.getDistributionGoods(searchParams);
 
         if (distributionGoods != null) {
 
-            //删除分销商品绑定关系
+            // 删除分销商品绑定关系
             distributionSelectedGoodsService.deleteByDistributionGoodsId(distributionGoods.getId());
 
-            //删除分销商品
+            // 删除分销商品
             distributionGoodsService.removeById(distributionGoods.getId());
         }
     }
@@ -474,11 +508,12 @@ public class GoodsMessageListener implements RocketMQListener<MessageExt> {
      */
     private void goodsBuyComplete(MessageExt messageExt) {
         String goodsCompleteMessageStr = new String(messageExt.getBody());
-        List<GoodsCompleteMessage> goodsCompleteMessageList = JSONUtil.toList(JSONUtil.parseArray(goodsCompleteMessageStr), GoodsCompleteMessage.class);
+        List<GoodsCompleteMessage> goodsCompleteMessageList = JSONUtil
+                .toList(JSONUtil.parseArray(goodsCompleteMessageStr), GoodsCompleteMessage.class);
         for (GoodsCompleteMessage goodsCompleteMessage : goodsCompleteMessageList) {
             Goods goods = goodsService.getById(goodsCompleteMessage.getGoodsId());
             if (goods != null) {
-                //更新商品购买数量
+                // 更新商品购买数量
                 if (goods.getBuyCount() == null) {
                     goods.setBuyCount(0);
                 }
@@ -489,7 +524,7 @@ public class GoodsMessageListener implements RocketMQListener<MessageExt> {
             }
             GoodsSku goodsSku = goodsSkuService.getById(goodsCompleteMessage.getSkuId());
             if (goodsSku != null) {
-                //更新商品购买数量
+                // 更新商品购买数量
                 if (goodsSku.getBuyCount() == null) {
                     goodsSku.setBuyCount(0);
                 }
@@ -497,7 +532,10 @@ public class GoodsMessageListener implements RocketMQListener<MessageExt> {
                 goodsSku.setBuyCount(buyCount);
                 goodsSkuService.updateGoodsSkuBuyCount(goodsSku.getId(), buyCount);
 
-                this.goodsIndexService.updateIndex(MapUtil.builder(new HashMap<String, Object>()).put("id", goodsCompleteMessage.getSkuId()).build(), MapUtil.builder(new HashMap<String, Object>()).put("buyCount", buyCount).build());
+                this.goodsIndexService.updateIndex(
+                        MapUtil.builder(new HashMap<String, Object>()).put("id", goodsCompleteMessage.getSkuId())
+                                .build(),
+                        MapUtil.builder(new HashMap<String, Object>()).put("buyCount", buyCount).build());
 
             } else {
                 log.error("商品SkuId为[" + goodsCompleteMessage.getGoodsId() + "的商品不存在，更新商品失败！");

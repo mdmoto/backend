@@ -22,13 +22,19 @@ public class I18nWebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(languageInterceptor)
-                .addPathPatterns("/buyer/**", "/seller/**", "/manager/**")  // 拦截所有API
+                .addPathPatterns("/buyer/**", "/seller/**", "/manager/**") // 拦截所有API
                 .excludePathPatterns(
-                        "/buyer/passport/login",     // 登录不拦截
-                        "/buyer/passport/register",  // 注册不拦截
-                        "/swagger-resources/**",     // Swagger不拦截
-                        "/v2/api-docs/**"            // API文档不拦截
+                        "/buyer/passport/login", // 登录不拦截
+                        "/buyer/passport/register", // 注册不拦截
+                        "/swagger-resources/**", // Swagger不拦截
+                        "/v2/api-docs/**" // API文档不拦截
                 );
     }
-}
 
+    @Override
+    public org.springframework.validation.Validator getValidator() {
+        org.springframework.validation.beanvalidation.LocalValidatorFactoryBean validator = new org.springframework.validation.beanvalidation.LocalValidatorFactoryBean();
+        // 如果需要自定义MessageSource，可以在这里设置
+        return validator;
+    }
+}

@@ -27,15 +27,14 @@ import java.util.List;
  */
 public interface OrderService extends IService<Order> {
 
-
     /**
      * 系统取消订单
      *
-     * @param orderSn 订单编号
-     * @param reason  错误原因
+     * @param orderSn     订单编号
+     * @param reason      错误原因
      * @param refundMoney 是否退款
      */
-    void systemCancel(String orderSn, String reason,Boolean refundMoney);
+    void systemCancel(String orderSn, String reason, Boolean refundMoney);
 
     /**
      * 根据sn查询
@@ -44,7 +43,6 @@ public interface OrderService extends IService<Order> {
      * @return 订单信息
      */
     Order getBySn(String orderSn);
-
 
     /**
      * 订单查询
@@ -100,15 +98,13 @@ public interface OrderService extends IService<Order> {
      */
     List<Order> queryListByPromotion(String pintuanId);
 
-
     /**
      * 查询导出订单列表
      *
      * @param orderSearchParams 查询参数
      * @return 导出订单列表
      */
-    void queryExportOrder(HttpServletResponse response,OrderSearchParams orderSearchParams) ;
-
+    void queryExportOrder(HttpServletResponse response, OrderSearchParams orderSearchParams);
 
     /**
      * 订单详细
@@ -154,7 +150,6 @@ public interface OrderService extends IService<Order> {
      */
     Order cancel(String orderSn, String reason);
 
-
     /**
      * 发货信息修改
      * 日志功能内部实现
@@ -178,7 +173,7 @@ public interface OrderService extends IService<Order> {
     /**
      * 订单发货
      *
-     * @param orderSn       订单编号
+     * @param orderSn 订单编号
      * @return 订单
      */
     Order shunFengDelivery(String orderSn);
@@ -207,7 +202,6 @@ public interface OrderService extends IService<Order> {
      * @return 订单
      */
     Order take(String orderSn, String verificationCode);
-
 
     /**
      * 订单核验
@@ -292,7 +286,6 @@ public interface OrderService extends IService<Order> {
      */
     void batchDeliver(MultipartFile files);
 
-
     /**
      * 获取订单实际支付的总金额
      *
@@ -331,9 +324,16 @@ public interface OrderService extends IService<Order> {
     /**
      * 卖家订单备注
      *
-     * @param orderSn 订单编号
-     * @param sellerRemark  卖家订单备注
+     * @param orderSn      订单编号
+     * @param sellerRemark 卖家订单备注
      * @return 订单
      */
     Order updateSellerRemark(String orderSn, String sellerRemark);
+
+    /**
+     * 获取平台累计成交额 (已完成订单总额)
+     * 
+     * @return 累计成交额 (CNY)
+     */
+    double getCompletedTotalSales();
 }

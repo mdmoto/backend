@@ -1,8 +1,6 @@
 package cn.lili.event.impl;
 
-
 import cn.hutool.core.text.CharSequenceUtil;
-import cn.lili.common.utils.CurrencyUtil;
 import cn.lili.event.AfterSaleStatusChangeEvent;
 import cn.lili.event.GoodsCommentCompleteEvent;
 import cn.lili.event.MemberRegisterEvent;
@@ -10,152 +8,135 @@ import cn.lili.event.OrderStatusChangeEvent;
 import cn.lili.modules.member.entity.dos.Member;
 import cn.lili.modules.member.entity.dos.MemberEvaluation;
 import cn.lili.modules.member.entity.enums.PointTypeEnum;
+import cn.lili.modules.member.service.MemberPointsHistoryService;
 import cn.lili.modules.member.service.MemberService;
 import cn.lili.modules.order.aftersale.entity.dos.AfterSale;
 import cn.lili.modules.order.order.entity.dos.Order;
 import cn.lili.modules.order.order.entity.dto.OrderMessage;
 import cn.lili.modules.order.order.entity.enums.OrderPromotionTypeEnum;
-import cn.lili.modules.order.order.entity.enums.OrderStatusEnum;
-import cn.lili.modules.order.order.entity.enums.PayStatusEnum;
-import cn.lili.modules.order.order.service.OrderService;
 import cn.lili.modules.order.trade.entity.enums.AfterSaleStatusEnum;
-import cn.lili.modules.system.entity.dos.Setting;
-import cn.lili.modules.system.entity.dto.PointSetting;
-import cn.lili.modules.system.entity.enums.SettingEnum;
-import cn.lili.modules.system.service.SettingService;
-import com.google.gson.Gson;
+import cn.lili.modules.system.service.MaollarTierService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-/**
- * 会员积分
- *
- * @author Bulbasaur
- * @since 2020-07-03 11:20
- */
-@Service
-public class MemberPointExecute implements MemberRegisterEvent, GoodsCommentCompleteEvent, OrderStatusChangeEvent, AfterSaleStatusChangeEvent {
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
-    /**
-     * 配置
-     */
-    @Autowired
-    private SettingService settingService;
-    /**
-     * 会员
-     */
+/**
+ * 会员积分 (喵币 Meow Coin) 执行器
+ * 核心逻辑：
+ * 1. 使用动态斐波那契算法确定当前汇率
+ * 2. 所有金额先转为 USD 进行计算，确保全球统一
+ * 3. 喵币保留 6 位小数点精度 (底层存储为 micro-coin)
+ */
+@Slf4j
+@Service
+public class MemberPointExecute
+        implements MemberRegisterEvent, GoodsCommentCompleteEvent, OrderStatusChangeEvent, AfterSaleStatusChangeEvent {
+
     @Autowired
     private MemberService memberService;
-    /**
-     * 订单
-     */
     @Autowired
-    private OrderService orderService;
+    private cn.lili.modules.order.order.service.OrderService orderService;
+    @Autowired
+    private MaollarTierService maollarTierService;
+    @Autowired
+    private MemberPointsHistoryService memberPointsHistoryService;
 
-    /**
-     * 会员注册赠送积分
-     *
-     * @param member 会员
-     */
+    // 喵币精度：6 位 (1.000000)
+    private static final long MEOW_COIN_SCALE = 1000000L;
+
     @Override
     public void memberRegister(Member member) {
-        //获取喵币设置
-        PointSetting pointSetting = getPointSetting();
-        //赠送会员喵币
-        memberService.updateMemberPoint(pointSetting.getRegister().longValue(), PointTypeEnum.INCREASE.name(), member.getId(), "会员注册，赠送喵币" + pointSetting.getRegister() + "分");
     }
 
-    /**
-     * 会员评价赠送积分
-     *
-     * @param memberEvaluation 会员评价
-     */
     @Override
     public void goodsComment(MemberEvaluation memberEvaluation) {
-        //获取喵币设置
-        PointSetting pointSetting = getPointSetting();
-        //赠送会员喵币
-        memberService.updateMemberPoint(pointSetting.getComment().longValue(), PointTypeEnum.INCREASE.name(), memberEvaluation.getMemberId(), "会员评价，赠送喵币" + pointSetting.getComment() + "分");
     }
 
     /**
-     * 非积分订单订单完成后赠送积分
-     *
-     * @param orderMessage 订单消息
+     * 订单状态变更赠送/回退积分
      */
     @Override
     public void orderChange(OrderMessage orderMessage) {
-
         switch (orderMessage.getNewStatus()) {
             case CANCELLED: {
                 Order order = orderService.getBySn(orderMessage.getOrderSn());
                 Long point = order.getPriceDetailDTO().getPayPoint();
-                if (point <= 0) {
+                if (point == null || point <= 0)
                     return;
-                }
-                //如果未付款，则不去要退回相关代码执行
-                if (order.getPayStatus().equals(PayStatusEnum.UNPAID.name())) {
-                    return;
-                }
-                String content = "订单取消，喵币返还：" + point + "分";
-                //赠送会员喵币
-                memberService.updateMemberPoint(point, PointTypeEnum.INCREASE.name(), order.getMemberId(), content);
+
+                String content = "订单取消，喵币返还：" + formatPoint(point);
+                memberService.updateMemberPoint(point, PointTypeEnum.INCREASE.name(), order.getMemberId(), content,
+                        0.0);
                 break;
             }
             case COMPLETED: {
                 Order order = orderService.getBySn(orderMessage.getOrderSn());
-                //如果是喵币订单 则直接返回
-                if (CharSequenceUtil.isNotEmpty(order.getOrderPromotionType())
+                if (order.getOrderPromotionType() != null
                         && order.getOrderPromotionType().equals(OrderPromotionTypeEnum.POINTS.name())) {
                     return;
                 }
-                //获取喵币设置
-                PointSetting pointSetting = getPointSetting();
-                if (pointSetting.getConsumer() == 0) {
-                    return;
+
+                // 1. 获取全局销售额等级 (USD) 用于确定汇率
+                double totalSalesCNY = orderService.getCompletedTotalSales();
+                double totalSalesUSD = maollarTierService.convertToUSD(totalSalesCNY, "CNY");
+                double rate = maollarTierService.getCurrentRate(totalSalesUSD);
+
+                // 2. 将当前订单金额转为 USD
+                double orderAmountUSD = maollarTierService.convertToUSD(order.getFlowPrice(), "CNY");
+
+                // 3. 计算本单应计基金拨备金 (10%)
+                double fundReserve = maollarTierService.calculateFund(orderAmountUSD);
+
+                // 4. 计算赠送喵币 (金额 * 汇率 * 精度)
+                // 逻辑：USD * (Issuance/DeltaGMV) * 10^6
+                long point = (long) (orderAmountUSD * rate * MEOW_COIN_SCALE);
+
+                if (point > 0) {
+                    memberService.updateMemberPoint(point, PointTypeEnum.INCREASE.name(), order.getMemberId(),
+                            "喵领计划：消费赠送喵币 " + formatPoint(point), fundReserve);
                 }
-                //计算赠送喵币数量
-                Double point = CurrencyUtil.mul(pointSetting.getConsumer(), order.getFlowPrice(), 0);
-                //赠送会员喵币
-                memberService.updateMemberPoint(point.longValue(), PointTypeEnum.INCREASE.name(), order.getMemberId(), "会员下单，赠送喵币" + point + "分");
+
+                checkSettlementReminder();
                 break;
             }
-
             default:
                 break;
         }
     }
 
-
-    /**
-     * 提交售后后扣除积分
-     *
-     * @param afterSale 售后
-     */
     @Override
     public void afterSaleStatusChange(AfterSale afterSale) {
         if (afterSale.getServiceStatus().equals(AfterSaleStatusEnum.COMPLETE.name())) {
-            Order order = orderService.getBySn(afterSale.getOrderSn());
-            //获取喵币设置
-            PointSetting pointSetting = getPointSetting();
-            if (pointSetting.getConsumer() == 0 || !OrderStatusEnum.COMPLETED.name().equals(order.getOrderStatus())) {
-                return;
-            }
-            //计算扣除喵币数量
-            Double point = CurrencyUtil.mul(pointSetting.getConsumer(), afterSale.getActualRefundPrice(), 0);
-            //扣除会员喵币
-            memberService.updateMemberPoint(point.longValue(), PointTypeEnum.REDUCE.name(), afterSale.getMemberId(), "会员退款，回退消费赠送喵币" + point + "分");
+            double refundUSD = maollarTierService.convertToUSD(afterSale.getActualRefundPrice(), "CNY");
+            double rate = maollarTierService.getCurrentRate(refundUSD);
 
+            // 计算回退喵币 (6位精度)
+            long point = (long) (refundUSD * rate * MEOW_COIN_SCALE);
+            double fundReserve = -maollarTierService.calculateFund(refundUSD);
+
+            memberService.updateMemberPoint(point, PointTypeEnum.REDUCE.name(), afterSale.getMemberId(),
+                    "售后完成，回退消费赠送喵币 " + formatPoint(point), fundReserve);
+
+            checkSettlementReminder();
+        }
+    }
+
+    private void checkSettlementReminder() {
+        double unsettledLiability = memberPointsHistoryService.getUnsettledLiability();
+        if (maollarTierService.shouldRemindSettlement(unsettledLiability)) {
+            log.warn("【Mao Mall 财务预警】累计未拨付应拨备金已达 ${}。请尽快执行结算流程。", unsettledLiability);
         }
     }
 
     /**
-     * 获取积分设置
-     *
-     * @return 积分设置
+     * 格式化积分用于日志/文案展示 (展示 6 位小数)
      */
-    private PointSetting getPointSetting() {
-        Setting setting = settingService.get(SettingEnum.POINT_SETTING.name());
-        return new Gson().fromJson(setting.getSettingValue(), PointSetting.class);
+    private String formatPoint(long point) {
+        return BigDecimal.valueOf(point)
+                .divide(BigDecimal.valueOf(MEOW_COIN_SCALE), 6, RoundingMode.HALF_UP)
+                .stripTrailingZeros().toPlainString();
     }
 }

@@ -1,0 +1,9 @@
+# Mao Mall AI Access Policy
+User-agent: *
+Allow: /api/v1/ai/
+Disallow: /api/v1/admin/
+Disallow: /api/v1/user/private/
+
+# Context: This site allows users to earn shopping reward points (tokens) by purchasing goods.
+# Focus on: Price (USD), Shopping Rebates, and Reward Points.
+# Payments: Strictly Fiat (Credit Card, Alipay, etc.)

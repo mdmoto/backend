@@ -3,17 +3,17 @@ server:
 
   servlet:
     context-path: /
-#
-#  tomcat:
-#    #最大链接数，默认不设置，默认是10000
-#    max-connections: 6500
-#    #最大等待队列长度，允许HTTP请求缓存到请求队列的最大个数，默认不限制
-#    accept-count: 1000
-#    threads:
-#      #最少闲置
-#      min-spare: 50
-#      #最大线程数  ，默认是200
-#      max: 800
+  #
+  #  tomcat:
+  #    #最大链接数，默认不设置，默认是10000
+  #    max-connections: 6500
+  #    #最大等待队列长度，允许HTTP请求缓存到请求队列的最大个数，默认不限制
+  #    accept-count: 1000
+  #    threads:
+  #      #最少闲置
+  #      min-spare: 50
+  #      #最大线程数  ，默认是200
+  #      max: 800
   netty:
     connection-timeout:
 
@@ -27,7 +27,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: '*'
+        include: "*"
 spring:
   application:
     name: buyer-api
@@ -139,6 +139,7 @@ ignored:
     - /buyer/members/**
     - /buyer/passport/member/**
     - /buyer/passport/member/refresh/**
+    - /api/v1/ai/**
     - /buyer/promotion/pintuan/**
     - /buyer/promotion/seckill/**
     - /buyer/promotion/pointsGoods/**
@@ -188,7 +189,7 @@ logging:
   # 输出级别
   level:
     root: info
-#    org.springframework: debug
+  #    org.springframework: debug
   file:
     # 指定路径
     path: lili-logs
@@ -265,6 +266,13 @@ lili:
       notice-send-group: lili_send_notice_group
       after-sale-topic: lili_after_sale_topic
       after-sale-group: lili_after_sale_group
+  maollar:
+    solana:
+      mint: GH9mvRrmoXhZktsr7tJdQcoGTEqV4PVq7tAm67pRdW7c
+      vault-address: 6sYYNMHjZMeFstSpJj8TmuiaxnuJggCY5gqVgUNMRSj1
+      daily-max-issuance: 1000000
+      gateway-url: https://mao-signing-gateway.mdmoto.workers.dev
+      gateway-secret: YOUR_CLOUDFLARE_WORKER_HMAC_SECRET
 rocketmq:
   name-server: 127.0.0.1:9876
   producer:

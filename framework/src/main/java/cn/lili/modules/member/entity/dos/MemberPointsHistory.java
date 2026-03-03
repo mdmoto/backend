@@ -1,6 +1,5 @@
 package cn.lili.modules.member.entity.dos;
 
-
 import cn.lili.common.security.sensitive.Sensitive;
 import cn.lili.common.security.sensitive.enums.SensitiveStrategy;
 import cn.lili.mybatis.BaseIdEntity;
@@ -45,7 +44,6 @@ public class MemberPointsHistory extends BaseIdEntity {
     @ApiModelProperty(value = "会员ID")
     private String memberId;
 
-
     @Sensitive(strategy = SensitiveStrategy.PHONE)
     @ApiModelProperty(value = "会员名称")
     private String memberName;
@@ -67,5 +65,17 @@ public class MemberPointsHistory extends BaseIdEntity {
      */
     @ApiModelProperty(value = "喵币类型")
     private String pointType;
+
+    @ApiModelProperty(value = "基金会应拨备金 (Foundation Liability) (USD)")
+    private Double fundReserve;
+
+    @ApiModelProperty(value = "默克尔树叶子哈希")
+    private String merkleHash;
+
+    @ApiModelProperty(value = "是否已结算拨付")
+    private Boolean isSettled = false;
+
+    @ApiModelProperty(value = "是否已确权 (DApp 兑换)")
+    private Boolean isConfirmed = false;
 
 }

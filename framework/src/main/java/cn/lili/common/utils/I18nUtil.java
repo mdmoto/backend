@@ -1,7 +1,7 @@
 package cn.lili.common.utils;
 
 import cn.lili.modules.system.service.I18nService;
-import cn.lili.common.context.ThreadContextHolder;
+import cn.lili.common.context.LanguageContextHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -38,6 +38,18 @@ public class I18nUtil {
     public static String t(String key) {
         String lang = getCurrentLang();
         return t(key, lang);
+    }
+
+    /**
+     * 翻译（带默认值）
+     *
+     * @param key         翻译key
+     * @param defaultText 默认文本
+     * @return 翻译文本
+     */
+    public static String tDefault(String key, String defaultText) {
+        String result = t(key);
+        return result.equals(key) ? defaultText : result;
     }
 
     /**
@@ -89,14 +101,6 @@ public class I18nUtil {
      * @return 语言代码，默认zh-CN
      */
     private static String getCurrentLang() {
-        try {
-            // 从ThreadLocal获取当前请求的语言
-            // 由拦截器设置
-            String lang = (String) ThreadContextHolder.getHttpRequest().getHeader("Accept-Language");
-            return lang != null ? lang : "zh-CN";
-        } catch (Exception e) {
-            return "zh-CN";
-        }
+        return LanguageContextHolder.get();
     }
 }
-

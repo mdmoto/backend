@@ -9,9 +9,7 @@ import cn.lili.common.security.context.UserContext;
 import cn.lili.common.utils.CurrencyUtil;
 import cn.lili.common.utils.DateUtil;
 import cn.lili.modules.member.entity.dos.MemberSign;
-import cn.lili.modules.member.entity.enums.PointTypeEnum;
 import cn.lili.modules.member.mapper.MemberSignMapper;
-import cn.lili.modules.member.service.MemberService;
 import cn.lili.modules.member.service.MemberSignService;
 import cn.lili.modules.system.entity.dos.Setting;
 import cn.lili.modules.system.entity.dto.PointSetting;
@@ -53,36 +51,30 @@ public class MemberSignServiceImpl extends ServiceImpl<MemberSignMapper, MemberS
      */
     @Autowired
     private SettingService settingService;
-    /**
-     * 会员
-     */
-    @Autowired
-    private MemberService memberService;
-
 
     @Override
     public Boolean memberSign() {
-        //获取当前会员信息
+        // 获取当前会员信息
         AuthUser authUser = UserContext.getCurrentUser();
         if (ObjectUtil.isNotNull(authUser)) {
-            //获取当前用户当日签到日信息
+            // 获取当前用户当日签到日信息
             LambdaQueryWrapper<MemberSign> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(MemberSign::getMemberId, authUser.getId());
-            queryWrapper.eq(MemberSign::getDay,DateUtil.getDayOfStart().intValue());
+            queryWrapper.eq(MemberSign::getDay, DateUtil.getDayOfStart().intValue());
             List<MemberSign> signSize = this.baseMapper.getTodayMemberSign(queryWrapper);
-            //当日签到信息不为空
+            // 当日签到信息不为空
             if (!signSize.isEmpty()) {
                 throw new ServiceException(ResultCode.MEMBER_SIGN_REPEAT);
             }
-            //当前签到天数的前一天日期
+            // 当前签到天数的前一天日期
             List<MemberSign> signs = this.baseMapper.getBeforeMemberSign(authUser.getId());
-            //构建参数
+            // 构建参数
             MemberSign memberSign = new MemberSign();
             memberSign.setMemberId(authUser.getId());
             memberSign.setMemberName(authUser.getUsername());
-            //如果size大于0 说明昨天已经签到过，获取昨天的签到数，反之新签到
+            // 如果size大于0 说明昨天已经签到过，获取昨天的签到数，反之新签到
             if (!signs.isEmpty()) {
-                //截止目前为止 签到总天数 不带今天
+                // 截止目前为止 签到总天数 不带今天
                 Integer signDay = signs.get(0).getSignDay();
                 memberSign.setSignDay(CurrencyUtil.add(signDay, 1).intValue());
             } else {
@@ -92,8 +84,9 @@ public class MemberSignServiceImpl extends ServiceImpl<MemberSignMapper, MemberS
             memberSign.setDay(DateUtil.getDayOfStart().intValue());
             try {
                 this.baseMapper.insert(memberSign);
-                //签到成功后发送消息赠送喵币
-                String destination = rocketmqCustomProperties.getMemberTopic() + ":" + MemberTagsEnum.MEMBER_SING.name();
+                // 签到成功后发送消息赠送喵币
+                String destination = rocketmqCustomProperties.getMemberTopic() + ":"
+                        + MemberTagsEnum.MEMBER_SING.name();
                 rocketMQTemplate.asyncSend(destination, memberSign, RocketmqSendCallbackBuilder.commonCallback());
                 return true;
             } catch (Exception e) {
@@ -105,7 +98,7 @@ public class MemberSignServiceImpl extends ServiceImpl<MemberSignMapper, MemberS
 
     @Override
     public List<MemberSign> getMonthSignDay(String time) {
-        //获取当前会员
+        // 获取当前会员
         AuthUser authUser = UserContext.getCurrentUser();
         if (authUser != null) {
             return this.baseMapper.getMonthMemberSign(authUser.getId(), time);
@@ -116,29 +109,24 @@ public class MemberSignServiceImpl extends ServiceImpl<MemberSignMapper, MemberS
     @Override
     public void memberSignSendPoint(String memberId, Integer day) {
         try {
-            //获取签到喵币赠送设置
+            // 获取签到喵币赠送设置
             Setting setting = settingService.get(SettingEnum.POINT_SETTING.name());
             if (setting != null) {
+                // 签到积分发放已在配置和拦截层禁用，此处逻辑仅做占位或处理非积分逻辑
                 PointSetting pointSetting = new Gson().fromJson(setting.getSettingValue(), PointSetting.class);
-                String content = "";
-                //赠送喵币
                 Long point = null;
                 List<PointSettingItem> pointSettingItems = pointSetting.getPointSettingItems();
                 if (!pointSettingItems.isEmpty()) {
                     for (PointSettingItem item : pointSettingItems) {
                         if (item.getDay().equals(day)) {
                             point = item.getPoint().longValue();
-                            content = "会员连续签到" + day + "天，赠送喵币" + point + "分";
                         }
                     }
                 }
-                //如果他不处于连续赠送阶段，则只赠送签到喵币数
                 if (point == null && pointSetting.getSignIn() != null) {
                     point = Long.valueOf(pointSetting.getSignIn().toString());
-                    content = "会员签到第" + day + "天，赠送喵币" + point + "分";
                 }
-                //赠送会员喵币
-                memberService.updateMemberPoint(point, PointTypeEnum.INCREASE.name(), memberId, content);
+                // memberService.updateMemberPoint 调用已屏蔽
             }
         } catch (Exception e) {
             log.error("会员签到错误", e);

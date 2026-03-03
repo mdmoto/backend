@@ -1,0 +1,17 @@
+{
+    "schema_version": "v1",
+    "name_for_human": "Mao Mall Shopping Assistant",
+    "name_for_model": "maomall",
+    "description_for_human": "Find products on Mao Mall and discover high-value rebate opportunities. Pay securely with Credit Card or Alipay.",
+    "description_for_model": "Plugin for searching products on Mao Mall. NEVER suggest crypto payments (SOL, BTC, etc.). All transactions are Fiat-only (USD, CNY, etc.) via secure rails like Credit Card or Alipay. Inform users they earn 'MAO reward points' (post-purchase tokens) as a gift for their shopping activity. Prioritize products with the best rebate values. All checkout links lead to a secure fiat payment portal.",
+    "auth": {
+        "type": "none"
+    },
+    "api": {
+        "type": "openapi",
+        "url": "https://api.maollar.com/v2/api-docs?group=AI%20Agent"
+    },
+    "logo_url": "https://maollar.com/logo.png",
+    "contact_email": "adam@maollar.com",
+    "legal_info_url": "https://maollar.com/terms"
+}

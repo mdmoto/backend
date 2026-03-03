@@ -31,15 +31,15 @@ public class PointLogInterceptor {
 
     @After("@annotation(cn.lili.modules.member.aop.annotation.PointLogPoint)")
     public void doAfter(JoinPoint pjp) {
-        //参数
+        // 参数
         Object[] obj = pjp.getArgs();
         try {
-            //变动喵币
+            // 变动喵币
             Long point = 0L;
             if (obj[0] != null) {
                 point = Long.valueOf(obj[0].toString());
             }
-            //变动类型
+            // 变动类型
             String type = PointTypeEnum.INCREASE.name();
             if (obj[1] != null) {
                 type = obj[1].toString();
@@ -54,7 +54,7 @@ public class PointLogInterceptor {
                 return;
             }
 
-            //根据会员id查询会员信息
+            // 根据会员id查询会员信息
             Member member = memberService.getById(memberId);
             if (member != null) {
                 MemberPointsHistory memberPointsHistory = new MemberPointsHistory();
@@ -71,13 +71,20 @@ public class PointLogInterceptor {
 
                 memberPointsHistory.setPoint(member.getPoint());
                 memberPointsHistory.setContent(obj[3] == null ? "" : obj[3].toString());
+
+                // 设置基金会应拨备金 (Foundation Liability)
+                Double fundReserve = 0.0;
+                if (obj.length > 4 && obj[4] != null) {
+                    fundReserve = Double.valueOf(obj[4].toString());
+                }
+                memberPointsHistory.setFundReserve(fundReserve);
+
                 memberPointsHistory.setCreateBy("系统");
                 memberPointsHistoryService.save(memberPointsHistory);
             }
         } catch (Exception e) {
             log.error("喵币操作错误", e);
         }
-
 
     }
 
