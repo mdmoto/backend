@@ -1,6 +1,7 @@
 package cn.lili.buyer.test.cart;
 
 import cn.lili.timetask.handler.impl.statistics.MemberStatisticsExecute;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +11,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest
+@Tag("manual")
 class MemberStatisticsTest {
 
     @Autowired

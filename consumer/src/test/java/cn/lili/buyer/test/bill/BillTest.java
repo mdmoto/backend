@@ -6,6 +6,7 @@ import cn.lili.modules.store.entity.dto.StoreSettlementDay;
 import cn.lili.modules.store.service.BillService;
 import cn.lili.modules.store.service.StoreDetailService;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,7 @@ import java.util.List;
  **/
 @ExtendWith(SpringExtension.class)
 @SpringBootTest
+@Tag("manual")
 public class BillTest {
 
 

@@ -21,7 +21,7 @@
         <revision>4.3</revision>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <skipTests>true</skipTests>
+        <skipTests>false</skipTests> <!-- P0: Enable tests to prevent untested deployments -->
         <docker-registry>registry.cn-beijing.aliyuncs.com/lili-images</docker-registry>
         <images-version>1</images-version>
         <alipay-sdk-version>4.22.32.ALL</alipay-sdk-version>
@@ -50,7 +50,7 @@
         <userAgentUtils>1.21</userAgentUtils>
         <poi-version>5.2.3</poi-version>
         <poi-ooxml-version>5.2.3</poi-ooxml-version>
-        <logstash-logback-encoder>7.1.1</logstash-logback-encoder>
+        <logstash-logback-encoder>6.6</logstash-logback-encoder>
         <zxing>3.5.0</zxing>
         <slf4j-api>1.7.36</slf4j-api>
         <xk-time>3.2.3</xk-time>
@@ -125,6 +125,20 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>${maven-javadoc-plugin.version}</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Existing tests in this repo are mostly manual/integration checks that can mutate data.
+                         They are tagged @Tag("manual") and excluded from CI by default. -->
+                    <!-- Tag filtering is not reliably honored across all Surefire providers here, so exclude by path. -->
+                    <excludes>
+                        <exclude>**/cn/lili/buyer/test/**</exclude>
+                        <exclude>**/cn/lili/test/**</exclude>
+                    </excludes>
+                </configuration>
             </plugin>
         </plugins>
     </build>

@@ -20,7 +20,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: "*"
+        include: "health,info" # P0 Fix: Restricted by security baseline
 spring:
   application:
     name: seller-api
@@ -35,7 +35,7 @@ spring:
   redis:
     host: 127.0.0.1
     port: 6379
-    password: lilishop
+    password: ${LILI_REDIS_PASSWORD:lilishop}
     lettuce:
       pool:
         # 连接池最大连接数（使用负值表示没有限制） 默认 8
@@ -65,8 +65,8 @@ spring:
         type: com.alibaba.druid.pool.DruidDataSource
         driverClassName: com.mysql.cj.jdbc.Driver
         url: jdbc:mysql://127.0.0.1:3306/lilishop?useUnicode=true&characterEncoding=utf-8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
-        username: root
-        password: lilishop
+        username: ${LILI_DB_USERNAME:root}
+        password: ${LILI_DB_PASSWORD:lilishop}
         maxActive: 20
         initialSize: 5
         maxWait: 60000
@@ -88,7 +88,7 @@ spring:
         #合并多个DruidDataSource的监控数据
         useGlobalDataSourceStat: true
         loginUsername: druid
-        loginPassword: druid
+        loginPassword: ${LILI_DRUID_PASSWORD:druid}
     #    sharding:
     #      default-data-source-name: default-datasource
     #      #需要拆分的表，可以设置多个  在 li_order 级别即可
@@ -114,20 +114,12 @@ spring:
 ignored:
   urls:
     - /editor-app/**
-    - /actuator**
-    - /actuator/**
     - /MP_verify_qSyvBPhDsPdxvOhC.txt
     - /weixin/**
     - /source/**
     - /store/passport/login/**
     - /store/passport/login/refresh/**
-    - /druid/**
-    - /swagger-ui.html
-    - /doc.html
-    - /swagger-resources/**
-    - /swagger/**
     - /webjars/**
-    - /v2/api-docs
     - /configuration/ui
     - /boot-admin
     - /**/*.js
@@ -175,7 +167,7 @@ logging:
 #加密参数
 jasypt:
   encryptor:
-    password: lili
+    password: ${LILI_JASYPT_PASSWORD:lili}
 
 lili:
   system:
@@ -187,8 +179,8 @@ lili:
     currentOnlineUpdate: 600
   #qq lbs 申请
   lbs:
-    key: 4BYBZ-7MT6S-PUAOA-6BNWL-FJUD7-UUFXT
-    sk: zhNKVrJK6UPOhqIjn8AQvG37b9sz6
+    key: ${LILI_LBS_KEY:4BYBZ-7MT6S-PUAOA-6BNWL-FJUD7-UUFXT}
+    sk: ${LILI_LBS_SK:zhNKVrJK6UPOhqIjn8AQvG37b9sz6}
   #域名
   domain:
     pc: https://pc.b2b2c.pickmall.cn
@@ -257,7 +249,7 @@ lili:
       vault-address: 6sYYNMHjZMeFstSpJj8TmuiaxnuJggCY5gqVgUNMRSj1
       daily-max-issuance: 1000000
       gateway-url: https://mao-signing-gateway.mdmoto.workers.dev
-      gateway-secret: YOUR_CLOUDFLARE_WORKER_HMAC_SECRET
+      gateway-secret: ${LILI_MAOLLAR_GATEWAY_SECRET:YOUR_CLOUDFLARE_WORKER_HMAC_SECRET}
 rocketmq:
   name-server: 127.0.0.1:9876
   producer:

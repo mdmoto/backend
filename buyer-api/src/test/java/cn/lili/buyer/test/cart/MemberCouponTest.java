@@ -1,6 +1,7 @@
 package cn.lili.buyer.test.cart;
 
 import cn.lili.modules.promotion.service.MemberCouponService;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  **/
 @ExtendWith(SpringExtension.class)
 @SpringBootTest
+@Tag("manual")
 class MemberCouponTest {
 
     @Autowired

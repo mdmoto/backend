@@ -24,14 +24,14 @@ spring:
   boot:
     admin:
       client:
-        url: http://192.168.0.116:8000
+        url: ${BOOT_ADMIN_URL:http://127.0.0.1:8000}
   cache:
     type: redis
   # Redis
   redis:
-    host: 192.168.0.108
-    port: 30379
-    password: lilishop
+    host: ${REDIS_HOST:127.0.0.1}
+    port: ${REDIS_PORT:6379}
+    password: ${LILI_REDIS_PASSWORD:lilishop}
     lettuce:
       pool:
         # 连接池最大连接数（使用负值表示没有限制） 默认 8
@@ -60,9 +60,9 @@ spring:
       default-datasource:
         type: com.alibaba.druid.pool.DruidDataSource
         driverClassName: com.mysql.cj.jdbc.Driver
-        url: jdbc:mysql://192.168.0.108:30306/lilishop?useUnicode=true&characterEncoding=utf-8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+        url: ${MYSQL_URL:jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DB:lilishop}?useUnicode=true&characterEncoding=utf-8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai}
         username: root
-        password: lilishop
+        password: ${LILI_REDIS_PASSWORD:lilishop}
         maxActive: 50
         initialSize: 20
         maxWait: 60000
@@ -84,7 +84,7 @@ spring:
         #合并多个DruidDataSource的监控数据
         useGlobalDataSourceStat: true
         loginUsername: druid
-        loginPassword: druid
+        loginPassword: ${LILI_DRUID_PASSWORD:druid}
     #    sharding:
     #      default-data-source-name: default-datasource
     #      #需要拆分的表，可以设置多个  在 li_order 级别即可
@@ -194,7 +194,7 @@ logging:
 #加密参数
 jasypt:
   encryptor:
-    password: lili
+    password: ${LILI_JASYPT_PASSWORD:lili}
 
 
 lili:
@@ -240,16 +240,16 @@ lili:
     sk: zhNKVrJK6UPOhqIjn8AQvG37b9sz6
   #域名
   domain:
-    pc: http://192.168.0.116:8888
-    wap: http://192.168.0.116:8888
-    seller: http://192.168.0.116:8888
-    admin: http://192.168.0.116:8888
+    pc: ${LILI_DOMAIN_PC:http://127.0.0.1:8888}
+    wap: ${LILI_DOMAIN_WAP:http://127.0.0.1:8888}
+    seller: ${LILI_DOMAIN_SELLER:http://127.0.0.1:8888}
+    admin: ${LILI_DOMAIN_ADMIN:http://127.0.0.1:8888}
   #api地址
   api:
     buyer: https://z171l91606.51mypc.cn
-    base: http://192.168.0.116:8888
-    manager: http://192.168.0.116:8888
-    seller: http://192.168.0.116:8888
+    base: ${LILI_API_BASE:http://127.0.0.1:8888}
+    manager: ${LILI_API_MANAGER:http://127.0.0.1:8888}
+    seller: ${LILI_API_SELLER:http://127.0.0.1:8888}
 
   # jwt 细节设定
   jwt-setting:
@@ -268,7 +268,7 @@ lili:
   data:
     elasticsearch:
       cluster-name: elasticsearch
-      cluster-nodes: 192.168.0.108:30920
+      cluster-nodes: ${ES_NODES:127.0.0.1:9200}
       index:
         number-of-replicas: 0
         number-of-shards: 3
@@ -279,7 +279,7 @@ lili:
     #        password: LiLiShopES
 
     logstash:
-      server: 192.168.0.108:30560
+      server: ${LOGSTASH_ADDR:127.0.0.1:4560}
     rocketmq:
       promotion-topic: lili_promotion_topic
       promotion-group: lili_promotion_group
@@ -300,7 +300,7 @@ lili:
       after-sale-topic: lili_after_sale_topic
       after-sale-group: lili_after_sale_group
 rocketmq:
-  name-server: 192.168.0.108:30876
+  name-server: ${ROCKETMQ_NAMESRV:127.0.0.1:9876}
   isVIPChannel: false
   producer:
     group: lili_group
@@ -309,7 +309,7 @@ rocketmq:
 xxl:
   job:
     admin:
-      addresses: http://192.168.0.108:30001/xxl-job-admin
+      addresses: ${XXL_ADMIN_ADDR:http://127.0.0.1:9001/xxl-job-admin}
     executor:
       appname: xxl-job-executor-lilishop
       address:

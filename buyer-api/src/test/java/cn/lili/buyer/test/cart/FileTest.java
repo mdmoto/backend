@@ -6,6 +6,7 @@ import cn.lili.modules.goods.entity.dos.Brand;
 import cn.lili.modules.goods.service.BrandService;
 import com.xkcoding.http.util.StringUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,7 @@ import java.util.List;
 @Slf4j
 @ExtendWith(SpringExtension.class)
 @SpringBootTest
+@Tag("manual")
 class FileTest {
 
 

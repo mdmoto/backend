@@ -8,6 +8,7 @@ import cn.lili.modules.order.cart.entity.enums.CartTypeEnum;
 import cn.lili.modules.order.cart.entity.vo.TradeParams;
 import cn.lili.modules.order.cart.service.CartService;
 import cn.lili.modules.payment.service.PaymentService;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,6 +24,7 @@ import java.util.List;
  **/
 @ExtendWith(SpringExtension.class)
 @SpringBootTest
+@Tag("manual")
 class CartTest {
 
     @Autowired

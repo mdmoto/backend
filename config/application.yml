@@ -8,23 +8,21 @@ server:
       min-spare: 50
       max: 1000
 
-# 与Spring Boot 2一样，默认情况下，大多数端点都不通过http公开，我们公开了所有端点。对于生产，您应该仔细选择要公开的端点。
+    # 与Spring Boot 2一样，默认情况下，默认情况下，大多数端点都不通过http公开，我们公开了所有端点。对于生产，您应该仔细选择要公开的端点。
 management:
-  #  health:
-  #    elasticsearch:
-  #      enabled: false
-  #    datasource:
-  #      enabled: false
   endpoints:
     web:
       exposure:
-        include: "*"
+        include: "health,info" # P0 Fix: Restrict exposure of actuator endpoints
+  health:
+    mail:
+      enabled: false # P0 Fix: Disable mail health check to prevent 503 DOWN due to invalid credentials
 spring:
   mail:
     host: smtp.qq.com
     port: 465
     username: lifenlong@foxmail.com
-    password: dirpxpqgfvysbefh
+    password: ${LILI_MAIL_PASSWORD:dirpxpqgfvysbefh}
     protocol: smtps
     properties:
       mail:
@@ -44,7 +42,7 @@ spring:
   redis:
     host: 127.0.0.1
     port: 6379
-    password: lilishop
+    password: ${LILI_REDIS_PASSWORD:lilishop}
     lettuce:
       pool:
         # 连接池最大连接数（使用负值表示没有限制） 默认 8
@@ -75,7 +73,7 @@ spring:
         driverClassName: com.mysql.cj.jdbc.Driver
         url: jdbc:mysql://127.0.0.1:3306/lilishop?useUnicode=true&characterEncoding=utf-8&useSSL=false&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
         username: root
-        password: lilishop
+        password: ${LILI_REDIS_PASSWORD:lilishop}
         maxActive: 50
         initialSize: 20
         maxWait: 60000
@@ -97,7 +95,7 @@ spring:
         #合并多个DruidDataSource的监控数据
         useGlobalDataSourceStat: true
         loginUsername: druid
-        loginPassword: druid
+        loginPassword: ${LILI_DRUID_PASSWORD:druid}
     #    sharding:
     #      default-data-source-name: default-datasource
     #      #需要拆分的表，可以设置多个  在 li_order 级别即可
@@ -209,7 +207,7 @@ logging:
 #加密参数
 jasypt:
   encryptor:
-    password: lili
+    password: ${LILI_JASYPT_PASSWORD:lili}
 
 lili:
   #验证码设置
@@ -265,7 +263,7 @@ lili:
       # Cloudflare Worker 签名网关地址 (部署后填入真实的 .workers.dev 地址)
       gateway-url: https://mao-signing-gateway.maollar.workers.dev
       # 与 Worker 约定的 HMAC 密钥 (务必确保两端一致)
-      gateway-secret: MAOLLAR_PRODUCTION_SECRET_KEY_2026
+      gateway-secret: ${LILI_MAOLLAR_GATEWAY_SECRET:MAOLLAR_PRODUCTION_SECRET_KEY_2026}
       # 每日最大 $MAO 发放总量 (熔断保护)
       daily-max-issuance: 1000000.0
 

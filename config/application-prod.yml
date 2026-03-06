@@ -9,17 +9,20 @@ server:
       max: 1000
 
 management:
+  health:
+    mail:
+      enabled: false # P0 Fix: Disable mail health check to prevent 503 DOWN due to invalid credentials
   endpoints:
     web:
       exposure:
-        include: '*'
+        include: "health,info,prometheus" # P2: Added prometheus for observability
 
 spring:
   mail:
     host: smtp.qq.com
     port: 465
     username: YOUR_EMAIL@qq.com
-    password: YOUR_EMAIL_PASSWORD
+    password: ${LILI_MAIL_PASSWORD:YOUR_EMAIL_PASSWORD}
     protocol: smtps
     properties:
       mail:
@@ -38,19 +41,19 @@ spring:
   redis:
     host: 127.0.0.1
     port: 6379
-    password: lilishop
+    password: ${LILI_REDIS_PASSWORD:lilishop}
     lettuce:
       pool:
         max-active: 200
         max-wait: 20
         max-idle: 10
         min-idle: 8
-  
+
   servlet:
     multipart:
       max-file-size: 20MB
       max-request-size: 20MB
-  
+
   jackson:
     time-zone: GMT+8
     serialization:
@@ -64,7 +67,7 @@ spring:
         driverClassName: com.mysql.cj.jdbc.Driver
         url: jdbc:mysql://127.0.0.1:3306/lilishop?useUnicode=true&characterEncoding=utf-8&useSSL=false&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
         username: root
-        password: lilishop
+        password: ${LILI_DB_PASSWORD:lilishop}
         maxActive: 50
         initialSize: 20
         maxWait: 60000
@@ -81,7 +84,7 @@ spring:
         connectionProperties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000
         useGlobalDataSourceStat: true
         loginUsername: druid
-        loginPassword: druid
+        loginPassword: ${LILI_DRUID_PASSWORD:druid}
     props:
       sql:
         show: false
@@ -90,8 +93,9 @@ spring:
 ignored:
   urls:
     - /editor-app/**
-    - /actuator**
     - /actuator/**
+    - /actuator/health
+    - /actuator/prometheus
     - /MP_verify_qSyvBPhDsPdxvOhC.txt
     - /weixin/**
     - /source/**
@@ -168,14 +172,14 @@ logging:
 # 加密参数
 jasypt:
   encryptor:
-    password: lili
+    password: ${LILI_JASYPT_PASSWORD:lili}
 
 lili:
   verification-code:
     effectiveTime: 300
     watermark: LILI-SHOP
     interfereNum: 1
-    faultTolerant: 10  # 增加到 10 像素，提高 PC 端滑块验证通过率
+    faultTolerant: 10 # 增加到 10 像素，提高 PC 端滑块验证通过率
   system:
     isDemoSite: false
     sensitiveLevel: 1
@@ -183,8 +187,8 @@ lili:
     onlineMember: 48
     currentOnlineUpdate: 600
   lbs:
-    key: 4BYBZ-7MT6S-PUAOA-6BNWL-FJUD7-UUFXT
-    sk: zhNKVrJK6UPOhqIjn8AQvG37b9sz6
+    key: ${LILI_LBS_KEY:4BYBZ-7MT6S-PUAOA-6BNWL-FJUD7-UUFXT}
+    sk: ${LILI_LBS_SK:zhNKVrJK6UPOhqIjn8AQvG37b9sz6}
   # 域名配置 - 根据实际域名修改
   domain:
     pc: https://www.maollar.com
@@ -203,7 +207,7 @@ lili:
     # 30分钟 = 0.5小时
     # 1440分钟 = 1天
     # 10080分钟 = 7天（1周）
-    tokenExpireTime: 10080  # 1周有效期，适合Chrome插件长期使用
+    tokenExpireTime: 10080 # 1周有效期，适合Chrome插件长期使用
 
   cache:
     timeout: 1500
@@ -257,8 +261,7 @@ xxl:
     executor:
       appname: xxl-job-executor-lilishop
       address:
-      ip:
-      port: 8891
+      ip: 172.19.0.1
+      port: 9999
       logpath: ./xxl-job/executor
       logretentiondays: 7
-

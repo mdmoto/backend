@@ -51,6 +51,7 @@ public class BuyerSecurityConfig extends WebSecurityConfigurerAdapter {
         for (String url : ignoredUrlsProperties.getUrls()) {
             registry.antMatchers(url).permitAll();
         }
+        registry.antMatchers("/actuator/**").permitAll();
         registry.antMatchers("/api/v1/ai/**").permitAll();
         registry.antMatchers("/buyer/api/v1/maollar/rates", "/buyer/api/v1/maollar/tier-status").permitAll();
         registry
