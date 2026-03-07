@@ -22,7 +22,7 @@ spring:
     allow-circular-references: false
   mvc:
     pathmatch:
-      matching-strategy: ant_path_matcher
+      matching-strategy: path_pattern_parser
   mail:
     host: smtp.qq.com
     port: 465
