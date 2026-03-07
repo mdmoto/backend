@@ -39,6 +39,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.elasticsearch.core.*;
+import org.springframework.data.elasticsearch.core.MultiGetItem;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQuery;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
 import org.springframework.data.elasticsearch.core.query.Query;
@@ -163,7 +164,12 @@ public class EsGoodsSearchServiceImpl implements EsGoodsSearchService {
         SearchHits<EsGoodsIndex> search = restTemplate.search(searchQuery, EsGoodsIndex.class);
 
         log.debug("getSelector DSL:{}", searchQuery.getQuery());
-        Map<String, Aggregation> aggregationMap = Objects.requireNonNull(search.getAggregations()).getAsMap();
+        AggregationsContainer<?> aggregationsContainer = search.getAggregations();
+        if (aggregationsContainer == null) {
+            throw new ServiceException("Elasticsearch aggregations is null");
+        }
+        // Spring Data Elasticsearch 4.4+ returns AggregationsContainer; unwrap to native ES Aggregations.
+        Map<String, Aggregation> aggregationMap = ((ElasticsearchAggregations) aggregationsContainer).aggregations().asMap();
         return convertToEsGoodsRelatedInfo(aggregationMap, goodsSearch);
     }
 
@@ -181,8 +187,12 @@ public class EsGoodsSearchServiceImpl implements EsGoodsSearchService {
         }
         NativeSearchQuery build = searchQueryBuilder.build();
         build.setIds(skuIds);
-        return restTemplate.multiGet(build, EsGoodsIndex.class,
+        List<MultiGetItem<EsGoodsIndex>> items = restTemplate.multiGet(build, EsGoodsIndex.class,
                 restTemplate.getIndexCoordinatesFor(EsGoodsIndex.class));
+        if (items == null || items.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return items.stream().filter(MultiGetItem::hasItem).map(MultiGetItem::getItem).collect(Collectors.toList());
     }
 
     /**

@@ -1,15 +1,15 @@
 package cn.lili.mybatis.heath;
 
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.actuate.autoconfigure.jdbc.DataSourceHealthContributorAutoConfiguration;
-import org.springframework.boot.actuate.health.AbstractHealthIndicator;
+import org.springframework.boot.actuate.autoconfigure.jdbc.DataSourceHealthIndicatorProperties;
+import org.springframework.boot.actuate.health.CompositeHealthContributor;
+import org.springframework.boot.actuate.health.HealthContributor;
 import org.springframework.boot.actuate.jdbc.DataSourceHealthIndicator;
-import org.springframework.boot.jdbc.metadata.DataSourcePoolMetadataProvider;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -21,22 +21,25 @@ import java.util.Map;
  */
 
 @Configuration
-public class DataSourceHealthConfig extends DataSourceHealthContributorAutoConfiguration {
+public class DataSourceHealthConfig {
 
     @Value("${spring.datasource.dbcp2.validation-query:select 1}")
     private String defaultQuery;
 
-
-    public DataSourceHealthConfig(Map<String, DataSource> dataSources, ObjectProvider<DataSourcePoolMetadataProvider> metadataProviders) {
-        super(dataSources, metadataProviders);
-    }
-
-    @Override
-    protected AbstractHealthIndicator createIndicator(DataSource source) {
-        DataSourceHealthIndicator indicator = (DataSourceHealthIndicator) super.createIndicator(source);
-        if (!StringUtils.hasText(indicator.getQuery())) {
+    /**
+     * Spring Boot 2.7.x uses DataSourceHealthContributorAutoConfiguration to create the "db" health contributor.
+     * We provide our own bean to ensure a stable validation query across different pool implementations.
+     */
+    @Bean
+    public HealthContributor dbHealthContributor(Map<String, DataSource> dataSources,
+                                                 DataSourceHealthIndicatorProperties properties) {
+        // Keep ordering stable for predictable output.
+        Map<String, HealthContributor> contributors = new LinkedHashMap<>();
+        for (Map.Entry<String, DataSource> entry : dataSources.entrySet()) {
+            DataSourceHealthIndicator indicator = new DataSourceHealthIndicator(entry.getValue());
             indicator.setQuery(defaultQuery);
+            contributors.put(entry.getKey(), indicator);
         }
-        return indicator;
+        return CompositeHealthContributor.fromMap(contributors);
     }
 }
