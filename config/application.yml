@@ -18,6 +18,11 @@ management:
     mail:
       enabled: false # P0 Fix: Disable mail health check to prevent 503 DOWN due to invalid credentials
 spring:
+  main:
+    allow-circular-references: true
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
   mail:
     host: smtp.qq.com
     port: 465
@@ -155,11 +160,13 @@ ignored:
     - /manager/other/customWords
     - /druid/**
     - /swagger-ui.html
+    - /swagger-ui/**
     - /doc.html
     - /swagger-resources/**
     - /swagger/**
     - /webjars/**
     - /v2/api-docs**
+    - /v3/api-docs/**
     - /configuration/ui
     - /boot-admin
     - /manager/promotion/seckill/init
@@ -168,11 +175,20 @@ ignored:
     - /**/*.png
     - /**/*.ico
 
-# Swagger界面内容配置
+# Springdoc OpenAPI 3 (P3 Upgrade)
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+
+# Legacy Swagger Properties (Kept for compatibility with other components if any)
 swagger:
   title: lilishop API接口文档
   description: lilishop Api Documentation
-  version: 4.2.2
+  version: 4.3.0
   termsOfServiceUrl: https://pickmall.cn
   contact:
     name: lili

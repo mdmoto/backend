@@ -17,7 +17,19 @@ management:
       exposure:
         include: "health,info,prometheus" # P2: Added prometheus for observability
 
+# Production Springdoc (P3 Upgrade) - Disabled by default for security
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
 spring:
+  main:
+    allow-circular-references: true
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
   mail:
     host: smtp.qq.com
     port: 465

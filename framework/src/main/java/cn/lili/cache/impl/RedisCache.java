@@ -51,7 +51,6 @@ public class RedisCache implements Cache {
 
     }
 
-
     @Override
     public void multiSet(Map map) {
         redisTemplate.opsForValue().multiSet(map);
@@ -135,7 +134,7 @@ public class RedisCache implements Cache {
     public List<Object> keys(String pattern) {
         List<Object> keys = new ArrayList<>();
         this.scan(pattern, item -> {
-            //符合条件的key
+            // 符合条件的key
             String key = new String(item, StandardCharsets.UTF_8);
             keys.add(key);
         });
@@ -158,25 +157,23 @@ public class RedisCache implements Cache {
      */
     private void scan(String pattern, Consumer<byte[]> consumer) {
         this.redisTemplate.execute((RedisConnection connection) -> {
-            try (Cursor<byte[]> cursor =
-                         connection.scan(ScanOptions.scanOptions()
-                                 .count(Long.MAX_VALUE)
-                                 .match(pattern).build())) {
+            try (Cursor<byte[]> cursor = connection.scan(ScanOptions.scanOptions()
+                    .count(Long.MAX_VALUE)
+                    .match(pattern).build())) {
                 cursor.forEachRemaining(consumer);
                 return null;
 
-            } catch (IOException e) {
+            } catch (Exception e) {
                 log.error("scan错误", e);
                 throw new RuntimeException(e);
             }
         });
     }
 
-
     @Override
     public Long cumulative(Object key, Object value) {
         HyperLogLogOperations<Object, Object> operations = redisTemplate.opsForHyperLogLog();
-        //add 方法对应 PFADD 命令
+        // add 方法对应 PFADD 命令
         return operations.add(key, value);
 
     }
@@ -185,7 +182,7 @@ public class RedisCache implements Cache {
     public Long counter(Object key) {
         HyperLogLogOperations<Object, Object> operations = redisTemplate.opsForHyperLogLog();
 
-        //add 方法对应 PFCOUNT  命令
+        // add 方法对应 PFCOUNT 命令
         return operations.size(key);
     }
 
@@ -204,7 +201,7 @@ public class RedisCache implements Cache {
     @Override
     public Long mergeCounter(Object... key) {
         HyperLogLogOperations<Object, Object> operations = redisTemplate.opsForHyperLogLog();
-        //计数器合并累加
+        // 计数器合并累加
         return operations.union(key[0], key);
     }
 
@@ -212,7 +209,7 @@ public class RedisCache implements Cache {
     public Long incr(String key, long liveTime) {
         RedisAtomicLong entityIdCounter = new RedisAtomicLong(key, redisTemplate.getConnectionFactory());
         Long increment = entityIdCounter.getAndIncrement();
-        //初始设置过期时间
+        // 初始设置过期时间
         if (increment == 0 && liveTime > 0) {
             entityIdCounter.expire(liveTime, TimeUnit.SECONDS);
         }
@@ -235,7 +232,7 @@ public class RedisCache implements Cache {
      */
     @Override
     public void incrementScore(String sortedSetName, String keyword) {
-        //指向key名为KEY的zset元素
+        // 指向key名为KEY的zset元素
         redisTemplate.opsForZSet().incrementScore(sortedSetName, keyword, 1);
     }
 
@@ -255,7 +252,8 @@ public class RedisCache implements Cache {
      * @return 符合排序的集合
      */
     @Override
-    public Set<ZSetOperations.TypedTuple<Object>> reverseRangeWithScores(String sortedSetName, Integer start, Integer end) {
+    public Set<ZSetOperations.TypedTuple<Object>> reverseRangeWithScores(String sortedSetName, Integer start,
+            Integer end) {
         return this.redisTemplate.opsForZSet().reverseRangeWithScores(sortedSetName, start, end);
     }
 
@@ -273,7 +271,6 @@ public class RedisCache implements Cache {
         return this.redisTemplate.opsForZSet().reverseRangeWithScores(sortedSetName, 0, count);
     }
 
-
     /**
      * 向Zset里添加成员
      *
@@ -287,7 +284,6 @@ public class RedisCache implements Cache {
         return redisTemplate.opsForZSet().add(key, value, score);
 
     }
-
 
     /**
      * 获取 某key 下 某一分值区间的队列

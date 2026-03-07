@@ -11,7 +11,16 @@ JAVA_PATH=$(which java || echo "/usr/bin/java")
 
 echo "⚙️ [Step 4] Starting Service Persistence & Self-healing Setup..."
 
-# 1. Create Individual Systemd Service Files
+# ── Step 0: Prepare Release Path ─────────────────────────────────────────────
+TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+DIST_DIR="$BACKEND_DIR/dist"
+RELEASES_DIR="$DIST_DIR/releases"
+CURRENT_RELEASE_DIR="$RELEASES_DIR/$TIMESTAMP"
+SYMLINK_PATH="$DIST_DIR/current"
+
+mkdir -p "$CURRENT_RELEASE_DIR"
+
+# ── Step 1: Create Individual Systemd Service Files ────────────────────────
 declare -A services
 services=(
     ["buyer-api"]="8888"
@@ -21,21 +30,22 @@ services=(
     ["consumer"]="8892"
 )
 
-# JVM & Spring Options (Sync with auto-start-services.sh)
-JVM_OPTS="-Xms256m -Xmx512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
-SPRING_OPTS="--spring.profiles.active=prod --spring.boot.admin.client.enabled=false"
-
-DIST_DIR="$BACKEND_DIR/dist"
-mkdir -p "$DIST_DIR"
+# JVM & Spring Options
+JVM_OPTS="-Xms256m -Xmx512m -XX:+UseG1GC"
+SPRING_OPTS="--spring.profiles.active=prod"
 
 for name in "${!services[@]}"; do
     port="${services[$name]}"
     SOURCE_JAR="$BACKEND_DIR/$name/target/$name-4.3.jar"
-    STABLE_JAR="$DIST_DIR/$name.jar"
+    FINAL_JAR="$CURRENT_RELEASE_DIR/$name.jar"
+    # The systemd unit points to the symlink path
+    RUN_JAR="$SYMLINK_PATH/$name.jar"
     
     if [ -f "$SOURCE_JAR" ]; then
-        echo "📦 Deploying $name to stable path..."
-        cp "$SOURCE_JAR" "$STABLE_JAR"
+        echo "📦 Deploying $name to release path $TIMESTAMP..."
+        cp "$SOURCE_JAR" "$FINAL_JAR"
+    else
+        echo "⚠️ $SOURCE_JAR not found, skipping copy for $name."
     fi
     
     echo "📄 Creating systemd unit for $name (Port: $port)..."
@@ -50,7 +60,9 @@ User=$USER_NAME
 Group=$USER_NAME
 WorkingDirectory=$BACKEND_DIR
 EnvironmentFile=$BACKEND_DIR/.env
-ExecStart=$JAVA_PATH $JVM_OPTS -jar $STABLE_JAR --server.address=127.0.0.1 --server.port=$port $SPRING_OPTS
+Environment="SPRING_MVC_PATHMATCH_MATCHING_STRATEGY=ant_path_matcher"
+Environment="SPRING_MAIN_ALLOW_CIRCULAR_REFERENCES=true"
+ExecStart=$JAVA_PATH $JVM_OPTS -jar $RUN_JAR --server.address=127.0.0.1 --server.port=$port $SPRING_OPTS
 Restart=always
 RestartSec=10
 StandardOutput=append:$BACKEND_DIR/logs/$name.log
@@ -60,6 +72,10 @@ StandardError=append:$BACKEND_DIR/logs/$name.log
 WantedBy=multi-user.target
 EOF
 done
+
+# ── Step 1.5: Update Symlink Atomically ──────────────────────────────────────
+echo "🔗 Updating 'current' symlink to $TIMESTAMP..."
+ln -sfn "$CURRENT_RELEASE_DIR" "$SYMLINK_PATH"
 
 # 2. Setup Logrotate
 echo "⚙️ Configuring Logrotate for Maollar logs..."
