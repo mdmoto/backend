@@ -114,7 +114,7 @@
         <!-- MybatisPlus -->
         <dependency>
             <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-boot-starter</artifactId>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
             <version>${mybatis-plus-version}</version>
             <exclusions>
                 <exclusion>
@@ -149,7 +149,7 @@
 
         <dependency>
             <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-ui</artifactId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>${springdoc.version}</version>
         </dependency>
         <!-- Legacy Swagger Annotations (Required for compilation without mass-refactoring) -->
@@ -230,6 +230,7 @@
         <dependency>
             <groupId>org.codehaus.groovy</groupId>
             <artifactId>groovy</artifactId>
+            <version>3.0.19</version>
         </dependency>
         <!-- rocketmq-spring-boot-starter -->
         <dependency>
