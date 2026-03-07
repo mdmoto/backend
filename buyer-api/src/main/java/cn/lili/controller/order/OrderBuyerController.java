@@ -24,7 +24,7 @@ import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import springfox.documentation.annotations.ApiIgnore;
+import io.swagger.v3.oas.annotations.Parameter;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -80,7 +80,7 @@ public class OrderBuyerController {
         if (order == null) {
             throw new ServiceException(ResultCode.ORDER_NOT_EXIST);
         }
-        //判定是否是待收货状态
+        // 判定是否是待收货状态
         if (!order.getOrderStatus().equals(OrderStatusEnum.DELIVERED.name())) {
             throw new ServiceException(ResultCode.ORDER_DELIVERED_ERROR);
         }
@@ -95,7 +95,8 @@ public class OrderBuyerController {
             @ApiImplicitParam(name = "reason", value = "取消原因", required = true, dataType = "String", paramType = "query")
     })
     @PostMapping(value = "/{orderSn}/cancel")
-    public ResultMessage<Object> cancel(@ApiIgnore @PathVariable String orderSn, @RequestParam String reason) {
+    public ResultMessage<Object> cancel(@Parameter(hidden = true) @PathVariable String orderSn,
+            @RequestParam String reason) {
         orderService.cancel(orderSn, reason);
         return ResultUtil.success();
     }
@@ -131,7 +132,6 @@ public class OrderBuyerController {
         OperationalJudgment.judgment(orderService.getBySn(orderSn));
         return ResultUtil.data(orderService.getMapTraces(orderSn));
     }
-
 
     @PreventDuplicateSubmissions
     @ApiOperation(value = "开票")

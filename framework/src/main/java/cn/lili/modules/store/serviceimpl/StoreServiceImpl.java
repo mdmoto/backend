@@ -43,6 +43,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -62,6 +63,7 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
     /**
      * 会员
      */
+    @Lazy
     @Autowired
     private MemberService memberService;
 
@@ -113,7 +115,7 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
     @Transactional(rollbackFor = Exception.class)
     public Store add(AdminStoreApplyDTO adminStoreApplyDTO) {
 
-        //判断店铺名称是否存在
+        // 判断店铺名称是否存在
         QueryWrapper<Store> queryWrapper = Wrappers.query();
         queryWrapper.eq("store_name", adminStoreApplyDTO.getStoreName());
         if (this.getOne(queryWrapper) != null) {
@@ -121,25 +123,25 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         }
 
         Member member = memberService.getById(adminStoreApplyDTO.getMemberId());
-        //判断用户是否存在
+        // 判断用户是否存在
         if (member == null) {
             throw new ServiceException(ResultCode.USER_NOT_EXIST);
         }
-        //判断是否拥有店铺
+        // 判断是否拥有店铺
         if (Boolean.TRUE.equals(member.getHaveStore())) {
             throw new ServiceException(ResultCode.STORE_APPLY_DOUBLE_ERROR);
         }
 
-        //添加店铺
+        // 添加店铺
         Store store = new Store(member, adminStoreApplyDTO);
         this.save(store);
 
-        //判断是否存在店铺详情，如果没有则进行新建，如果存在则进行修改
+        // 判断是否存在店铺详情，如果没有则进行新建，如果存在则进行修改
         StoreDetail storeDetail = new StoreDetail(store, adminStoreApplyDTO);
 
         storeDetailService.save(storeDetail);
 
-        //设置会员-店铺信息
+        // 设置会员-店铺信息
         memberService.update(new LambdaUpdateWrapper<Member>()
                 .eq(Member::getId, member.getId())
                 .set(Member::getHaveStore, true)
@@ -152,14 +154,14 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
     @Transactional(rollbackFor = Exception.class)
     public Store edit(StoreEditDTO storeEditDTO) {
         if (storeEditDTO != null) {
-            //判断店铺名是否唯一
+            // 判断店铺名是否唯一
             Store storeTmp = getOne(new QueryWrapper<Store>().eq("store_name", storeEditDTO.getStoreName()));
             if (storeTmp != null && !CharSequenceUtil.equals(storeTmp.getId(), storeEditDTO.getStoreId())) {
                 throw new ServiceException(ResultCode.STORE_NAME_EXIST_ERROR);
             }
-            //修改店铺详细信息
+            // 修改店铺详细信息
             updateStoreDetail(storeEditDTO);
-            //修改店铺信息
+            // 修改店铺信息
             return updateStore(storeEditDTO);
         } else {
             throw new ServiceException(ResultCode.STORE_NOT_EXIST);
@@ -180,8 +182,9 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
             if (result) {
                 storeDetailService.updateStoreGoodsInfo(store);
             }
-            String destination = rocketmqCustomProperties.getStoreTopic() + ":" + StoreTagsEnum.EDIT_STORE_SETTING.name();
-            //发送订单变更mq消息
+            String destination = rocketmqCustomProperties.getStoreTopic() + ":"
+                    + StoreTagsEnum.EDIT_STORE_SETTING.name();
+            // 发送订单变更mq消息
             rocketMQTemplate.asyncSend(destination, store, RocketmqSendCallbackBuilder.commonCallback());
         }
 
@@ -197,7 +200,8 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
     private void updateStoreDetail(StoreEditDTO storeEditDTO) {
         StoreDetail storeDetail = new StoreDetail();
         BeanUtil.copyProperties(storeEditDTO, storeDetail);
-        storeDetailService.update(storeDetail, new QueryWrapper<StoreDetail>().eq("store_id", storeEditDTO.getStoreId()));
+        storeDetailService.update(storeDetail,
+                new QueryWrapper<StoreDetail>().eq("store_id", storeEditDTO.getStoreId()));
     }
 
     @Override
@@ -209,19 +213,19 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         }
         if (passed == 0) {
             store.setStoreDisable(StoreStatusEnum.OPEN.value());
-            //修改会员 表示已有店铺
+            // 修改会员 表示已有店铺
             Member member = memberService.getById(store.getMemberId());
             member.setHaveStore(true);
             member.setStoreId(id);
             memberService.updateById(member);
-            //创建店员
+            // 创建店员
             ClerkAddDTO clerkAddDTO = new ClerkAddDTO();
             clerkAddDTO.setMemberId(member.getId());
             clerkAddDTO.setIsSuper(true);
             clerkAddDTO.setShopkeeper(true);
             clerkAddDTO.setStoreId(id);
             clerkService.saveClerk(clerkAddDTO);
-            //设定商家的结算日
+            // 设定商家的结算日
             storeDetailService.update(new LambdaUpdateWrapper<StoreDetail>()
                     .eq(StoreDetail::getStoreId, id)
                     .set(StoreDetail::getSettlementDay, new DateTime()));
@@ -241,12 +245,12 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
             storeLambdaUpdateWrapper.eq(Store::getId, id);
             storeLambdaUpdateWrapper.set(Store::getStoreDisable, StoreStatusEnum.CLOSED.value());
             boolean update = this.update(storeLambdaUpdateWrapper);
-            //下架所有此店铺商品
+            // 下架所有此店铺商品
             if (update) {
                 goodsService.underStoreGoods(id);
             }
 
-            //删除店员token
+            // 删除店员token
             clerkService.list(new LambdaQueryWrapper<Clerk>().eq(Clerk::getStoreId, id)).forEach(clerk -> {
                 cache.vagueDel(CachePrefix.ACCESS_TOKEN.getPrefix(UserEnums.STORE, clerk.getMemberId()));
                 cache.vagueDel(CachePrefix.REFRESH_TOKEN.getPrefix(UserEnums.STORE, clerk.getMemberId()));
@@ -270,14 +274,14 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
 
     @Override
     public boolean applyFirstStep(StoreCompanyDTO storeCompanyDTO) {
-        //获取当前操作的店铺
+        // 获取当前操作的店铺
         Store store = getStoreByMember();
 
-        //店铺为空，则新增店铺
+        // 店铺为空，则新增店铺
         if (store == null) {
             AuthUser authUser = Objects.requireNonNull(UserContext.getCurrentUser());
             Member member = memberService.getById(authUser.getId());
-            //根据会员创建店铺
+            // 根据会员创建店铺
             store = new Store(member);
             BeanUtil.copyProperties(storeCompanyDTO, store);
             this.save(store);
@@ -287,14 +291,14 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
             return storeDetailService.save(storeDetail);
         } else {
 
-            //校验迪纳普状态
+            // 校验迪纳普状态
             checkStoreStatus(store);
-            //复制参数 修改已存在店铺
+            // 复制参数 修改已存在店铺
             BeanUtil.copyProperties(storeCompanyDTO, store);
             this.updateById(store);
-            //判断是否存在店铺详情，如果没有则进行新建，如果存在则进行修改
+            // 判断是否存在店铺详情，如果没有则进行新建，如果存在则进行修改
             StoreDetail storeDetail = storeDetailService.getStoreDetail(store.getId());
-            //如果店铺详情为空，则new ，否则复制对象，然后保存即可。
+            // 如果店铺详情为空，则new ，否则复制对象，然后保存即可。
             if (storeDetail == null) {
                 storeDetail = new StoreDetail();
                 storeDetail.setStoreId(store.getId());
@@ -310,35 +314,35 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
     @Override
     public boolean applySecondStep(StoreBankDTO storeBankDTO) {
 
-        //获取当前操作的店铺
+        // 获取当前操作的店铺
         Store store = getStoreByMember();
-        //校验店铺状态
+        // 校验店铺状态
         checkStoreStatus(store);
         StoreDetail storeDetail = storeDetailService.getStoreDetail(store.getId());
-        //设置店铺的银行信息
+        // 设置店铺的银行信息
         BeanUtil.copyProperties(storeBankDTO, storeDetail);
         return storeDetailService.updateById(storeDetail);
     }
 
     @Override
     public boolean applyThirdStep(StoreOtherInfoDTO storeOtherInfoDTO) {
-        //获取当前操作的店铺
+        // 获取当前操作的店铺
         Store store = getStoreByMember();
 
-        //校验店铺状态
+        // 校验店铺状态
         checkStoreStatus(store);
         BeanUtil.copyProperties(storeOtherInfoDTO, store);
 
         StoreDetail storeDetail = storeDetailService.getStoreDetail(store.getId());
-        //设置店铺的其他信息
+        // 设置店铺的其他信息
         BeanUtil.copyProperties(storeOtherInfoDTO, storeDetail);
-        //设置店铺经营范围
+        // 设置店铺经营范围
         storeDetail.setGoodsManagementCategory(storeOtherInfoDTO.getGoodsManagementCategory());
-        //最后一步申请，给予店铺设置库存预警默认值
+        // 最后一步申请，给予店铺设置库存预警默认值
         storeDetail.setStockWarning(10);
-        //修改店铺详细信息
+        // 修改店铺详细信息
         storeDetailService.updateById(storeDetail);
-        //设置店铺名称,修改店铺信息
+        // 设置店铺名称,修改店铺信息
         store.setStoreDisable(StoreStatusEnum.APPLYING.name());
         return this.updateById(store);
     }
@@ -350,11 +354,10 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
      */
     private void checkStoreStatus(Store store) {
 
-        //如果店铺状态为已开启、已关闭、申请中，则抛出异常
+        // 如果店铺状态为已开启、已关闭、申请中，则抛出异常
         if (store.getStoreDisable().equals(StoreStatusEnum.OPEN.name())
                 || store.getStoreDisable().equals(StoreStatusEnum.CLOSED.name())
-                || store.getStoreDisable().equals(StoreStatusEnum.APPLYING.name())
-        ) {
+                || store.getStoreDisable().equals(StoreStatusEnum.APPLYING.name())) {
             throw new ServiceException(ResultCode.STORE_STATUS_ERROR);
         }
 
@@ -362,7 +365,7 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
 
     @Override
     public void updateStoreGoodsNum(String storeId, Long num) {
-        //修改店铺商品数量
+        // 修改店铺商品数量
         this.update(new LambdaUpdateWrapper<Store>()
                 .set(Store::getGoodsNum, num)
                 .eq(Store::getId, storeId));
@@ -375,12 +378,13 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
 
     @Override
     public void storeToClerk() {
-        //清空店铺信息方便重新导入不会有重复数据
+        // 清空店铺信息方便重新导入不会有重复数据
         clerkService.remove(new LambdaQueryWrapper<Clerk>().eq(Clerk::getShopkeeper, true));
         List<Clerk> clerkList = new ArrayList<>();
-        //遍历已开启的店铺
-        for (Store store : this.list(new LambdaQueryWrapper<Store>().eq(Store::getDeleteFlag, false).eq(Store::getStoreDisable,
-                StoreStatusEnum.OPEN.name()))) {
+        // 遍历已开启的店铺
+        for (Store store : this
+                .list(new LambdaQueryWrapper<Store>().eq(Store::getDeleteFlag, false).eq(Store::getStoreDisable,
+                        StoreStatusEnum.OPEN.name()))) {
             clerkList.add(new Clerk(store));
         }
         clerkService.saveBatch(clerkList);
@@ -390,8 +394,8 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
     public List<GoodsSku> getToMemberHistory(String memberId) {
         AuthUser currentUser = UserContext.getCurrentUser();
         List<String> skuIdList = new ArrayList<>();
-        for (FootPrint footPrint :
-                footprintService.list(new LambdaUpdateWrapper<FootPrint>().eq(FootPrint::getStoreId, currentUser.getStoreId()).eq(FootPrint::getMemberId, memberId))) {
+        for (FootPrint footPrint : footprintService.list(new LambdaUpdateWrapper<FootPrint>()
+                .eq(FootPrint::getStoreId, currentUser.getStoreId()).eq(FootPrint::getMemberId, memberId))) {
             if (footPrint.getSkuId() != null) {
                 skuIdList.add(footPrint.getSkuId());
             }

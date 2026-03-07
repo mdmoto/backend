@@ -19,7 +19,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.annotations.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import springfox.documentation.annotations.ApiIgnore;
+import io.swagger.v3.oas.annotations.Parameter;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
@@ -49,7 +49,6 @@ public class OrderManagerController {
     @Autowired
     private OrderPriceService orderPriceService;
 
-
     @ApiOperation(value = "查询订单列表分页")
     @GetMapping
     public ResultMessage<IPage<OrderSimpleVO>> queryMineOrder(OrderSearchParams orderSearchParams) {
@@ -66,9 +65,8 @@ public class OrderManagerController {
     @GetMapping("/queryExportOrder")
     public void queryExportOrder(OrderSearchParams orderSearchParams) {
         HttpServletResponse response = ThreadContextHolder.getHttpResponse();
-        orderService.queryExportOrder(response,orderSearchParams);
+        orderService.queryExportOrder(response, orderSearchParams);
     }
-
 
     @ApiOperation(value = "订单明细")
     @ApiImplicitParam(name = "orderSn", value = "订单编号", required = true, dataType = "String", paramType = "path")
@@ -76,7 +74,6 @@ public class OrderManagerController {
     public ResultMessage<OrderDetailVO> detail(@PathVariable String orderSn) {
         return ResultUtil.data(orderService.queryDetail(orderSn));
     }
-
 
     @PreventDuplicateSubmissions
     @ApiOperation(value = "确认收款")
@@ -92,7 +89,7 @@ public class OrderManagerController {
     @ApiImplicitParam(name = "orderSn", value = "订单sn", required = true, dataType = "String", paramType = "path")
     @PostMapping(value = "/update/{orderSn}/consignee")
     public ResultMessage<Order> consignee(@NotNull(message = "参数非法") @PathVariable String orderSn,
-                                          @Valid MemberAddressDTO memberAddressDTO) {
+            @Valid MemberAddressDTO memberAddressDTO) {
         return ResultUtil.data(orderService.updateConsignee(orderSn, memberAddressDTO));
     }
 
@@ -104,14 +101,13 @@ public class OrderManagerController {
     })
     @PutMapping(value = "/update/{orderSn}/price")
     public ResultMessage<Order> updateOrderPrice(@PathVariable String orderSn,
-                                                 @NotNull(message = "订单价格不能为空") @RequestParam Double price) {
+            @NotNull(message = "订单价格不能为空") @RequestParam Double price) {
         if (NumberUtil.isGreater(Convert.toBigDecimal(price), Convert.toBigDecimal(0))) {
             return ResultUtil.data(orderPriceService.updatePrice(orderSn, price));
         } else {
             return ResultUtil.error(ResultCode.ORDER_PRICE_ERROR);
         }
     }
-
 
     @PreventDuplicateSubmissions
     @ApiOperation(value = "取消订单")
@@ -120,10 +116,10 @@ public class OrderManagerController {
             @ApiImplicitParam(name = "reason", value = "取消原因", required = true, dataType = "String", paramType = "query")
     })
     @PostMapping(value = "/{orderSn}/cancel")
-    public ResultMessage<Order> cancel(@ApiIgnore @PathVariable String orderSn, @RequestParam String reason) {
+    public ResultMessage<Order> cancel(@Parameter(hidden = true) @PathVariable String orderSn,
+            @RequestParam String reason) {
         return ResultUtil.data(orderService.cancel(orderSn, reason));
     }
-
 
     @ApiOperation(value = "查询物流踪迹")
     @ApiImplicitParams({

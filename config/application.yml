@@ -19,7 +19,7 @@ management:
       enabled: false # P0 Fix: Disable mail health check to prevent 503 DOWN due to invalid credentials
 spring:
   main:
-    allow-circular-references: true
+    allow-circular-references: false
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
