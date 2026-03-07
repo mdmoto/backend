@@ -2,7 +2,7 @@ package cn.lili.modules.search.entity.dto;
 
 import lombok.Data;
 
-import javax.validation.constraints.*;
+import jakarta.validation.constraints.*;
 
 /**
  * 搜索热词

@@ -2,7 +2,7 @@ package cn.lili.modules.goods.service;
 
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponse;
 
 public interface GoodsImportService {
 

@@ -3,7 +3,7 @@ package cn.lili.modules.payment.kit.core.kit;
 import cn.lili.modules.payment.kit.core.http.AbstractHttpDelegate;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.HashMap;

@@ -2,8 +2,8 @@ package cn.lili.common.validation.impl;
 
 import cn.lili.common.validation.EnumValue;
 
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorContext;
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
 
 /**
  * 枚举之校验

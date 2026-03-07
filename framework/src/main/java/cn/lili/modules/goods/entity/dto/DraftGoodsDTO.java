@@ -4,7 +4,7 @@ import cn.lili.modules.goods.entity.dos.DraftGoods;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 

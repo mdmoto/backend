@@ -30,7 +30,6 @@ import java.util.Objects;
  */
 @Service
 @Transactional(rollbackFor = Exception.class)
-@RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class ImMessageServiceImpl extends ServiceImpl<ImMessageMapper, ImMessage> implements ImMessageService {
 
     @Autowired
@@ -77,7 +76,8 @@ public class ImMessageServiceImpl extends ServiceImpl<ImMessageMapper, ImMessage
 
     @Override
     public List<ImMessage> getList(MessageQueryParams messageQueryParams) {
-        List<ImMessage> messageList = this.page(PageUtil.initPage(messageQueryParams), messageQueryParams.initQueryWrapper()).getRecords();
+        List<ImMessage> messageList = this
+                .page(PageUtil.initPage(messageQueryParams), messageQueryParams.initQueryWrapper()).getRecords();
         ListSort(messageList);
         readMessage(messageList);
         return messageList;
@@ -86,19 +86,21 @@ public class ImMessageServiceImpl extends ServiceImpl<ImMessageMapper, ImMessage
     @Override
     public Long unreadMessageCount() {
         AuthUser currentUser = UserContext.getCurrentUser();
-        if(currentUser == null){
+        if (currentUser == null) {
             throw new ServiceException(ResultCode.USER_NOT_LOGIN);
         }
-        return this.count(new LambdaQueryWrapper<ImMessage>().eq(ImMessage::getToUser,currentUser.getId()).eq(ImMessage::getIsRead,false));
+        return this.count(new LambdaQueryWrapper<ImMessage>().eq(ImMessage::getToUser, currentUser.getId())
+                .eq(ImMessage::getIsRead, false));
     }
 
     @Override
     public void cleanUnreadMessage() {
         AuthUser currentUser = UserContext.getCurrentUser();
-        if(currentUser == null){
+        if (currentUser == null) {
             throw new ServiceException(ResultCode.USER_NOT_LOGIN);
         }
-        this.update(new LambdaUpdateWrapper<ImMessage>().eq(ImMessage::getToUser,currentUser.getId()).set(ImMessage::getIsRead,true));
+        this.update(new LambdaUpdateWrapper<ImMessage>().eq(ImMessage::getToUser, currentUser.getId())
+                .set(ImMessage::getIsRead, true));
     }
 
     /**
@@ -124,7 +126,6 @@ public class ImMessageServiceImpl extends ServiceImpl<ImMessageMapper, ImMessage
         });
     }
 
-
     /**
      * 阅读消息
      *
@@ -132,17 +133,17 @@ public class ImMessageServiceImpl extends ServiceImpl<ImMessageMapper, ImMessage
      */
     private void readMessage(List<ImMessage> messageList) {
         if (!messageList.isEmpty()) {
-            //判断用户类型
+            // 判断用户类型
             AuthUser authUser = Objects.requireNonNull(UserContext.getCurrentUser());
             String toUserId = "";
-            if(UserEnums.MEMBER.equals(authUser.getRole())){
+            if (UserEnums.MEMBER.equals(authUser.getRole())) {
                 toUserId = authUser.getId();
-            }else if(UserEnums.STORE.equals(authUser.getRole())){
+            } else if (UserEnums.STORE.equals(authUser.getRole())) {
                 toUserId = authUser.getStoreId();
             }
-            //发送给自己的未读信息进行已读操作
+            // 发送给自己的未读信息进行已读操作
             for (ImMessage imMessage : messageList) {
-                if(Boolean.FALSE.equals(imMessage.getIsRead()) && imMessage.getToUser().equals(toUserId)){
+                if (Boolean.FALSE.equals(imMessage.getIsRead()) && imMessage.getToUser().equals(toUserId)) {
                     imMessage.setIsRead(true);
                 }
             }

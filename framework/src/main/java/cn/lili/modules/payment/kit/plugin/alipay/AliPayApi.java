@@ -8,8 +8,8 @@ import com.alipay.api.internal.util.StringUtils;
 import com.alipay.api.request.*;
 import com.alipay.api.response.*;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
