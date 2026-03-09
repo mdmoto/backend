@@ -38,12 +38,12 @@ public class BasePromotions extends BaseEntity {
 
     @ApiModelProperty(value = "活动开始时间", required = true)
     @JsonFormat(timezone = "GMT+8", pattern = "yyyy-MM-dd HH:mm:ss")
-    @Field(type = FieldType.Date, format = DateFormat.custom, pattern = "yyyy-MM-dd HH:mm:ss || yyyy-MM-dd || yyyy/MM/dd HH:mm:ss|| yyyy/MM/dd ||epoch_millis")
+    @Field(type = FieldType.Date, format = { DateFormat.date_hour_minute_second, DateFormat.epoch_millis })
     private Date startTime;
 
     @ApiModelProperty(value = "活动结束时间", required = true)
     @JsonFormat(timezone = "GMT+8", pattern = "yyyy-MM-dd HH:mm:ss")
-    @Field(type = FieldType.Date, format = DateFormat.custom, pattern = "yyyy-MM-dd HH:mm:ss || yyyy-MM-dd || yyyy/MM/dd HH:mm:ss|| yyyy/MM/dd ||epoch_millis")
+    @Field(type = FieldType.Date, format = { DateFormat.date_hour_minute_second, DateFormat.epoch_millis })
     private Date endTime;
 
     /**
@@ -52,10 +52,8 @@ public class BasePromotions extends BaseEntity {
     @ApiModelProperty(value = "关联范围类型")
     private String scopeType = PromotionsScopeTypeEnum.PORTION_GOODS.name();
 
-
     @ApiModelProperty(value = "范围关联的id")
     private String scopeId;
-
 
     /**
      * @return 促销状态

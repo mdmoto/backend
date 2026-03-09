@@ -39,7 +39,7 @@ public class Seckill extends BasePromotions {
     @NotNull(message = "请填写报名截止时间")
     @ApiModelProperty(value = "报名截至时间", required = true)
     @JsonFormat(timezone = "GMT+8", pattern = "yyyy-MM-dd HH:mm:ss")
-    @Field(type = FieldType.Date, format = DateFormat.custom, pattern = "yyyy-MM-dd HH:mm:ss || yyyy-MM-dd || yyyy/MM/dd HH:mm:ss|| yyyy/MM/dd ||epoch_millis")
+    @Field(type = FieldType.Date, format = { DateFormat.date_hour_minute_second, DateFormat.epoch_millis })
     private Date applyEndTime;
 
     @ApiModelProperty(value = "申请规则")
@@ -59,13 +59,13 @@ public class Seckill extends BasePromotions {
     private Integer goodsNum;
 
     public Seckill(int day, String hours, String seckillRule) {
-        //默认创建*天后的秒杀活动
+        // 默认创建*天后的秒杀活动
         DateTime dateTime = DateUtil.beginOfDay(DateUtil.offsetDay(new Date(), day));
         this.applyEndTime = dateTime;
         this.hours = hours;
         this.seckillRule = seckillRule;
         this.goodsNum = 0;
-        //BasePromotion
+        // BasePromotion
         this.setStoreName(PromotionTools.PLATFORM_NAME);
         this.setStoreId(PromotionTools.PLATFORM_ID);
         this.setPromotionName(DateUtil.formatDate(dateTime) + " 秒杀活动");

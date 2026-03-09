@@ -21,7 +21,6 @@ import org.springframework.format.annotation.DateTimeFormat;
 import java.io.Serializable;
 import java.util.Date;
 
-
 /**
  * 数据库基础实体类
  *
@@ -30,18 +29,16 @@ import java.util.Date;
  * @since 2020/8/20 14:34
  */
 @Data
-@JsonIgnoreProperties(value = { "handler", "fieldHandler"})
+@JsonIgnoreProperties(value = { "handler", "fieldHandler" })
 @AllArgsConstructor
 @NoArgsConstructor
 public abstract class BaseEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-
     @TableId
     @ApiModelProperty(value = "唯一标识", hidden = true)
     private String id;
-
 
     @CreatedBy
     @TableField(fill = FieldFill.INSERT)
@@ -53,7 +50,7 @@ public abstract class BaseEntity implements Serializable {
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @TableField(fill = FieldFill.INSERT)
     @ApiModelProperty(value = "创建时间", hidden = true)
-    @Field(type = FieldType.Date, format = DateFormat.custom, pattern = "yyyy-MM-dd HH:mm:ss || yyyy-MM-dd || yyyy/MM/dd HH:mm:ss|| yyyy/MM/dd ||epoch_millis")
+    @Field(type = FieldType.Date, format = DateFormat.date_hour_minute_second)
     private Date createTime;
 
     @LastModifiedBy
@@ -66,7 +63,7 @@ public abstract class BaseEntity implements Serializable {
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @TableField(fill = FieldFill.INSERT_UPDATE)
     @ApiModelProperty(value = "更新时间", hidden = true)
-    @Field(type = FieldType.Date, format = DateFormat.custom, pattern = "yyyy-MM-dd HH:mm:ss || yyyy-MM-dd || yyyy/MM/dd HH:mm:ss|| yyyy/MM/dd ||epoch_millis")
+    @Field(type = FieldType.Date, format = DateFormat.date_hour_minute_second)
     private Date updateTime;
 
     @TableField(fill = FieldFill.INSERT)

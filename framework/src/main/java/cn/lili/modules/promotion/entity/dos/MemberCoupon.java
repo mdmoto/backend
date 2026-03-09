@@ -71,18 +71,17 @@ public class MemberCoupon extends BaseEntity {
     @ApiModelProperty(value = "活动类型")
     private String couponType;
 
-
     @ApiModelProperty(value = "范围关联的id")
     private String scopeId;
 
     @ApiModelProperty(value = "使用起始时间")
     @JsonFormat(timezone = "GMT+8", pattern = "yyyy-MM-dd HH:mm:ss")
-    @Field(type = FieldType.Date, format = DateFormat.custom, pattern = "yyyy-MM-dd HH:mm:ss || yyyy-MM-dd || yyyy/MM/dd HH:mm:ss|| yyyy/MM/dd ||epoch_millis")
+    @Field(type = FieldType.Date, format = { DateFormat.date_hour_minute_second, DateFormat.epoch_millis })
     private Date startTime;
 
     @ApiModelProperty(value = "使用截止时间")
     @JsonFormat(timezone = "GMT+8", pattern = "yyyy-MM-dd HH:mm:ss")
-    @Field(type = FieldType.Date, format = DateFormat.custom, pattern = "yyyy-MM-dd HH:mm:ss || yyyy-MM-dd || yyyy/MM/dd HH:mm:ss|| yyyy/MM/dd ||epoch_millis")
+    @Field(type = FieldType.Date, format = { DateFormat.date_hour_minute_second, DateFormat.epoch_millis })
     private Date endTime;
     /**
      * @see cn.lili.modules.promotion.entity.enums.CouponGetEnum
@@ -98,7 +97,7 @@ public class MemberCoupon extends BaseEntity {
 
     @ApiModelProperty(value = "核销时间")
     @JsonFormat(timezone = "GMT+8", pattern = "yyyy-MM-dd HH:mm:ss")
-    @Field(type = FieldType.Date, format = DateFormat.custom, pattern = "yyyy-MM-dd HH:mm:ss || yyyy-MM-dd || yyyy/MM/dd HH:mm:ss|| yyyy/MM/dd ||epoch_millis")
+    @Field(type = FieldType.Date, format = { DateFormat.date_hour_minute_second, DateFormat.epoch_millis })
     private Date consumptionTime;
 
     /**
@@ -127,7 +126,8 @@ public class MemberCoupon extends BaseEntity {
         if (coupon.getRangeDayType().equals(CouponRangeDayEnum.FIXEDTIME.name())) {
             setEndTime(coupon.getEndTime());
         } else {
-            setEndTime(DateUtil.endOfDay(DateUtil.offset(new DateTime(), DateField.DAY_OF_YEAR, (coupon.getEffectiveDays() - 1))));
+            setEndTime(DateUtil
+                    .endOfDay(DateUtil.offset(new DateTime(), DateField.DAY_OF_YEAR, (coupon.getEffectiveDays() - 1))));
         }
     }
 }

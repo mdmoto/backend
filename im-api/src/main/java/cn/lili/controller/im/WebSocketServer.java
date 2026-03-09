@@ -18,13 +18,13 @@ import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
-import javax.websocket.OnClose;
-import javax.websocket.OnError;
-import javax.websocket.OnMessage;
-import javax.websocket.OnOpen;
-import javax.websocket.Session;
-import javax.websocket.server.PathParam;
-import javax.websocket.server.ServerEndpoint;
+import jakarta.websocket.OnClose;
+import jakarta.websocket.OnError;
+import jakarta.websocket.OnMessage;
+import jakarta.websocket.OnOpen;
+import jakarta.websocket.Session;
+import jakarta.websocket.server.PathParam;
+import jakarta.websocket.server.ServerEndpoint;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,12 +62,12 @@ public class WebSocketServer {
         AuthUser authUser = UserContext.getAuthUser(cache, accessToken);
 
         String sessionId = UserEnums.STORE.equals(authUser.getRole()) ? authUser.getStoreId() : authUser.getId();
-        //如果已有会话，则进行下线提醒。
+        // 如果已有会话，则进行下线提醒。
         if (sessionPools.containsKey(sessionId)) {
             log.info("用户重复登陆，旧用户下线");
             Session oldSession = sessionPools.get(sessionId);
             sendMessage(oldSession,
-                MessageVO.builder().messageResultType(MessageResultType.OFFLINE).result("用户异地登陆").build());
+                    MessageVO.builder().messageResultType(MessageResultType.OFFLINE).result("用户异地登陆").build());
             try {
                 oldSession.close();
             } catch (Exception e) {
@@ -84,7 +84,8 @@ public class WebSocketServer {
     public void onClose(@PathParam("accessToken") String accessToken) {
         AuthUser authUser = UserContext.getAuthUser(accessToken);
         log.info("用户断开断开连接:{}", JSONUtil.toJsonStr(authUser));
-        sessionPools.remove(authUser);
+        String sessionId = UserEnums.STORE.equals(authUser.getRole()) ? authUser.getStoreId() : authUser.getId();
+        sessionPools.remove(sessionId);
     }
 
     /**
@@ -113,15 +114,15 @@ public class WebSocketServer {
             case PING:
                 break;
             case MESSAGE:
-                //保存消息
+                // 保存消息
                 ImMessage imMessage = new ImMessage(messageOperation);
                 imMessageService.save(imMessage);
-                //修改最后消息信息
+                // 修改最后消息信息
                 imTalkService.update(new LambdaUpdateWrapper<ImTalk>().eq(ImTalk::getId, messageOperation.getTalkId())
-                    .set(ImTalk::getLastTalkMessage, messageOperation.getContext())
-                    .set(ImTalk::getLastTalkTime, imMessage.getCreateTime())
-                    .set(ImTalk::getLastMessageType, imMessage.getMessageType()));
-                //发送消息
+                        .set(ImTalk::getLastTalkMessage, messageOperation.getContext())
+                        .set(ImTalk::getLastTalkTime, imMessage.getCreateTime())
+                        .set(ImTalk::getLastMessageType, imMessage.getMessageType()));
+                // 发送消息
                 sendMessage(messageOperation.getTo(), new MessageVO(MessageResultType.MESSAGE, imMessage));
                 break;
             case READ:
@@ -131,11 +132,11 @@ public class WebSocketServer {
                 break;
             case UNREAD:
                 sendMessage(authUser.getId(),
-                    new MessageVO(MessageResultType.UN_READ, imMessageService.unReadMessages(accessToken)));
+                        new MessageVO(MessageResultType.UN_READ, imMessageService.unReadMessages(accessToken)));
                 break;
             case HISTORY:
                 sendMessage(authUser.getId(), new MessageVO(MessageResultType.HISTORY,
-                    imMessageService.historyMessage(accessToken, messageOperation.getTo())));
+                        imMessageService.historyMessage(accessToken, messageOperation.getTo())));
                 break;
             default:
                 break;

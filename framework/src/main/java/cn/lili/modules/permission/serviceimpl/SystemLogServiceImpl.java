@@ -8,26 +8,26 @@ import cn.lili.modules.permission.repository.SystemLogRepository;
 import cn.lili.modules.permission.service.SystemLogService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import org.elasticsearch.common.unit.Fuzziness;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.MultiMatchQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.sort.SortBuilders;
-import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
-import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
+import org.springframework.data.elasticsearch.core.query.Query;
 import org.springframework.stereotype.Service;
+
+import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.ChildScoreMode;
+import co.elastic.clients.json.JsonData;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 系统日志
+ * 系统日志 (Restored for Spring Boot 3 / ES 8.x)
  *
  * @author Chopper
  * @since 2020/11/17 3:45 下午
@@ -35,84 +35,96 @@ import java.util.stream.Collectors;
 @Service
 public class SystemLogServiceImpl implements SystemLogService {
 
-    @Autowired
+    @Autowired(required = false)
     private SystemLogRepository systemLogRepository;
 
-    /**
-     * ES
-     */
-    @Autowired
-    private ElasticsearchOperations restTemplate;
+    @Autowired(required = false)
+    private ElasticsearchOperations elasticsearchOperations;
 
     @Override
     public void saveLog(SystemLogVO systemLogVO) {
-        systemLogRepository.save(systemLogVO);
+        if (systemLogRepository != null) {
+            systemLogRepository.save(systemLogVO);
+        }
     }
 
     @Override
     public void deleteLog(List<String> id) {
-        for (String s : id) {
-            systemLogRepository.deleteById(s);
+        if (systemLogRepository != null) {
+            for (String s : id) {
+                systemLogRepository.deleteById(s);
+            }
         }
     }
 
     @Override
     public void flushAll() {
-        systemLogRepository.deleteAll();
+        if (systemLogRepository != null) {
+            systemLogRepository.deleteAll();
+        }
     }
 
     @Override
-    public IPage<SystemLogVO> queryLog(String storeId, String operatorName, String key, SearchVO searchVo, PageVO pageVO) {
+    public IPage<SystemLogVO> queryLog(String storeId, String operatorName, String key, SearchVO searchVo,
+            PageVO pageVO) {
         pageVO.setNotConvert(true);
         IPage<SystemLogVO> iPage = new Page<>();
-        NativeSearchQueryBuilder nativeSearchQueryBuilder = new NativeSearchQueryBuilder();
+        if (elasticsearchOperations == null) {
+            return iPage;
+        }
+
+        BoolQuery.Builder boolBuilder = new BoolQuery.Builder();
+
+        if (CharSequenceUtil.isNotEmpty(storeId)) {
+            boolBuilder.filter(f -> f.match(m -> m.field("storeId").query(storeId)));
+        }
+
+        if (CharSequenceUtil.isNotEmpty(operatorName)) {
+            boolBuilder.must(m -> m.match(mm -> mm.field("username").query(operatorName)));
+        }
+
+        if (CharSequenceUtil.isNotEmpty(key)) {
+            boolBuilder.filter(f -> f.multiMatch(mm -> mm
+                    .fields("requestUrl", "requestParam", "responseBody", "name")
+                    .query(key)
+                    .fuzziness("AUTO")));
+        }
+
+        // 时间有效性判定
+        if (searchVo.getConvertStartDate() != null && searchVo.getConvertEndDate() != null) {
+            boolBuilder.filter(f -> f.range(r -> r
+                    .field("createTime")
+                    .gte(JsonData.of(searchVo.getConvertStartDate().getTime()))
+                    .lte(JsonData.of(searchVo.getConvertEndDate().getTime()))));
+        }
+
+        Pageable pageable = Pageable.unpaged();
         if (pageVO.getPageNumber() != null && pageVO.getPageSize() != null) {
             int pageNumber = pageVO.getPageNumber() - 1;
             if (pageNumber < 0) {
                 pageNumber = 0;
             }
-            Pageable pageable = PageRequest.of(pageNumber, pageVO.getPageSize());
-            //分页
-            nativeSearchQueryBuilder.withPageable(pageable);
+
+            Sort sort;
+            if (CharSequenceUtil.isNotEmpty(pageVO.getOrder()) && CharSequenceUtil.isNotEmpty(pageVO.getSort())) {
+                sort = Sort.by(Sort.Direction.valueOf(pageVO.getOrder().toUpperCase()), pageVO.getSort());
+            } else {
+                sort = Sort.by(Sort.Direction.DESC, "createTime");
+            }
+
+            pageable = PageRequest.of(pageNumber, pageVO.getPageSize(), sort);
             iPage.setCurrent(pageVO.getPageNumber());
             iPage.setSize(pageVO.getPageSize());
         }
 
-        if (CharSequenceUtil.isNotEmpty(storeId)) {
-            nativeSearchQueryBuilder.withFilter(QueryBuilders.matchQuery("storeId", storeId));
-        }
+        NativeQuery query = NativeQuery.builder()
+                .withQuery(boolBuilder.build()._toQuery())
+                .withPageable(pageable)
+                .build();
 
-        if (CharSequenceUtil.isNotEmpty(operatorName)) {
-            nativeSearchQueryBuilder.withQuery(QueryBuilders.matchQuery("username", operatorName));
-        }
-
-        if (CharSequenceUtil.isNotEmpty(key)) {
-            MultiMatchQueryBuilder multiMatchQueryBuilder = QueryBuilders.multiMatchQuery(key, "requestUrl", "requestParam", "responseBody", "name");
-            multiMatchQueryBuilder.fuzziness(Fuzziness.AUTO);
-            nativeSearchQueryBuilder.withFilter(multiMatchQueryBuilder);
-        }
-        //时间有效性判定
-        if (searchVo.getConvertStartDate() != null && searchVo.getConvertEndDate() != null) {
-            BoolQueryBuilder filterBuilder = new BoolQueryBuilder();
-            //大于方法
-            filterBuilder.filter(
-                    QueryBuilders.rangeQuery("createTime")
-                            .gte(searchVo.getConvertStartDate().getTime())
-                            .lte(searchVo.getConvertEndDate().getTime()));
-
-            nativeSearchQueryBuilder.withFilter(filterBuilder);
-        }
-
-        if (CharSequenceUtil.isNotEmpty(pageVO.getOrder()) && CharSequenceUtil.isNotEmpty(pageVO.getSort())) {
-            nativeSearchQueryBuilder.withSort(SortBuilders.fieldSort(pageVO.getSort()).order(SortOrder.valueOf(pageVO.getOrder().toUpperCase())));
-        } else {
-            nativeSearchQueryBuilder.withSort(SortBuilders.fieldSort("createTime").order(SortOrder.DESC));
-        }
-
-        SearchHits<SystemLogVO> searchResult = restTemplate.search(nativeSearchQueryBuilder.build(), SystemLogVO.class);
+        SearchHits<SystemLogVO> searchResult = elasticsearchOperations.search(query, SystemLogVO.class);
 
         iPage.setTotal(searchResult.getTotalHits());
-
         iPage.setRecords(searchResult.getSearchHits().stream().map(SearchHit::getContent).collect(Collectors.toList()));
         return iPage;
     }

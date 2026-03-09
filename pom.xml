@@ -13,7 +13,7 @@
 
     <groupId>cn.lili</groupId>
     <artifactId>lili-shop-parent</artifactId>
-    <version>${revision}</version>
+    <version>4.3</version>
     <packaging>pom</packaging>
 
     <properties>
@@ -30,7 +30,7 @@
         <TinyPinyin-verions>2.0.3.RELEASE</TinyPinyin-verions>
         <jasypt-version>3.0.4</jasypt-version>
         <neetl-version>2.9.10</neetl-version>
-        <lombok-version>1.18.30</lombok-version>
+        <lombok-version>1.18.36</lombok-version>
         <redisson>3.15.6</redisson>
         <aliyun-version>4.5.18</aliyun-version>
         <aliyun-sdk-oss-version>3.11.1</aliyun-sdk-oss-version>
@@ -38,7 +38,7 @@
         <aliyun-version>4.6.0</aliyun-version>
         <aliyun-sdk-oss-version>3.14.0</aliyun-sdk-oss-version>
         <aliyun-sdk-dysms-version>2.0.9</aliyun-sdk-dysms-version>
-        <rocketmq-version>2.2.2</rocketmq-version>
+        <rocketmq-version>2.3.1</rocketmq-version>
         <jwt-version>0.11.2</jwt-version>
         <sharding-jdbc-version>4.0.0</sharding-jdbc-version>
         <druid-version>1.2.16</druid-version>
@@ -59,7 +59,7 @@
         <enjoy.version>4.3</enjoy.version>
         <xxl-job>2.3.0</xxl-job>
         <spotify>1.2.2</spotify>
-        <spring-boot-admin>2.3.1</spring-boot-admin>
+        <spring-boot-admin>3.2.3</spring-boot-admin>
         <owasp-java-html-sanitizer>20211018.2</owasp-java-html-sanitizer>
         <minio.version>8.0.3</minio.version>
         <huaweicloud-obs.version>3.20.6.2</huaweicloud-obs.version>
@@ -98,7 +98,10 @@
                 <version>3.13.0</version>
                 <configuration>
                     <release>${java.version}</release>
-                    <parameters>true</parameters>
+                    <fork>true</fork>
+                    <compilerArgs>
+                        <arg>-parameters</arg>
+                    </compilerArgs>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
@@ -124,7 +127,7 @@
                 <artifactId>docker-maven-plugin</artifactId>
                 <version>${spotify}</version>
                 <configuration>
-                    <imageName>${docker-registry}/${project.artifactId}:${revision}.${images-version}</imageName>
+                    <imageName>${docker-registry}/${project.artifactId}:4.3.${images-version}</imageName>
                     <baseImage>java</baseImage>
                     <entryPoint>["java", "-jar", "/${project.build.finalName}.jar"]</entryPoint>
                     <resources>

@@ -27,7 +27,7 @@ import java.util.List;
 @Slf4j
 public class PageUtil {
 
-    //有order by 注入风险，限制长度
+    // 有order by 注入风险，限制长度
     static final Integer orderByLengthLimit = 20;
 
     /**
@@ -106,30 +106,30 @@ public class PageUtil {
      */
     public static <T> QueryWrapper<T> initWrapper(Object object, SearchVO searchVo) {
         QueryWrapper<T> queryWrapper = new QueryWrapper<>();
-        //创建时间区间判定
-        if (searchVo != null && CharSequenceUtil.isNotBlank(searchVo.getStartDate()) && CharSequenceUtil.isNotBlank(searchVo.getEndDate())) {
+        // 创建时间区间判定
+        if (searchVo != null && CharSequenceUtil.isNotBlank(searchVo.getStartDate())
+                && CharSequenceUtil.isNotBlank(searchVo.getEndDate())) {
             Date start = DateUtil.parse(searchVo.getStartDate());
             Date end = DateUtil.parse(searchVo.getEndDate());
             queryWrapper.between("create_time", start, DateUtil.endOfDay(end));
         }
         if (object != null) {
             String[] fieldNames = BeanUtil.getFiledName(object);
-            //遍历所有属性
+            // 遍历所有属性
             for (int j = 0; j < fieldNames.length; j++) {
-                //获取属性的名字
+                // 获取属性的名字
                 String key = fieldNames[j];
-                //获取值
+                // 获取值
                 Object value = BeanUtil.getFieldValueByName(key, object);
-                //如果值不为空才做查询处理
+                // 如果值不为空才做查询处理
                 if (value != null && !"".equals(value)) {
-                    //字段数据库中，驼峰转下划线
+                    // 字段数据库中，驼峰转下划线
                     queryWrapper.eq(StringUtils.camel2Underline(key), value);
                 }
             }
         }
         return queryWrapper;
     }
-
 
     /**
      * List 手动分页
@@ -183,6 +183,27 @@ public class PageUtil {
             resultPage.setRecords(records);
         }
         return resultPage;
+    }
+
+    /**
+     * Spring Data Pageable 分页封装
+     *
+     * @param page 分页VO
+     * @return 分页响应
+     */
+    public static org.springframework.data.domain.Pageable initPageable(PageVO page) {
+        int pageNumber = page.getPageNumber() - 1;
+        int pageSize = page.getPageSize();
+        if (pageNumber < 0) {
+            pageNumber = 0;
+        }
+        if (pageSize < 1) {
+            pageSize = 10;
+        }
+        if (pageSize > 100) {
+            pageSize = 100;
+        }
+        return org.springframework.data.domain.PageRequest.of(pageNumber, pageSize);
     }
 
 }

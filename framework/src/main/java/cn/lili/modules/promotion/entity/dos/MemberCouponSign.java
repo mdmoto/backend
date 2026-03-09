@@ -38,13 +38,12 @@ public class MemberCouponSign extends BaseIdEntity {
     @ApiModelProperty(value = "失效时间，到达失效时间后自动删除，用户可以再次领取")
     private Date invalidTime;
 
-
     @CreatedDate
     @JsonFormat(timezone = "GMT+8", pattern = "yyyy-MM-dd HH:mm:ss")
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @TableField(fill = FieldFill.INSERT)
     @ApiModelProperty(value = "创建时间", hidden = true)
-    @Field(type = FieldType.Date, format = DateFormat.custom, pattern = "yyyy-MM-dd HH:mm:ss || yyyy-MM-dd || yyyy/MM/dd HH:mm:ss|| yyyy/MM/dd ||epoch_millis")
+    @Field(type = FieldType.Date, format = DateFormat.date_hour_minute_second)
     private Date createTime;
 
 }

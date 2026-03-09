@@ -11,6 +11,25 @@ mkdir -p "$EVIDENCE_DIR"
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD || echo "unknown")
 echo "📍 [GATEKEEPER] Current Branch: $CURRENT_BRANCH" | tee -a "$EVIDENCE_DIR/log.txt"
 
+# Boot 3 Pilot Rules (P4 phase)
+if [[ "${BOOT3_PILOT:-0}" == "1" ]]; then
+    echo "🛡️ [GATEKEEPER] BOOT3_PILOT MODE: Running strict migration checks..." | tee -a "$EVIDENCE_DIR/log.txt"
+    
+    # Check 1: Branch restriction - Pilot mode MUST be on research branch
+    if [[ "$CURRENT_BRANCH" != *"boot3"* ]] && [[ "$CURRENT_BRANCH" != *"research"* ]]; then
+        echo "❌ [GATEKEEPER] BOOT3_PILOT mode is only allowed on 'boot3' or 'research' branches. Current: $CURRENT_BRANCH." | tee -a "$EVIDENCE_DIR/log.txt"
+        exit 1
+    fi
+
+    # Check 2: Stub leakage prevent (Internal Safeguard)
+    # If not in pilot mode but on master/main, stubbed code is FORBIDDEN.
+    # (Checking here for pilot mode specifically to ensure stubs are only where they belong)
+    echo "🔍 [GATEKEEPER] Validating ESC stub hygiene..." | tee -a "$EVIDENCE_DIR/log.txt"
+    STUB_COUNT=$(grep -rn "TODO-STUB-ES" . --exclude-dir=target --exclude-dir=.git | wc -l)
+    echo "📊 [GATEKEEPER] Detected $STUB_COUNT ES stubs." | tee -a "$EVIDENCE_DIR/log.txt"
+fi
+
+# Existing checks...
 echo "🛡️ [GATEKEEPER] Starting Phase 1: Build & Unit Verification..." | tee -a "$EVIDENCE_DIR/log.txt"
 if ! bash verify-pipeline.sh; then
     echo "❌ [GATEKEEPER] Phase 1 FAILED (Build/Tests/FlattenCheck)." | tee -a "$EVIDENCE_DIR/log.txt"

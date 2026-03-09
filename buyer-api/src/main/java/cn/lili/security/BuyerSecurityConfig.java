@@ -6,12 +6,17 @@ import cn.lili.common.utils.SpringContextUtil;
 import cn.lili.common.properties.IgnoredUrlsProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.config.annotation.web.configurers.ExpressionUrlAuthorizationConfigurer;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
 /**
@@ -21,11 +26,11 @@ import org.springframework.web.cors.CorsConfigurationSource;
  * @version v4.0
  * @since 2020/11/14 16:20
  */
-
 @Slf4j
 @Configuration
-@EnableGlobalMethodSecurity(prePostEnabled = true)
-public class BuyerSecurityConfig extends WebSecurityConfigurerAdapter {
+@EnableWebSecurity
+@EnableMethodSecurity
+public class BuyerSecurityConfig {
 
     /**
      * 忽略验权配置
@@ -42,46 +47,38 @@ public class BuyerSecurityConfig extends WebSecurityConfigurerAdapter {
     @Autowired
     private Cache<String> cache;
 
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationManager authenticationManager)
+            throws Exception {
+        http
+                .authorizeHttpRequests(authorize -> {
+                    // 配置的url 不需要授权
+                    for (String url : ignoredUrlsProperties.getUrls()) {
+                        authorize.requestMatchers(url).permitAll();
+                    }
+                    authorize.requestMatchers("/actuator/**").permitAll();
+                    authorize.requestMatchers("/api/v1/ai/**").permitAll();
+                    authorize.requestMatchers("/buyer/api/v1/maollar/rates", "/buyer/api/v1/maollar/tier-status")
+                            .permitAll();
+                    authorize.anyRequest().authenticated();
+                })
+                .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable()))
+                .logout(logout -> logout.permitAll())
+                .cors(cors -> cors.configurationSource(
+                        (CorsConfigurationSource) SpringContextUtil.getBean("corsConfigurationSource")))
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exception -> exception.accessDeniedHandler(accessDeniedHandler))
+                .addFilterAt(new BuyerAuthenticationFilter(authenticationManager, cache),
+                        UsernamePasswordAuthenticationFilter.class);
 
-        ExpressionUrlAuthorizationConfigurer<HttpSecurity>.ExpressionInterceptUrlRegistry registry = http
-                .authorizeRequests();
-        // 配置的url 不需要授权
-        for (String url : ignoredUrlsProperties.getUrls()) {
-            registry.antMatchers(url).permitAll();
-        }
-        registry.antMatchers("/actuator/**").permitAll();
-        registry.antMatchers("/api/v1/ai/**").permitAll();
-        registry.antMatchers("/buyer/api/v1/maollar/rates", "/buyer/api/v1/maollar/tier-status").permitAll();
-        registry
-                .and()
-                // 禁止网页iframe
-                .headers().frameOptions().disable()
-                .and()
-                .logout()
-                .permitAll()
-                .and()
-                .authorizeRequests()
-                // 任何请求
-                .anyRequest()
-                // 需要身份认证
-                .authenticated()
-                .and()
-                // 允许跨域
-                .cors()
-                .configurationSource((CorsConfigurationSource) SpringContextUtil.getBean("corsConfigurationSource"))
-                .and()
-                // 关闭跨站请求防护
-                .csrf().disable()
-                // 前后端分离采用JWT 不需要session
-                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                .and()
-                // 自定义权限拒绝处理类
-                .exceptionHandling().accessDeniedHandler(accessDeniedHandler)
-                .and()
-                // 添加JWT认证过滤器
-                .addFilter(new BuyerAuthenticationFilter(authenticationManager(), cache));
+        return http.build();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
+            throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
     }
 
 }

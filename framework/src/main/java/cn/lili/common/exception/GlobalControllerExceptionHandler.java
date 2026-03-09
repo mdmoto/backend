@@ -148,7 +148,7 @@ public class GlobalControllerExceptionHandler {
     /**
      * bean校验未通过异常
      *
-     * @see javax.validation.Valid
+     * @see jakarta.validation.Valid
      * @see org.springframework.validation.Validator
      * @see org.springframework.validation.DataBinder
      */
@@ -177,7 +177,7 @@ public class GlobalControllerExceptionHandler {
     /**
      * bean校验未通过异常
      *
-     * @see javax.validation.Valid
+     * @see jakarta.validation.Valid
      * @see org.springframework.validation.Validator
      * @see org.springframework.validation.DataBinder
      */

@@ -31,18 +31,17 @@ public class MemberTokenGenerate extends AbstractTokenGenerate<Member> {
     @Autowired
     private RocketmqCustomProperties rocketmqCustomProperties;
 
-    @Autowired
+    @Autowired(required = false)
     private RocketMQTemplate rocketMQTemplate;
 
     @Override
     public Token createToken(Member member, Boolean longTerm) {
 
-
         ClientTypeEnum clientTypeEnum;
         try {
-            //获取客户端类型
+            // 获取客户端类型
             String clientType = ThreadContextHolder.getHttpRequest().getHeader("clientType");
-            //如果客户端为空，则缺省值为PC，pc第三方登录时不会传递此参数
+            // 如果客户端为空，则缺省值为PC，pc第三方登录时不会传递此参数
             if (clientType == null) {
                 clientTypeEnum = ClientTypeEnum.PC;
             } else {
@@ -51,11 +50,13 @@ public class MemberTokenGenerate extends AbstractTokenGenerate<Member> {
         } catch (Exception e) {
             clientTypeEnum = ClientTypeEnum.UNKNOWN;
         }
-        //记录最后登录时间，客户端类型
+        // 记录最后登录时间，客户端类型
         member.setLastLoginDate(new Date());
         member.setClientEnum(clientTypeEnum.name());
-        String destination = rocketmqCustomProperties.getMemberTopic() + ":" + MemberTagsEnum.MEMBER_LOGIN.name();
-        rocketMQTemplate.asyncSend(destination, member, RocketmqSendCallbackBuilder.commonCallback());
+        if (rocketMQTemplate != null) {
+            String destination = rocketmqCustomProperties.getMemberTopic() + ":" + MemberTagsEnum.MEMBER_LOGIN.name();
+            rocketMQTemplate.asyncSend(destination, member, RocketmqSendCallbackBuilder.commonCallback());
+        }
 
         AuthUser authUser = AuthUser.builder()
                 .username(member.getUsername())
@@ -65,7 +66,7 @@ public class MemberTokenGenerate extends AbstractTokenGenerate<Member> {
                 .nickName(member.getNickName())
                 .longTerm(longTerm)
                 .build();
-        //登陆成功生成token
+        // 登陆成功生成token
         return tokenUtil.createToken(authUser);
     }
 

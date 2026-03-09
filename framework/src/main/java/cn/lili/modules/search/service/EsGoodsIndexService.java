@@ -6,7 +6,6 @@ import cn.lili.modules.goods.entity.dto.GoodsParamsDTO;
 import cn.lili.modules.promotion.entity.dos.BasePromotions;
 import cn.lili.modules.promotion.entity.dos.PromotionGoods;
 import cn.lili.modules.search.entity.dos.EsGoodsIndex;
-import org.elasticsearch.action.update.UpdateRequest;
 
 import java.util.List;
 import java.util.Map;
@@ -26,11 +25,13 @@ public interface EsGoodsIndexService {
 
     /**
      * 删除不存在的索引
+     * 
      * @return
      */
     Boolean delSkuIndex();
 
     Boolean goodsCache();
+
     /**
      * 全局索引数据初始化
      */
@@ -42,7 +43,6 @@ public interface EsGoodsIndexService {
      * @return
      */
     Map<String, Long> getProgress();
-
 
     /**
      * 全局索引初始化
@@ -117,7 +117,7 @@ public interface EsGoodsIndexService {
     /**
      * 初始化商品索引
      *
-     * @param goodsIndexList 商品索引列表
+     * @param goodsIndexList   商品索引列表
      * @param regeneratorIndex 是否重新生成索引
      */
     void initIndex(List<EsGoodsIndex> goodsIndexList, boolean regeneratorIndex);
@@ -129,7 +129,7 @@ public interface EsGoodsIndexService {
      * @param promotion 促销信息
      * @param key       促销信息的key
      */
-    UpdateRequest updateEsGoodsIndexPromotions(String id, BasePromotions promotion, String key);
+    void updateEsGoodsIndexPromotions(String id, BasePromotions promotion, String key);
 
     /**
      * 更新商品索引的促销信息
@@ -160,11 +160,10 @@ public interface EsGoodsIndexService {
     /**
      * 删除索引中指定的促销活动id的促销活动
      *
-     * @param skuIds      商品skuId
+     * @param skuIds        商品skuId
      * @param promotionsKey 促销活动Key
      */
     void deleteEsGoodsPromotionByPromotionKey(List<String> skuIds, String promotionsKey);
-
 
     /**
      * 删除索引中指定的促销活动id的促销活动
