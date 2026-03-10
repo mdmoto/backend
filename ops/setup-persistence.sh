@@ -61,7 +61,7 @@ Group=$USER_NAME
 WorkingDirectory=$BACKEND_DIR
 EnvironmentFile=$BACKEND_DIR/.env
 Environment="SPRING_MVC_PATHMATCH_MATCHING_STRATEGY=ant_path_matcher"
-Environment="SPRING_MAIN_ALLOW_CIRCULAR_REFERENCES=true"
+Environment="SPRING_MAIN_ALLOW_CIRCULAR_REFERENCES=false"
 ExecStart=$JAVA_PATH $JVM_OPTS -jar $RUN_JAR --server.address=127.0.0.1 --server.port=$port $SPRING_OPTS
 Restart=always
 RestartSec=10
