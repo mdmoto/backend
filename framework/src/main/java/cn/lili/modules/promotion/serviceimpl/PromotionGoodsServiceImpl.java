@@ -31,6 +31,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,13 +45,15 @@ import java.util.stream.Collectors;
  * @since 2021/3/18 9:22 上午
  */
 @Service
-public class PromotionGoodsServiceImpl extends ServiceImpl<PromotionGoodsMapper, PromotionGoods> implements PromotionGoodsService {
+public class PromotionGoodsServiceImpl extends ServiceImpl<PromotionGoodsMapper, PromotionGoods>
+        implements PromotionGoodsService {
 
     private static final String SKU_ID_COLUMN = "sku_id";
 
     /**
      * 秒杀活动申请
      */
+    @Lazy
     @Autowired
     private SeckillApplyService seckillApplyService;
     /**
@@ -81,7 +84,8 @@ public class PromotionGoodsServiceImpl extends ServiceImpl<PromotionGoodsMapper,
                 .or(n -> n.eq("scope_type", PromotionsScopeTypeEnum.ALL.name()))
                 .or(n -> n.and(k -> k.eq("scope_type", PromotionsScopeTypeEnum.PORTION_GOODS_CATEGORY.name())
                         .and(l -> l.like("scope_id", sku.getCategoryPath())))));
-        queryWrapper.and(i -> i.or(PromotionTools.queryPromotionStatus(PromotionsStatusEnum.START)).or(PromotionTools.queryPromotionStatus(PromotionsStatusEnum.NEW)));
+        queryWrapper.and(i -> i.or(PromotionTools.queryPromotionStatus(PromotionsStatusEnum.START))
+                .or(PromotionTools.queryPromotionStatus(PromotionsStatusEnum.NEW)));
         queryWrapper.in("store_id", Arrays.asList(storeIds.split(",")));
         return this.list(queryWrapper);
     }
@@ -93,7 +97,8 @@ public class PromotionGoodsServiceImpl extends ServiceImpl<PromotionGoodsMapper,
         queryWrapper.and(i -> i.or(j -> j.in(SKU_ID_COLUMN, skuIds))
                 .or(n -> n.eq("scope_type", PromotionsScopeTypeEnum.ALL.name()))
                 .or(n -> n.and(k -> k.eq("scope_type", PromotionsScopeTypeEnum.PORTION_GOODS_CATEGORY.name()))));
-        queryWrapper.and(i -> i.or(PromotionTools.queryPromotionStatus(PromotionsStatusEnum.START)).or(PromotionTools.queryPromotionStatus(PromotionsStatusEnum.NEW)));
+        queryWrapper.and(i -> i.or(PromotionTools.queryPromotionStatus(PromotionsStatusEnum.START))
+                .or(PromotionTools.queryPromotionStatus(PromotionsStatusEnum.NEW)));
         return this.list(queryWrapper);
     }
 
@@ -157,9 +162,11 @@ public class PromotionGoodsServiceImpl extends ServiceImpl<PromotionGoodsMapper,
     }
 
     @Override
-    public Integer findInnerOverlapPromotionGoods(String promotionType, String skuId, Date startTime, Date endTime, String promotionId) {
+    public Integer findInnerOverlapPromotionGoods(String promotionType, String skuId, Date startTime, Date endTime,
+            String promotionId) {
         if (promotionId != null) {
-            return this.baseMapper.selectInnerOverlapPromotionGoodsWithout(promotionType, skuId, startTime, endTime, promotionId);
+            return this.baseMapper.selectInnerOverlapPromotionGoodsWithout(promotionType, skuId, startTime, endTime,
+                    promotionId);
         } else {
             return this.baseMapper.selectInnerOverlapPromotionGoods(promotionType, skuId, startTime, endTime);
         }
@@ -178,13 +185,13 @@ public class PromotionGoodsServiceImpl extends ServiceImpl<PromotionGoodsMapper,
         String promotionStockKey = PromotionGoodsService.getPromotionGoodsStockCacheKey(typeEnum, promotionId, skuId);
         Object promotionGoodsStock = cache.get(promotionStockKey);
 
-        //库存如果不为空，则直接返回
+        // 库存如果不为空，则直接返回
         if (promotionGoodsStock != null) {
             return Convert.toInt(promotionGoodsStock);
         }
-        //如果为空
+        // 如果为空
         else {
-            //获取促销商品，如果不存在促销商品，则返回0
+            // 获取促销商品，如果不存在促销商品，则返回0
             PromotionGoodsSearchParams searchParams = new PromotionGoodsSearchParams();
             searchParams.setPromotionType(typeEnum.name());
             searchParams.setPromotionId(promotionId);
@@ -193,7 +200,7 @@ public class PromotionGoodsServiceImpl extends ServiceImpl<PromotionGoodsMapper,
             if (promotionGoods == null) {
                 return 0;
             }
-            //否则写入新的促销商品库存
+            // 否则写入新的促销商品库存
             cache.put(promotionStockKey, promotionGoods.getQuantity());
             return promotionGoods.getQuantity();
         }
@@ -205,9 +212,9 @@ public class PromotionGoodsServiceImpl extends ServiceImpl<PromotionGoodsMapper,
         searchParams.setPromotionType(typeEnum.name());
         searchParams.setPromotionId(promotionId);
         searchParams.setSkuIds(skuId);
-        //获取促销商品，如果不存在促销商品，则返回0
+        // 获取促销商品，如果不存在促销商品，则返回0
         List<PromotionGoods> promotionGoods = this.listFindAll(searchParams);
-        //接收数据
+        // 接收数据
         List<Integer> result = new ArrayList<>(skuId.size());
         for (String sid : skuId) {
             Integer stock = null;
@@ -216,7 +223,7 @@ public class PromotionGoodsServiceImpl extends ServiceImpl<PromotionGoodsMapper,
                     stock = pg.getQuantity();
                 }
             }
-            //如果促销商品不存在，给一个默认值
+            // 如果促销商品不存在，给一个默认值
             if (stock == null) {
                 stock = 0;
             }
@@ -234,20 +241,26 @@ public class PromotionGoodsServiceImpl extends ServiceImpl<PromotionGoodsMapper,
     @Transactional(rollbackFor = Exception.class)
     public void updatePromotionGoodsStock(List<PromotionGoods> promotionGoodsList) {
         for (PromotionGoods promotionGoods : promotionGoodsList) {
-            String promotionStockKey = PromotionGoodsService.getPromotionGoodsStockCacheKey(PromotionTypeEnum.valueOf(promotionGoods.getPromotionType()), promotionGoods.getPromotionId(), promotionGoods.getSkuId());
+            String promotionStockKey = PromotionGoodsService.getPromotionGoodsStockCacheKey(
+                    PromotionTypeEnum.valueOf(promotionGoods.getPromotionType()), promotionGoods.getPromotionId(),
+                    promotionGoods.getSkuId());
             if (promotionGoods.getPromotionType().equals(PromotionTypeEnum.SECKILL.name())) {
                 SeckillSearchParams searchParams = new SeckillSearchParams();
                 searchParams.setSeckillId(promotionGoods.getPromotionId());
                 searchParams.setSkuId(promotionGoods.getSkuId());
                 SeckillApply seckillApply = this.seckillApplyService.getSeckillApply(searchParams);
                 if (seckillApply != null) {
-                    seckillApplyService.updateSeckillApplySaleNum(promotionGoods.getPromotionId(), promotionGoods.getSkuId(), promotionGoods.getNum());
+                    seckillApplyService.updateSeckillApplySaleNum(promotionGoods.getPromotionId(),
+                            promotionGoods.getSkuId(), promotionGoods.getNum());
                 }
             }
 
             LambdaUpdateWrapper<PromotionGoods> updateWrapper = new LambdaUpdateWrapper<>();
-            updateWrapper.eq(PromotionGoods::getPromotionType, promotionGoods.getPromotionType()).eq(PromotionGoods::getPromotionId, promotionGoods.getPromotionId()).eq(PromotionGoods::getSkuId, promotionGoods.getSkuId());
-            updateWrapper.set(PromotionGoods::getQuantity, promotionGoods.getQuantity()).set(PromotionGoods::getNum, promotionGoods.getNum());
+            updateWrapper.eq(PromotionGoods::getPromotionType, promotionGoods.getPromotionType())
+                    .eq(PromotionGoods::getPromotionId, promotionGoods.getPromotionId())
+                    .eq(PromotionGoods::getSkuId, promotionGoods.getSkuId());
+            updateWrapper.set(PromotionGoods::getQuantity, promotionGoods.getQuantity()).set(PromotionGoods::getNum,
+                    promotionGoods.getNum());
 
             this.update(updateWrapper);
             cache.put(promotionStockKey, promotionGoods.getQuantity());
@@ -258,14 +271,18 @@ public class PromotionGoodsServiceImpl extends ServiceImpl<PromotionGoodsMapper,
     @SystemLogPoint(description = "更新促销活动商品库存", customerLog = "'操作的skuId:['+#skuId+']，修改后的库存:['+#quantity+']'")
     public void updatePromotionGoodsStock(String skuId, Integer quantity) {
         LambdaQueryWrapper<PromotionGoods> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.notIn(PromotionGoods::getPromotionType, Arrays.stream(PromotionTypeEnum.haveIndependanceStockPromotion).map(Enum::name).collect(Collectors.toList()));
+        queryWrapper.notIn(PromotionGoods::getPromotionType, Arrays
+                .stream(PromotionTypeEnum.haveIndependanceStockPromotion).map(Enum::name).collect(Collectors.toList()));
         queryWrapper.eq(PromotionGoods::getSkuId, skuId);
         this.list(queryWrapper).forEach(promotionGoods -> {
-            String promotionStockKey = PromotionGoodsService.getPromotionGoodsStockCacheKey(PromotionTypeEnum.valueOf(promotionGoods.getPromotionType()), promotionGoods.getPromotionId(), promotionGoods.getSkuId());
+            String promotionStockKey = PromotionGoodsService.getPromotionGoodsStockCacheKey(
+                    PromotionTypeEnum.valueOf(promotionGoods.getPromotionType()), promotionGoods.getPromotionId(),
+                    promotionGoods.getSkuId());
             cache.remove(promotionStockKey);
         });
         LambdaUpdateWrapper<PromotionGoods> updateWrapper = new LambdaUpdateWrapper<>();
-        updateWrapper.notIn(PromotionGoods::getPromotionType, Arrays.stream(PromotionTypeEnum.haveIndependanceStockPromotion).map(Enum::name).collect(Collectors.toList()));
+        updateWrapper.notIn(PromotionGoods::getPromotionType, Arrays
+                .stream(PromotionTypeEnum.haveIndependanceStockPromotion).map(Enum::name).collect(Collectors.toList()));
         updateWrapper.eq(PromotionGoods::getSkuId, skuId);
         updateWrapper.set(PromotionGoods::getQuantity, quantity);
         this.update(updateWrapper);
@@ -305,16 +322,17 @@ public class PromotionGoodsServiceImpl extends ServiceImpl<PromotionGoodsMapper,
      */
     @Override
     public void deletePromotionGoods(List<String> promotionIds) {
-        LambdaQueryWrapper<PromotionGoods> queryWrapper = new LambdaQueryWrapper<PromotionGoods>().in(PromotionGoods::getPromotionId, promotionIds);
+        LambdaQueryWrapper<PromotionGoods> queryWrapper = new LambdaQueryWrapper<PromotionGoods>()
+                .in(PromotionGoods::getPromotionId, promotionIds);
         this.remove(queryWrapper);
     }
 
     @Override
     public void deletePromotionGoodsByGoods(List<String> goodsIds) {
-        LambdaQueryWrapper<PromotionGoods> queryWrapper = new LambdaQueryWrapper<PromotionGoods>().in(PromotionGoods::getGoodsId, goodsIds);
+        LambdaQueryWrapper<PromotionGoods> queryWrapper = new LambdaQueryWrapper<PromotionGoods>()
+                .in(PromotionGoods::getGoodsId, goodsIds);
         this.remove(queryWrapper);
     }
-
 
     /**
      * 根据参数删除促销商品
@@ -335,9 +353,17 @@ public class PromotionGoodsServiceImpl extends ServiceImpl<PromotionGoodsMapper,
             goodsIndex = goodsIndexService.getResetEsGoodsIndex(dataSku, goodsVO.getGoodsParamsDTOList());
         }
         if (goodsIndex.getPromotionMap() != null && !goodsIndex.getPromotionMap().isEmpty()) {
-            if (goodsIndex.getPromotionMap().keySet().stream().anyMatch(i -> i.contains(PromotionTypeEnum.SECKILL.name())) || (goodsIndex.getPromotionMap().keySet().stream().anyMatch(i -> i.contains(PromotionTypeEnum.PINTUAN.name())) && CartTypeEnum.PINTUAN.name().equals(cartType))) {
-                Optional<Map.Entry<String, Object>> containsPromotion = goodsIndex.getPromotionMap().entrySet().stream().filter(i -> i.getKey().contains(PromotionTypeEnum.SECKILL.name()) || i.getKey().contains(PromotionTypeEnum.PINTUAN.name())).findFirst();
-                containsPromotion.ifPresent(stringObjectEntry -> this.setGoodsPromotionInfo(dataSku, stringObjectEntry));
+            if (goodsIndex.getPromotionMap().keySet().stream()
+                    .anyMatch(i -> i.contains(PromotionTypeEnum.SECKILL.name()))
+                    || (goodsIndex.getPromotionMap().keySet().stream()
+                            .anyMatch(i -> i.contains(PromotionTypeEnum.PINTUAN.name()))
+                            && CartTypeEnum.PINTUAN.name().equals(cartType))) {
+                Optional<Map.Entry<String, Object>> containsPromotion = goodsIndex.getPromotionMap().entrySet().stream()
+                        .filter(i -> i.getKey().contains(PromotionTypeEnum.SECKILL.name())
+                                || i.getKey().contains(PromotionTypeEnum.PINTUAN.name()))
+                        .findFirst();
+                containsPromotion
+                        .ifPresent(stringObjectEntry -> this.setGoodsPromotionInfo(dataSku, stringObjectEntry));
             }
             promotionMap = goodsIndex.getPromotionMap();
         } else {
