@@ -1,0 +1,19 @@
+# Canary Drill Evidence
+=== Phase 1: 10% Canary (Expect some 502/Pilot responses) ===
+== api.maollar.com ==
+200
+== store-api.maollar.com ==
+200
+== admin-api.maollar.com ==
+200
+== common-api.maollar.com ==
+200
+=== Phase 2: Rollback to 100% Stable (Expect ONLY 200/Stable) ===
+== api.maollar.com ==
+200
+== store-api.maollar.com ==
+200
+== admin-api.maollar.com ==
+200
+== common-api.maollar.com ==
+200
