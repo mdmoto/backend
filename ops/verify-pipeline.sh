@@ -7,7 +7,7 @@ set -euo pipefail
 PROJECT_ROOT="${PROJECT_ROOT:-$HOME/lilishop-deployment}"
 LOG_FILE="${LOG_FILE:-$PROJECT_ROOT/verify-pipeline.$(date +%F_%H%M%S).log}"
 mkdir -p "$(dirname "$LOG_FILE")"
-# exec > >(tee -a "$LOG_FILE") 2>&1
+exec > >(tee -a "$LOG_FILE") 2>&1
 
 echo "🧪 [CI] Starting Maollar Verification Pipeline on Azure..."
 echo "📄 [CI] Log: $LOG_FILE"
@@ -63,14 +63,48 @@ else
     exit 1
 fi
 
-# 2. Frontend Check
-echo "📦 [CI] 2/3: Checking Frontend Structure..."
-FRONTEND_PATH="$PROJECT_ROOT/frontend"
-if [ -d "$FRONTEND_PATH" ]; then
-    echo "✅ Frontend directory exists."
-    ls -F "$FRONTEND_PATH"
+# 2. Frontend Check (Optional on Azure)
+# Default: skip, because many prod VMs don't have Node/npm installed.
+# Enable explicitly: RUN_FRONTEND_BUILD=1
+echo "📦 [CI] 2/3: Checking Frontend Build (optional, RUN_FRONTEND_BUILD=1)..."
+if [ "${RUN_FRONTEND_BUILD:-0}" -eq 1 ]; then
+    if ! command -v npm >/dev/null 2>&1; then
+        echo "❌ [CI] RUN_FRONTEND_BUILD=1 but npm is not installed."
+        echo "   Fix: install Node.js + npm (recommended via nvm), then re-run."
+        exit 10
+    fi
+
+    FRONTEND_PATH="$PROJECT_ROOT/lilishop-uniapp"
+    if [ ! -d "$FRONTEND_PATH" ]; then
+        FRONTEND_PATH="$PROJECT_ROOT/frontend"
+    fi
+
+    if [ -d "$FRONTEND_PATH" ]; then
+        echo "✅ Frontend directory exists at $FRONTEND_PATH"
+        cd "$FRONTEND_PATH"
+        if [ -f "package.json" ]; then
+            if [ ! -d "node_modules" ]; then
+                echo "📥 [CI] node_modules not found, installing dependencies..."
+                if [ -f "package-lock.json" ]; then
+                    npm ci --legacy-peer-deps
+                else
+                    npm install --legacy-peer-deps
+                fi
+            fi
+            npm run build:h5
+            echo "✅ H5 Build PASS."
+            npm run build:mp-weixin
+            echo "✅ mp-weixin Build PASS."
+        else
+            echo "❌ package.json not found in $FRONTEND_PATH"
+            exit 1
+        fi
+    else
+        echo "❌ No frontend found to verify at $PROJECT_ROOT/lilishop-uniapp or $PROJECT_ROOT/frontend"
+        exit 1
+    fi
 else
-    echo "⚠️ Frontend directory not found at $FRONTEND_PATH"
+    echo "⏭️ [CI] Skipping frontend build (set RUN_FRONTEND_BUILD=1 to enable)."
 fi
 
 # 3. Running Service Smoke Test
@@ -176,4 +210,3 @@ for svc in "${SERVICES[@]}"; do
 done
 
 echo "🎉 [CI] All verification steps completed! Project is SAFELY deployed."
-
