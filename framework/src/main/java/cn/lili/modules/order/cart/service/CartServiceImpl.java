@@ -4,7 +4,6 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
-import cn.lili.cache.Cache;
 import cn.lili.common.enums.PromotionTypeEnum;
 import cn.lili.common.enums.ResultCode;
 import cn.lili.common.exception.ServiceException;
@@ -53,7 +52,6 @@ import cn.lili.modules.store.service.StoreAddressService;
 import cn.lili.modules.store.service.StoreService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -72,11 +70,6 @@ public class CartServiceImpl implements CartService {
 
     static String errorMessage = "购物车异常，请稍后重试";
 
-    /**
-     * 缓存
-     */
-    @Autowired
-    private Cache<Object> cache;
     /**
      * 会员优惠券
      */
@@ -108,9 +101,14 @@ public class CartServiceImpl implements CartService {
     @Autowired
     private KanjiaActivityService kanjiaActivityService;
     /**
+     * 持久化业务
+     */
+    @Autowired
+    private CartPersistenceService cartPersistenceService;
+
+    /**
      * 交易
      */
-    @Lazy
     @Autowired
     private TradeBuilder tradeBuilder;
 
@@ -212,35 +210,9 @@ public class CartServiceImpl implements CartService {
         }
     }
 
-    /**
-     * 读取当前会员购物原始数据key
-     *
-     * @param cartTypeEnum 获取方式
-     * @return 当前会员购物原始数据key
-     */
-    private String getOriginKey(CartTypeEnum cartTypeEnum) {
-
-        // 缓存key，默认使用购物车
-        if (cartTypeEnum != null) {
-            AuthUser currentUser = UserContext.getCurrentUser();
-            return cartTypeEnum.getPrefix() + currentUser.getId();
-        }
-        throw new ServiceException(ResultCode.ERROR);
-    }
-
     @Override
     public TradeDTO readDTO(CartTypeEnum checkedWay) {
-        TradeDTO tradeDTO = (TradeDTO) cache.get(this.getOriginKey(checkedWay));
-        if (tradeDTO == null) {
-            tradeDTO = new TradeDTO(checkedWay);
-            AuthUser currentUser = UserContext.getCurrentUser();
-            tradeDTO.setMemberId(currentUser.getId());
-            tradeDTO.setMemberName(currentUser.getUsername());
-        }
-        if (tradeDTO.getMemberAddress() == null) {
-            tradeDTO.setMemberAddress(this.memberAddressService.getDefaultMemberAddress());
-        }
-        return tradeDTO;
+        return cartPersistenceService.readDTO(checkedWay);
     }
 
     @Override
@@ -316,7 +288,7 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public void clean() {
-        cache.remove(this.getOriginKey(CartTypeEnum.CART));
+        cartPersistenceService.clean();
     }
 
     public void cleanChecked(TradeDTO tradeDTO) {
@@ -339,7 +311,7 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public void resetTradeDTO(TradeDTO tradeDTO) {
-        cache.put(this.getOriginKey(tradeDTO.getCartTypeEnum()), tradeDTO);
+        cartPersistenceService.resetTradeDTO(tradeDTO);
     }
 
     @Override
