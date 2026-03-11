@@ -13,6 +13,17 @@ echo "🧪 [CI] Starting Maollar Verification Pipeline on Azure..."
 echo "📄 [CI] Log: $LOG_FILE"
 echo "📁 [CI] Project root: $PROJECT_ROOT"
 
+# Load Environment Variables for Tests
+ENV_FILE="$PROJECT_ROOT/backend/.env"
+if [ -f "$ENV_FILE" ]; then
+    echo "🔐 [CI] Loading environment variables from .env..."
+    # Export variables from .env (ignoring comments and empty lines)
+    export $(grep -v '^#' "$ENV_FILE" | xargs)
+else
+    echo "⚠️ [CI] No .env file found in $PROJECT_ROOT/backend/. No environment variables loaded."
+fi
+
+
 # 0. Pre-build Regression Check (P1-2)
 echo "🔍 [CI] Checking for flattened test files (duplicate class prevention)..."
 BAD1=$(find "$PROJECT_ROOT/backend/manager-api/src/test/java/cn/lili/test" -maxdepth 1 -type f -name "*.java" -print || true)
@@ -67,7 +78,7 @@ if [ -d "$BACKEND_PATH" ]; then
         (cd "$PROJECT_ROOT/docker" && sudo docker compose up -d)
         echo "⏳ [CI] Waiting for MySQL to be ready..."
         for i in $(seq 1 30); do
-            if sudo docker exec mysql mysqladmin ping -uroot -plilishop >/dev/null 2>&1; then
+            if sudo docker exec mysql mysqladmin ping -uroot -p"${LILI_DB_PASSWORD:-lilishop}" >/dev/null 2>&1; then
                 echo "✅ [CI] MySQL is ready."
                 break
             fi

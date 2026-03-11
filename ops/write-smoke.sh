@@ -18,7 +18,8 @@ SKU_ID="${SMOKE_SKU_ID:-1772999003}"
 API_BASE="http://127.0.0.1:8888" # Direct to buyer-api
 # Safety Locks
 ALLOW_MUTATION="${SMOKE_ALLOW_DB_MUTATION:-0}"
-REDIS_PW="lilishop"
+REDIS_PW="${LILI_REDIS_PASSWORD:-lilishop}"
+DB_PW="${LILI_DB_PASSWORD:-lilishop}"
 
 log() { echo "[$(date +'%H:%M:%S')] $*"; }
 error_exit() { log "ERROR: $*"; exit 1; }
@@ -27,19 +28,19 @@ error_exit() { log "ERROR: $*"; exit 1; }
 ensure_smoke_user() {
     log "[Pre] Ensuring smoke user '$USER' exists in DB..."
     # Check if user exists (Ignore mysql warnings about password)
-    EXISTS=$(docker exec mysql mysql -uroot -plilishop lilishop -N -s -e "SELECT id FROM li_member WHERE username='$USER';" 2>/dev/null || echo "")
+    EXISTS=$(docker exec mysql mysql -uroot -p"$DB_PW" lilishop -N -s -e "SELECT id FROM li_member WHERE username='$USER';" 2>/dev/null || echo "")
     
     if [ -n "$EXISTS" ]; then
         log "[Pre] User '$USER' exists (ID: $EXISTS), ensuring password and activation..."
         HASH=$(python3 -c "import bcrypt; print(bcrypt.hashpw(b'$PWD', bcrypt.gensalt()).decode())")
         # Password reset is allowed as it only affects the smoke user
-        docker exec mysql mysql -uroot -plilishop lilishop -e "UPDATE li_member SET password='$HASH', disabled=b'1', delete_flag=b'0' WHERE username='$USER';" 2>/dev/null || true
+        docker exec mysql mysql -uroot -p"$DB_PW" lilishop -e "UPDATE li_member SET password='$HASH', disabled=b'1', delete_flag=b'0' WHERE username='$USER';" 2>/dev/null || true
     else
         log "[Pre] User '$USER' not found, performing self-registration via DB..."
         # Generate a unique big ID for smoke user (17 digits starting with 1772, similar to existing smoke ids)
         SMOKE_ID="1772$(date +%s%3N)"
         HASH=$(python3 -c "import bcrypt; print(bcrypt.hashpw(b'$PWD', bcrypt.gensalt()).decode())")
-        docker exec mysql mysql -uroot -plilishop lilishop -e "
+        docker exec mysql mysql -uroot -p"$DB_PW" lilishop -e "
             INSERT INTO li_member (id, username, password, disabled, delete_flag, create_time, sex, point, total_point, is_kyc_verified)
             VALUES ($SMOKE_ID, '$USER', '$HASH', b'1', b'0', NOW(), 0, 0, 0, b'0');
         " 2>/dev/null || log "[WARN] Failed to insert smoke user."
@@ -49,13 +50,13 @@ ensure_smoke_user() {
 # ── Step -0.5: Ensure Valid SKU exists ────────────────────────────────────────
 ensure_smoke_sku() {
     log "[Pre] Checking if preferred SKU $SKU_ID exists..."
-    EXISTS=$(docker exec mysql mysql -uroot -plilishop lilishop -N -s -e "SELECT id FROM li_goods_sku WHERE id='$SKU_ID' AND delete_flag=b'0' AND market_enable='UPPER';" 2>/dev/null || echo "")
+    EXISTS=$(docker exec mysql mysql -uroot -p"$DB_PW" lilishop -N -s -e "SELECT id FROM li_goods_sku WHERE id='$SKU_ID' AND delete_flag=b'0' AND market_enable='UPPER';" 2>/dev/null || echo "")
     
     if [ -z "$EXISTS" ]; then
         log "[Pre] Preferred SKU $SKU_ID not found or not listed (DOWN)."
         if [ "$ALLOW_MUTATION" -eq 1 ]; then
             log "[Pre] SMOKE_ALLOW_DB_MUTATION=1: Attempting fallback to any SKU..."
-            SKU_ID=$(docker exec mysql mysql -uroot -plilishop lilishop -N -s -e "SELECT id FROM li_goods_sku WHERE delete_flag=b'0' LIMIT 1;" 2>/dev/null || echo "")
+            SKU_ID=$(docker exec mysql mysql -uroot -p"$DB_PW" lilishop -N -s -e "SELECT id FROM li_goods_sku WHERE delete_flag=b'0' LIMIT 1;" 2>/dev/null || echo "")
         else
             error_exit "SKU $SKU_ID is not available and SMOKE_ALLOW_DB_MUTATION is disabled. Setup product manually or enable mutation."
         fi
@@ -81,7 +82,7 @@ ensure_smoke_sku
 # ── Step 0: Pre-check & Enable SKU (Conditional) ─────────────────────────────
 if [ "$ALLOW_MUTATION" -eq 1 ]; then
     log "[0] SMOKE_ALLOW_DB_MUTATION=1: Forcing SKU $SKU_ID to UPPER and fixing stock..."
-    docker exec mysql mysql -uroot -plilishop lilishop -e "
+    docker exec mysql mysql -uroot -p"$DB_PW" lilishop -e "
       UPDATE li_goods SET market_enable='UPPER', auth_flag='PASS', delete_flag=b'0' WHERE id=(SELECT goods_id FROM li_goods_sku WHERE id='$SKU_ID');
       UPDATE li_goods_sku SET market_enable='UPPER', auth_flag='PASS', delete_flag=b'0', quantity=999 WHERE id='$SKU_ID';
     " 2>/dev/null || log "[WARN] DB update for SKU activation failed."
