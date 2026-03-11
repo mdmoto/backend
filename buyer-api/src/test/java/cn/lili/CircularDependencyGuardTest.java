@@ -20,11 +20,14 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
         // Provide a JDBC baseline so DataSource auto-config can initialize.
         // Avoid failing the whole context if MySQL isn't running locally.
-        "spring.datasource.url=${MYSQL_URL:jdbc:mysql://127.0.0.1:3306/lilishop?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai}",
+        "spring.datasource.url=${LILI_DB_URL:jdbc:mysql://127.0.0.1:3306/lilishop?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai}",
         "spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver",
-        "spring.datasource.username=${MYSQL_USER:root}",
-        "spring.datasource.password=${MYSQL_PASSWORD:lilishop}",
+        "spring.datasource.username=${LILI_DB_USER:root}",
+        "spring.datasource.password=${LILI_DB_PASSWORD:lilishop}",
         "spring.datasource.hikari.initializationFailTimeout=0",
+
+        // Help Lettuce find the correct Redis password when running in CI/Azure context
+        "spring.data.redis.password=${LILI_REDIS_PASSWORD:lilishop}",
 
         // Avoid environment-coupled failures: this guard is about bean graph cycles.
         "spring.data.elasticsearch.repositories.enabled=false"
