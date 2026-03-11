@@ -18,7 +18,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: '*'
+        include: "*"
 spring:
   # 要在其中注册的Spring Boot Admin Server的URL。
   boot:
@@ -65,7 +65,7 @@ spring:
         driverClassName: com.mysql.cj.jdbc.Driver
         url: ${MYSQL_URL:jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DB:lilishop}?useUnicode=true&characterEncoding=utf-8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai}
         username: root
-        password: ${LILI_REDIS_PASSWORD:lilishop}
+        password: ${LILI_DB_PASSWORD:lilishop}
         maxActive: 20
         initialSize: 5
         maxWait: 60000

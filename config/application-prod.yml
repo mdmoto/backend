@@ -33,7 +33,7 @@ spring:
     host: smtp.qq.com
     port: 465
     username: YOUR_EMAIL@qq.com
-    password: ${LILI_MAIL_PASSWORD:YOUR_EMAIL_PASSWORD}
+    password: ${LILI_MAIL_PASSWORD}
     protocol: smtps
     properties:
       mail:
@@ -52,7 +52,7 @@ spring:
   redis:
     host: 127.0.0.1
     port: 6379
-    password: ${LILI_REDIS_PASSWORD:lilishop}
+    password: ${LILI_REDIS_PASSWORD}
     lettuce:
       pool:
         max-active: 200
@@ -78,7 +78,7 @@ spring:
         driverClassName: com.mysql.cj.jdbc.Driver
         url: jdbc:mysql://127.0.0.1:3306/lilishop?useUnicode=true&characterEncoding=utf-8&useSSL=false&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
         username: root
-        password: ${LILI_DB_PASSWORD:lilishop}
+        password: ${LILI_DB_PASSWORD}
         maxActive: 50
         initialSize: 20
         maxWait: 60000
@@ -95,7 +95,7 @@ spring:
         connectionProperties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000
         useGlobalDataSourceStat: true
         loginUsername: druid
-        loginPassword: ${LILI_DRUID_PASSWORD:druid}
+        loginPassword: ${LILI_DRUID_PASSWORD}
     props:
       sql:
         show: false
@@ -183,7 +183,7 @@ logging:
 # 加密参数
 jasypt:
   encryptor:
-    password: ${LILI_JASYPT_PASSWORD:lili}
+    password: ${LILI_JASYPT_PASSWORD}
 
 lili:
   verification-code:
@@ -198,8 +198,8 @@ lili:
     onlineMember: 48
     currentOnlineUpdate: 600
   lbs:
-    key: ${LILI_LBS_KEY:4BYBZ-7MT6S-PUAOA-6BNWL-FJUD7-UUFXT}
-    sk: ${LILI_LBS_SK:zhNKVrJK6UPOhqIjn8AQvG37b9sz6}
+    key: ${LILI_LBS_KEY}
+    sk: ${LILI_LBS_SK}
   # 域名配置 - 根据实际域名修改
   domain:
     pc: https://www.maollar.com
