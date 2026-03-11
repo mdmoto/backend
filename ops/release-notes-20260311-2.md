@@ -7,6 +7,7 @@ Resolved circular dependency between `CartService` and `TradeBuilder` by introdu
 - **Deployment Log**: `~/lilishop-deployment/verify-pipeline.2026-03-11_045221.log`
 - **Transactional Smoke Evidence**: `~/lilishop-deployment/evidence/write-smoke-20260311-045506`
 - **Nginx Config Status**: Verified GA-Boot3 state in `/etc/nginx/sites-available/maollar`.
+- **Nginx Config Backup**: `/etc/nginx/sites-available/maollar.bak.20260311-2`
 - **Git Tag**: `prod-backend-boot3-20260311-2`
 
 ## 🛠️ Environment Audit (Current Keys Only)
