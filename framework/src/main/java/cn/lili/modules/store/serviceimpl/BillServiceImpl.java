@@ -31,6 +31,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,18 +56,20 @@ public class BillServiceImpl extends ServiceImpl<BillMapper, Bill> implements Bi
     /**
      * 店铺详情
      */
+    @Lazy
     @Autowired
     private StoreDetailService storeDetailService;
     /**
      * 商家流水
      */
+    @Lazy
     @Autowired
     private StoreFlowService storeFlowService;
 
     @Override
     public void createBill(String storeId, Date startTime, DateTime endTime) {
 
-        //获取结算店铺
+        // 获取结算店铺
         StoreDetailVO store = storeDetailService.getStoreDetailVO(storeId);
         Bill bill = new Bill();
 
@@ -87,12 +90,12 @@ public class BillServiceImpl extends ServiceImpl<BillMapper, Bill> implements Bi
         bill.setBankCode(store.getSettlementBankJointName());
         bill.setBankName(store.getSettlementBankBranchName());
 
-        //店铺结算单号
+        // 店铺结算单号
         bill.setSn(SnowFlake.createStr("B"));
 
-        //结算金额初始化
+        // 结算金额初始化
         initBillPrice(bill, storeId, startTime, endTime);
-        //添加结算单
+        // 添加结算单
         this.save(bill);
 
     }
@@ -107,61 +110,72 @@ public class BillServiceImpl extends ServiceImpl<BillMapper, Bill> implements Bi
      */
     private void initBillPrice(Bill bill, String storeId, Date startTime, DateTime endTime) {
 
-        //退款结算信息
+        // 退款结算信息
         Bill refundBill = storeFlowService.getRefundBill(BillSearchParams.builder()
                 .storeId(storeId)
                 .flowType(FlowTypeEnum.REFUND.name())
                 .startTime(startTime)
                 .endTime(endTime)
                 .build());
-        //店铺退款金额
+        // 店铺退款金额
         if (refundBill != null) {
-            //退单金额
+            // 退单金额
             bill.setRefundPrice(refundBill.getRefundPrice() != null ? refundBill.getRefundPrice() : 0D);
-            //退单 平台服务费返还
-            bill.setRefundCommissionPrice(refundBill.getRefundCommissionPrice() != null ? refundBill.getRefundCommissionPrice() : 0D);
-            //退单 分销佣金返还
-            bill.setDistributionRefundCommission(refundBill.getDistributionRefundCommission() != null ? refundBill.getDistributionRefundCommission() : 0D);
-            //退单 平台优惠券补贴返还
-            bill.setSiteCouponRefundCommission(refundBill.getSiteCouponRefundCommission() != null ? refundBill.getSiteCouponRefundCommission() : 0D);
-            //退单 平台优惠券补贴返还
-            bill.setPointRefundSettlementPrice(refundBill.getPointRefundSettlementPrice() != null ? refundBill.getPointRefundSettlementPrice() : 0D);
-            //退单 砍价补贴返还
-            bill.setKanjiaRefundSettlementPrice(refundBill.getKanjiaRefundSettlementPrice() != null ? refundBill.getKanjiaRefundSettlementPrice() : 0D);
+            // 退单 平台服务费返还
+            bill.setRefundCommissionPrice(
+                    refundBill.getRefundCommissionPrice() != null ? refundBill.getRefundCommissionPrice() : 0D);
+            // 退单 分销佣金返还
+            bill.setDistributionRefundCommission(
+                    refundBill.getDistributionRefundCommission() != null ? refundBill.getDistributionRefundCommission()
+                            : 0D);
+            // 退单 平台优惠券补贴返还
+            bill.setSiteCouponRefundCommission(
+                    refundBill.getSiteCouponRefundCommission() != null ? refundBill.getSiteCouponRefundCommission()
+                            : 0D);
+            // 退单 平台优惠券补贴返还
+            bill.setPointRefundSettlementPrice(
+                    refundBill.getPointRefundSettlementPrice() != null ? refundBill.getPointRefundSettlementPrice()
+                            : 0D);
+            // 退单 砍价补贴返还
+            bill.setKanjiaRefundSettlementPrice(
+                    refundBill.getKanjiaRefundSettlementPrice() != null ? refundBill.getKanjiaRefundSettlementPrice()
+                            : 0D);
 
         }
 
-
-        //入账
+        // 入账
         Bill orderBill = this.storeFlowService.getOrderBill(BillSearchParams.builder()
                 .storeId(storeId)
                 .flowType(FlowTypeEnum.PAY.name())
                 .startTime(startTime)
                 .endTime(endTime)
                 .build());
-        //店铺入款结算金额
+        // 店铺入款结算金额
 
         if (orderBill != null) {
-            //结算周期内订单付款总金额
+            // 结算周期内订单付款总金额
             bill.setOrderPrice(orderBill.getOrderPrice() != null ? orderBill.getOrderPrice() : 0D);
-            //平台收取佣金
+            // 平台收取佣金
             bill.setCommissionPrice(orderBill.getCommissionPrice() != null ? orderBill.getCommissionPrice() : 0D);
-            //分销返现支出
-            bill.setDistributionCommission(orderBill.getDistributionCommission() != null ? orderBill.getDistributionCommission() : 0D);
-            //平台优惠券补贴
-            bill.setSiteCouponCommission(orderBill.getSiteCouponCommission() != null ? orderBill.getSiteCouponCommission() : 0D);
-            //喵币商品结算价格
-            bill.setPointSettlementPrice(orderBill.getPointSettlementPrice() != null ? orderBill.getPointSettlementPrice() : 0D);
-            //砍价商品结算价格
-            bill.setKanjiaSettlementPrice(orderBill.getKanjiaSettlementPrice() != null ? orderBill.getKanjiaSettlementPrice() : 0D);
+            // 分销返现支出
+            bill.setDistributionCommission(
+                    orderBill.getDistributionCommission() != null ? orderBill.getDistributionCommission() : 0D);
+            // 平台优惠券补贴
+            bill.setSiteCouponCommission(
+                    orderBill.getSiteCouponCommission() != null ? orderBill.getSiteCouponCommission() : 0D);
+            // 喵币商品结算价格
+            bill.setPointSettlementPrice(
+                    orderBill.getPointSettlementPrice() != null ? orderBill.getPointSettlementPrice() : 0D);
+            // 砍价商品结算价格
+            bill.setKanjiaSettlementPrice(
+                    orderBill.getKanjiaSettlementPrice() != null ? orderBill.getKanjiaSettlementPrice() : 0D);
         }
-        //最终结算金额=入款结算金额-退款结算金额
+        // 最终结算金额=入款结算金额-退款结算金额
         Double finalPrice = CurrencyUtil.sub(orderBill.getBillPrice(), refundBill.getBillPrice());
-        //店铺最终结算金额=最终结算金额
+        // 店铺最终结算金额=最终结算金额
         bill.setBillPrice(finalPrice);
 
     }
-
 
     /**
      * 立即结算
@@ -173,23 +187,23 @@ public class BillServiceImpl extends ServiceImpl<BillMapper, Bill> implements Bi
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void immediatelyBill(String storeId, Long endTime) {
 
-//       Long now = DateUtil.getDateline();
-//       //TODO 需要获取真实店铺
-//       StoreDetailVO store = new StoreDetailVO();
-//       Long startTime = store.getLastBillTime().getTime();
-//
-//       store.setLastBillTime(new Date(now));
-////     TODO   store.save 保存新的结束时间
-//
-//       //TODO 获取结算周期内的结算详情
-//       BillDTO billDTO = new BillDTO();
-//
-//       //如果没有需要结算单，那么就可以直接返回，也不需要保存新的结算单
-//       if (billDTO.getOrderPrice() == 0 && billDTO.getRefundPrice() == 0) {
-//           return;
-//       }
-//
-//       this.createBill(storeId, startTime, endTime);
+        // Long now = DateUtil.getDateline();
+        // //TODO 需要获取真实店铺
+        // StoreDetailVO store = new StoreDetailVO();
+        // Long startTime = store.getLastBillTime().getTime();
+        //
+        // store.setLastBillTime(new Date(now));
+        //// TODO store.save 保存新的结束时间
+        //
+        // //TODO 获取结算周期内的结算详情
+        // BillDTO billDTO = new BillDTO();
+        //
+        // //如果没有需要结算单，那么就可以直接返回，也不需要保存新的结算单
+        // if (billDTO.getOrderPrice() == 0 && billDTO.getRefundPrice() == 0) {
+        // return;
+        // }
+        //
+        // this.createBill(storeId, startTime, endTime);
     }
 
     @Override
@@ -201,11 +215,11 @@ public class BillServiceImpl extends ServiceImpl<BillMapper, Bill> implements Bi
     @Override
     public boolean check(String id) {
         Bill bill = this.getById(id);
-        //判断当前结算单状态为：出账
+        // 判断当前结算单状态为：出账
         if (!bill.getBillStatus().equals(BillStatusEnum.OUT.name())) {
             throw new ServiceException(ResultCode.BILL_CHECK_ERROR);
         }
-        //判断操作人员为商家
+        // 判断操作人员为商家
         if (!UserContext.getCurrentUser().getRole().equals(UserEnums.STORE)) {
             throw new ServiceException(ResultCode.USER_AUTHORITY_ERROR);
         }
@@ -218,11 +232,11 @@ public class BillServiceImpl extends ServiceImpl<BillMapper, Bill> implements Bi
     @Override
     public boolean complete(String id) {
         Bill bill = this.getById(id);
-        //判断当前结算单状态为：已核对
+        // 判断当前结算单状态为：已核对
         if (!bill.getBillStatus().equals(BillStatusEnum.CHECK.name())) {
             throw new ServiceException(ResultCode.BILL_COMPLETE_ERROR);
         }
-        //判断操作人员为后台管理员
+        // 判断操作人员为后台管理员
         if (!UserContext.getCurrentUser().getRole().equals(UserEnums.MANAGER)) {
             throw new ServiceException(ResultCode.USER_AUTHORITY_ERROR);
         }
@@ -236,9 +250,8 @@ public class BillServiceImpl extends ServiceImpl<BillMapper, Bill> implements Bi
     @Override
     public void download(HttpServletResponse response, String id) {
 
-
         Bill bill = this.getById(id);
-        //创建Excel工作薄对象
+        // 创建Excel工作薄对象
         ExcelWriter writer = ExcelUtil.getWriterWithSheet("店铺结算单");
         writer.setSheet("店铺结算单");
         Map<String, Object> map = new LinkedHashMap<>();
@@ -289,7 +302,6 @@ public class BillServiceImpl extends ServiceImpl<BillMapper, Bill> implements Bi
         writer.setColumnWidth(24, 15);
         writer.writeRow(map, true);
 
-
         writer.setSheet("入账订单");
         writer.addHeaderAlias("createTime", "入账时间");
         writer.setColumnWidth(0, 20);
@@ -312,7 +324,8 @@ public class BillServiceImpl extends ServiceImpl<BillMapper, Bill> implements Bi
         writer.addHeaderAlias("billPrice", "应结金额");
         writer.setColumnWidth(11, 20);
 
-        List<StoreFlowPayDownloadVO> storeFlowList = storeFlowService.getStoreFlowPayDownloadVO(StoreFlowQueryDTO.builder().type(FlowTypeEnum.PAY.name()).bill(bill).build());
+        List<StoreFlowPayDownloadVO> storeFlowList = storeFlowService.getStoreFlowPayDownloadVO(
+                StoreFlowQueryDTO.builder().type(FlowTypeEnum.PAY.name()).bill(bill).build());
         writer.write(storeFlowList, true);
 
         writer.setSheet("退款订单");
@@ -339,14 +352,15 @@ public class BillServiceImpl extends ServiceImpl<BillMapper, Bill> implements Bi
         writer.addHeaderAlias("billPrice", "结算金额");
         writer.setColumnWidth(12, 20);
 
-        List<StoreFlowRefundDownloadVO> storeFlowRefundDownloadVOList = storeFlowService.getStoreFlowRefundDownloadVO(StoreFlowQueryDTO.builder().type(FlowTypeEnum.REFUND.name()).bill(bill).build());
+        List<StoreFlowRefundDownloadVO> storeFlowRefundDownloadVOList = storeFlowService.getStoreFlowRefundDownloadVO(
+                StoreFlowQueryDTO.builder().type(FlowTypeEnum.REFUND.name()).bill(bill).build());
         writer.write(storeFlowRefundDownloadVOList, true);
 
         ServletOutputStream out = null;
         try {
             writer.setOnlyAlias(true);
 
-            //设置公共属性，列表名称
+            // 设置公共属性，列表名称
             response.setContentType("application/vnd.ms-excel;charset=utf-8");
             response.setHeader("Content-Disposition", URLEncoder.encode("店铺结算单详情", "UTF8") + ".xls");
             out = response.getOutputStream();
@@ -357,7 +371,6 @@ public class BillServiceImpl extends ServiceImpl<BillMapper, Bill> implements Bi
             writer.close();
             IoUtil.close(out);
         }
-
 
     }
 

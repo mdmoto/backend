@@ -8,7 +8,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-@SpringBootTest(properties = { "spring.main.allow-circular-references=false" }, classes = BuyerApiApplication.class)
+@SpringBootTest(properties = {
+        "spring.main.allow-circular-references=false",
+        "spring.datasource.url=jdbc:mysql://127.0.0.1:3306/lilishop?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai",
+        "spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver",
+        "spring.datasource.username=root",
+        "spring.datasource.password=lilishop"
+}, classes = BuyerApiApplication.class)
 public class CircularDependencyGuardTest {
 
     @Autowired

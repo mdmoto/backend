@@ -25,6 +25,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,6 +43,7 @@ public class StoreMenuServiceImpl extends ServiceImpl<StoreMenuMapper, StoreMenu
     /**
      * 菜单角色
      */
+    @Lazy
     @Autowired
     private StoreMenuRoleService storeMenuRoleService;
 
@@ -51,17 +53,16 @@ public class StoreMenuServiceImpl extends ServiceImpl<StoreMenuMapper, StoreMenu
     /**
      * 店员
      */
+    @Lazy
     @Autowired
     private ClerkService clerkService;
-
-
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteIds(List<String> ids) {
         QueryWrapper<StoreMenuRole> queryWrapper = new QueryWrapper<>();
         queryWrapper.in("menu_id", ids);
-        //如果已有角色绑定菜单，则不能直接删除
+        // 如果已有角色绑定菜单，则不能直接删除
         if (storeMenuRoleService.count(queryWrapper) > 0) {
             throw new ServiceException(ResultCode.PERMISSION_MENU_ROLE_ERROR);
         }
@@ -70,16 +71,15 @@ public class StoreMenuServiceImpl extends ServiceImpl<StoreMenuMapper, StoreMenu
         this.removeByIds(ids);
     }
 
-
     @Override
     public List<StoreMenuVO> findUserTree() {
         AuthUser authUser = Objects.requireNonNull(UserContext.getCurrentUser());
         if (Boolean.TRUE.equals(authUser.getIsSuper())) {
             return this.tree();
         }
-        //获取当前登录用户的店员信息
+        // 获取当前登录用户的店员信息
         Clerk clerk = clerkService.getOne(new LambdaQueryWrapper<Clerk>().eq(Clerk::getMemberId, authUser.getId()));
-        //获取当前店员角色的菜单列表
+        // 获取当前店员角色的菜单列表
         List<StoreMenu> userMenus = this.findUserList(authUser.getId(), clerk.getId());
         return this.tree(userMenus);
     }
@@ -125,7 +125,7 @@ public class StoreMenuServiceImpl extends ServiceImpl<StoreMenuMapper, StoreMenu
 
     @Override
     public List<StoreMenu> searchList(MenuSearchParams menuSearchParams) {
-        //title 需要特殊处理
+        // title 需要特殊处理
         String title = null;
         if (CharSequenceUtil.isNotEmpty(menuSearchParams.getTitle())) {
             title = menuSearchParams.getTitle();
@@ -138,7 +138,6 @@ public class StoreMenuServiceImpl extends ServiceImpl<StoreMenuMapper, StoreMenu
         queryWrapper.orderByDesc("sort_order");
         return this.baseMapper.selectList(queryWrapper);
     }
-
 
     @Override
     public List<StoreMenuVO> tree() {
@@ -166,7 +165,7 @@ public class StoreMenuServiceImpl extends ServiceImpl<StoreMenuMapper, StoreMenu
                 tree.add(treeItem);
             }
         });
-        //对一级菜单排序
+        // 对一级菜单排序
         tree.sort(Comparator.comparing(StoreMenu::getSortOrder));
         return tree;
     }

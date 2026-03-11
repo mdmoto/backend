@@ -40,6 +40,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -65,6 +66,7 @@ public class ConnectServiceImpl extends ServiceImpl<ConnectMapper, Connect> impl
 
     @Autowired
     private SettingService settingService;
+    @Lazy
     @Autowired
     private MemberService memberService;
     @Autowired
@@ -94,7 +96,6 @@ public class ConnectServiceImpl extends ServiceImpl<ConnectMapper, Connect> impl
         Connect connect = new Connect(authUser.getId(), unionId, type);
         this.save(connect);
 
-
     }
 
     @Override
@@ -119,15 +120,14 @@ public class ConnectServiceImpl extends ServiceImpl<ConnectMapper, Connect> impl
         return keys;
     }
 
-
     @Override
     @Transactional
     public Token miniProgramAutoLogin(WechatMPLoginParams params) {
 
         Map<String, String> map = new HashMap<>(3);
-        //得到微信小程序联合登陆信息
+        // 得到微信小程序联合登陆信息
         JSONObject json = this.getConnect(params.getCode());
-        //存储session key 后续登录用得到
+        // 存储session key 后续登录用得到
         String sessionKey = json.getStr("session_key");
         String unionId = json.getStr("unionid");
         String openId = json.getStr("openid");
@@ -135,7 +135,7 @@ public class ConnectServiceImpl extends ServiceImpl<ConnectMapper, Connect> impl
         map.put("unionId", unionId);
         map.put("openId", openId);
 
-        //微信联合登陆参数
+        // 微信联合登陆参数
         return phoneMpBindAndLogin(map.get("sessionKey"), params, map.get("openId"), map.get("unionId"));
     }
 
@@ -174,7 +174,6 @@ public class ConnectServiceImpl extends ServiceImpl<ConnectMapper, Connect> impl
             JSONObject userInfo = this.getUserInfo(encryptedData, sessionKey, iv);
             log.info("联合登陆返回：{}", userInfo.toString());
 
-
             ConnectAuthUser connectAuthUser = new ConnectAuthUser();
             connectAuthUser.setUuid(openId);
             connectAuthUser.setNickname(params.getNickName());
@@ -205,7 +204,7 @@ public class ConnectServiceImpl extends ServiceImpl<ConnectMapper, Connect> impl
 
         LambdaQueryWrapper<Connect> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(CharSequenceUtil.isNotEmpty(connectQueryDTO.getUserId()), Connect::getUserId,
-                        connectQueryDTO.getUserId())
+                connectQueryDTO.getUserId())
                 .eq(CharSequenceUtil.isNotEmpty(connectQueryDTO.getUnionType()), Connect::getUnionType,
                         connectQueryDTO.getUnionType())
                 .eq(CharSequenceUtil.isNotEmpty(connectQueryDTO.getUnionId()), Connect::getUnionId,
@@ -230,19 +229,17 @@ public class ConnectServiceImpl extends ServiceImpl<ConnectMapper, Connect> impl
     @Override
     public void loginBindUser(String userId, String unionId, String type) {
         Connect connect = this.queryConnect(
-                ConnectQueryDTO.builder().unionId(unionId).unionType(type).build()
-        );
-        //如果未绑定则直接绑定
+                ConnectQueryDTO.builder().unionId(unionId).unionType(type).build());
+        // 如果未绑定则直接绑定
         if (connect == null) {
             connect = new Connect(userId, unionId, type);
             this.save(connect);
-            //如果已绑定不是当前用户信息则删除绑定信息，重新绑定
+            // 如果已绑定不是当前用户信息则删除绑定信息，重新绑定
         } else if (!connect.getUserId().equals(userId)) {
             this.removeById(connect.getId());
             this.loginBindUser(userId, unionId, type);
         }
     }
-
 
     /**
      * 第三方联合登陆
@@ -261,33 +258,33 @@ public class ConnectServiceImpl extends ServiceImpl<ConnectMapper, Connect> impl
 
         try {
             Member member = null;
-            //判断是否传递手机号，如果传递手机号则使用手机号登录
+            // 判断是否传递手机号，如果传递手机号则使用手机号登录
             if (StrUtil.isNotBlank(authUser.getPhone())) {
                 member = memberService.findByMobile(authUser.getPhone());
             }
-            //如果未查到手机号的会员则使用第三方登录
+            // 如果未查到手机号的会员则使用第三方登录
             if (member == null) {
                 LambdaQueryWrapper<Connect> queryWrapper = new LambdaQueryWrapper<Connect>();
-                //使用UnionId登录
+                // 使用UnionId登录
                 if (authUser.getToken() != null && StrUtil.isNotBlank(authUser.getToken().getUnionId())) {
                     queryWrapper.eq(Connect::getUnionId, authUser.getToken().getUnionId())
                             .eq(Connect::getUnionType, authUser.getSource());
                 } else {
-                    //使用OpenID登录
+                    // 使用OpenID登录
                     SourceEnum sourceEnum = SourceEnum.getSourceEnum(authUser.getSource(), authUser.getType());
                     queryWrapper.eq(Connect::getUnionId, authUser.getUuid())
                             .eq(Connect::getUnionType, sourceEnum.name());
                 }
 
-                //查询绑定关系
+                // 查询绑定关系
                 Connect connect = this.getOne(queryWrapper);
 
                 if (connect == null) {
                     member = memberService.autoRegister(authUser);
                 } else {
-                    //查询会员
+                    // 查询会员
                     member = memberService.getById(connect.getUserId());
-                    //如果未绑定会员，则把刚才查询到的联合登录表数据删除
+                    // 如果未绑定会员，则把刚才查询到的联合登录表数据删除
                     if (member == null) {
                         this.remove(queryWrapper);
                         member = memberService.autoRegister(authUser);
@@ -295,13 +292,13 @@ public class ConnectServiceImpl extends ServiceImpl<ConnectMapper, Connect> impl
                 }
             }
 
-            //发送用户第三方登录消息
+            // 发送用户第三方登录消息
             MemberConnectLoginMessage memberConnectLoginMessage = new MemberConnectLoginMessage();
             memberConnectLoginMessage.setMember(member);
             memberConnectLoginMessage.setConnectAuthUser(authUser);
-            String destination =
-                    rocketmqCustomProperties.getMemberTopic() + ":" + MemberTagsEnum.MEMBER_CONNECT_LOGIN.name();
-            //发送用户第三方登录消息
+            String destination = rocketmqCustomProperties.getMemberTopic() + ":"
+                    + MemberTagsEnum.MEMBER_CONNECT_LOGIN.name();
+            // 发送用户第三方登录消息
             rocketMQTemplate.asyncSend(destination, JSONUtil.toJsonStr(memberConnectLoginMessage),
                     RocketmqSendCallbackBuilder.commonCallback());
 
@@ -326,7 +323,7 @@ public class ConnectServiceImpl extends ServiceImpl<ConnectMapper, Connect> impl
         if (wechatConnectSetting == null) {
             throw new ServiceException(ResultCode.WECHAT_CONNECT_NOT_EXIST);
         }
-        //寻找对应对微信小程序登录配置
+        // 寻找对应对微信小程序登录配置
         for (WechatConnectSettingItem wechatConnectSettingItem : wechatConnectSetting.getWechatConnectSettingItems()) {
             if (wechatConnectSettingItem.getClientType().equals(ClientTypeEnum.WECHAT_MP.name())) {
                 return wechatConnectSettingItem;
@@ -335,7 +332,6 @@ public class ConnectServiceImpl extends ServiceImpl<ConnectMapper, Connect> impl
 
         throw new ServiceException(ResultCode.WECHAT_CONNECT_NOT_EXIST);
     }
-
 
     /**
      * 解密，获取微信信息
@@ -348,14 +344,14 @@ public class ConnectServiceImpl extends ServiceImpl<ConnectMapper, Connect> impl
     public JSONObject getUserInfo(String encryptedData, String sessionKey, String iv) {
 
         log.info("encryptedData:{},sessionKey:{},iv:{}", encryptedData, sessionKey, iv);
-        //被加密的数据
+        // 被加密的数据
         byte[] dataByte = Base64.getDecoder().decode(encryptedData);
-        //加密秘钥
+        // 加密秘钥
         byte[] keyByte = Base64.getDecoder().decode(sessionKey);
-        //偏移量
+        // 偏移量
         byte[] ivByte = Base64.getDecoder().decode(iv);
         try {
-            //如果密钥不足16位，那么就补足.  这个if 中的内容很重要
+            // 如果密钥不足16位，那么就补足. 这个if 中的内容很重要
             int base = 16;
             if (keyByte.length % base != 0) {
                 int groups = keyByte.length / base + (keyByte.length % base != 0 ? 1 : 0);
@@ -364,13 +360,13 @@ public class ConnectServiceImpl extends ServiceImpl<ConnectMapper, Connect> impl
                 System.arraycopy(keyByte, 0, temp, 0, keyByte.length);
                 keyByte = temp;
             }
-            //初始化
+            // 初始化
             Security.addProvider(new BouncyCastleProvider());
             Cipher cipher = Cipher.getInstance("AES/CBC/PKCS7Padding");
             SecretKeySpec spec = new SecretKeySpec(keyByte, "AES");
             AlgorithmParameters parameters = AlgorithmParameters.getInstance("AES");
             parameters.init(new IvParameterSpec(ivByte));
-            //初始化
+            // 初始化
             cipher.init(Cipher.DECRYPT_MODE, spec, parameters);
             byte[] resultByte = cipher.doFinal(dataByte);
             if (null != resultByte && resultByte.length > 0) {
@@ -382,6 +378,5 @@ public class ConnectServiceImpl extends ServiceImpl<ConnectMapper, Connect> impl
         }
         throw new ServiceException(ResultCode.USER_CONNECT_ERROR);
     }
-
 
 }

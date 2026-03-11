@@ -28,6 +28,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,6 +55,7 @@ public class AdminUserServiceImpl extends ServiceImpl<AdminUserMapper, AdminUser
     private UserRoleService userRoleService;
     @Autowired
     private RoleService roleService;
+    @Lazy
     @Autowired
     private DepartmentService departmentService;
     @Autowired
@@ -76,12 +78,11 @@ public class AdminUserServiceImpl extends ServiceImpl<AdminUserMapper, AdminUser
             if (!CharSequenceUtil.isEmpty(adminUser.getDepartmentId())) {
                 try {
                     adminUserVO.setDepartmentTitle(
-                            departments.stream().filter
-                                            (department -> department.getId().equals(adminUser.getDepartmentId()))
+                            departments.stream()
+                                    .filter(department -> department.getId().equals(adminUser.getDepartmentId()))
                                     .collect(Collectors.toList())
                                     .get(0)
-                                    .getTitle()
-                    );
+                                    .getTitle());
                 } catch (Exception e) {
                     log.debug("权限部门信息异常", e);
                 }
@@ -90,17 +91,16 @@ public class AdminUserServiceImpl extends ServiceImpl<AdminUserMapper, AdminUser
                 try {
                     List<String> memberRoles = Arrays.asList(adminUser.getRoleIds().split(","));
                     adminUserVO.setRoles(
-                            roles.stream().filter
-                                            (role -> memberRoles.contains(role.getId()))
-                                    .collect(Collectors.toList())
-                    );
+                            roles.stream().filter(role -> memberRoles.contains(role.getId()))
+                                    .collect(Collectors.toList()));
                 } catch (Exception e) {
                     log.debug("权限色信息异常", e);
                 }
             }
             result.add(adminUserVO);
         });
-        Page<AdminUserVO> pageResult = new Page<>(adminUserPage.getCurrent(), adminUserPage.getSize(), adminUserPage.getTotal());
+        Page<AdminUserVO> pageResult = new Page<>(adminUserPage.getCurrent(), adminUserPage.getSize(),
+                adminUserPage.getTotal());
         pageResult.setRecords(result);
         return pageResult;
 
@@ -130,7 +130,6 @@ public class AdminUserServiceImpl extends ServiceImpl<AdminUserMapper, AdminUser
         return null;
 
     }
-
 
     @Override
     public Token refreshToken(String refreshToken) {
@@ -164,7 +163,6 @@ public class AdminUserServiceImpl extends ServiceImpl<AdminUserMapper, AdminUser
         return getOne(new LambdaQueryWrapper<AdminUser>().eq(AdminUser::getUsername, username), false);
     }
 
-
     @Override
     @SystemLogPoint(description = "修改管理员", customerLog = "'修改管理员:'+#adminUser.username")
     @Transactional(rollbackFor = Exception.class)
@@ -185,7 +183,6 @@ public class AdminUserServiceImpl extends ServiceImpl<AdminUserMapper, AdminUser
         this.updateById(adminUser);
         return true;
     }
-
 
     @Override
     public void editPassword(String password, String newPassword) {
@@ -230,14 +227,13 @@ public class AdminUserServiceImpl extends ServiceImpl<AdminUserMapper, AdminUser
         updateRole(dbUser.getId(), roles);
     }
 
-
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteCompletely(List<String> ids) {
-        //彻底删除超级管理员
+        // 彻底删除超级管理员
         this.removeByIds(ids);
 
-        //删除管理员角色
+        // 删除管理员角色
         QueryWrapper<UserRole> queryWrapper = new QueryWrapper<>();
         queryWrapper.in("user_id", ids);
         userRoleService.remove(queryWrapper);

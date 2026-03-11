@@ -114,6 +114,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     /**
      * 物流公司
      */
+    @Lazy
     @Autowired
     private LogisticsService logisticsService;
     /**
@@ -134,11 +135,13 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     /**
      * 订单流水
      */
+    @Lazy
     @Autowired
     private StoreFlowService storeFlowService;
     /**
      * 拼团
      */
+    @Lazy
     @Autowired
     private PintuanService pintuanService;
 
@@ -149,12 +152,14 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
 
+    @Lazy
     @Autowired
     private StoreDetailService storeDetailService;
 
     /**
      * 订单包裹
      */
+    @Lazy
     @Autowired
     private OrderPackageService orderPackageService;
     /**

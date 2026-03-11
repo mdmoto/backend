@@ -32,6 +32,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -43,9 +44,8 @@ import java.util.*;
  * @since 2020/12/9 17:16
  */
 @Service
-public class OrderStatisticsServiceImpl extends ServiceImpl<OrderStatisticsMapper, Order> implements OrderStatisticsService {
-
-
+public class OrderStatisticsServiceImpl extends ServiceImpl<OrderStatisticsMapper, Order>
+        implements OrderStatisticsService {
 
     /**
      * 平台PV统计
@@ -53,6 +53,7 @@ public class OrderStatisticsServiceImpl extends ServiceImpl<OrderStatisticsMappe
     @Autowired
     private PlatformViewService platformViewService;
 
+    @Lazy
     @Autowired
     private StoreFlowStatisticsService storeFlowStatisticsService;
     @Autowired
@@ -68,13 +69,13 @@ public class OrderStatisticsServiceImpl extends ServiceImpl<OrderStatisticsMappe
          * 组织统计初始化
          */
         storeFlowStatisticsService.overview(dates, orderOverviewVO, statisticsQueryParam);
-        //访客数
+        // 访客数
         Integer uv = platformViewService.countUv(statisticsQueryParam);
         if (uv != null) {
             orderOverviewVO.setUvNum(uv.longValue());
         }
 
-        //数据运算（转换率，比例相关）
+        // 数据运算（转换率，比例相关）
         conversionRateOperation(orderOverviewVO);
         return orderOverviewVO;
     }
@@ -86,20 +87,22 @@ public class OrderStatisticsServiceImpl extends ServiceImpl<OrderStatisticsMappe
      */
     private void conversionRateOperation(OrderOverviewVO orderOverviewVO) {
 
-        //下单转换率 订单数/UV
+        // 下单转换率 订单数/UV
         Double orderConversionRate = CurrencyUtil.div(orderOverviewVO.getOrderNum(), orderOverviewVO.getUvNum(), 4);
         if (orderConversionRate > 1) {
             orderConversionRate = 1d;
         }
         orderOverviewVO.setOrderConversionRate(CurrencyUtil.mul(orderConversionRate, 100) + "%");
-        //付款转换率 付款订单数/订单数
-        Double paymentsConversionRate = CurrencyUtil.div(orderOverviewVO.getPaymentOrderNum(), orderOverviewVO.getOrderNum(), 4);
+        // 付款转换率 付款订单数/订单数
+        Double paymentsConversionRate = CurrencyUtil.div(orderOverviewVO.getPaymentOrderNum(),
+                orderOverviewVO.getOrderNum(), 4);
         if (paymentsConversionRate > 1) {
             paymentsConversionRate = 1d;
         }
         orderOverviewVO.setPaymentsConversionRate(CurrencyUtil.mul(paymentsConversionRate, 100) + "%");
-        //整体转换率 付款数/UV
-        Double overallConversionRate = CurrencyUtil.div(orderOverviewVO.getPaymentOrderNum(), orderOverviewVO.getUvNum(), 4);
+        // 整体转换率 付款数/UV
+        Double overallConversionRate = CurrencyUtil.div(orderOverviewVO.getPaymentOrderNum(),
+                orderOverviewVO.getUvNum(), 4);
         if (overallConversionRate > 1) {
             overallConversionRate = 1d;
         }
@@ -110,7 +113,9 @@ public class OrderStatisticsServiceImpl extends ServiceImpl<OrderStatisticsMappe
     public long orderNum(String orderStatus) {
         LambdaQueryWrapper<Order> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(CharSequenceUtil.isNotEmpty(orderStatus), Order::getOrderStatus, orderStatus);
-        queryWrapper.eq(CharSequenceUtil.equals(Objects.requireNonNull(UserContext.getCurrentUser()).getRole().name(), UserEnums.STORE.name()),
+        queryWrapper.eq(
+                CharSequenceUtil.equals(Objects.requireNonNull(UserContext.getCurrentUser()).getRole().name(),
+                        UserEnums.STORE.name()),
                 Order::getStoreId, UserContext.getCurrentUser().getStoreId());
         return this.count(queryWrapper);
     }
@@ -123,35 +128,34 @@ public class OrderStatisticsServiceImpl extends ServiceImpl<OrderStatisticsMappe
         return this.count(queryWrapper);
     }
 
-
     @Override
     public Double getDiscountPrice(Date[] dates) {
         // 参数校验
         if (dates == null || dates.length < 2) {
             return 0.0;
         }
-        
+
         // 构建查询条件：按时间范围过滤，排除全部退款的订单项
         LambdaQueryWrapper<OrderItem> queryWrapper = new LambdaQueryWrapper<OrderItem>()
                 .ne(OrderItem::getIsRefund, RefundStatusEnum.ALL_REFUND.name())
                 .between(OrderItem::getCreateTime, dates[0], dates[1]);
-        
+
         List<OrderItem> orderItems = orderItemService.list(queryWrapper);
-        
+
         if (orderItems.isEmpty()) {
             return 0.0;
         }
-        
+
         Double totalDiscountPrice = 0.0;
-        
+
         for (OrderItem orderItem : orderItems) {
             PriceDetailDTO priceDetailDTO = orderItem.getPriceDetailDTO();
             if (priceDetailDTO == null) {
                 continue;
             }
-            
+
             Double itemDiscountPrice = calculateItemDiscountPrice(priceDetailDTO);
-            
+
             if (RefundStatusEnum.NO_REFUND.name().equals(orderItem.getIsRefund())) {
                 // 未退款：计算全部优惠金额
                 totalDiscountPrice = CurrencyUtil.add(totalDiscountPrice, itemDiscountPrice);
@@ -162,38 +166,39 @@ public class OrderStatisticsServiceImpl extends ServiceImpl<OrderStatisticsMappe
                 totalDiscountPrice = CurrencyUtil.add(totalDiscountPrice, remainingDiscountPrice);
             }
         }
-        
+
         return totalDiscountPrice;
     }
 
     @Override
     public long getPayOrderNum(Date[] dates) {
 
-        LambdaQueryWrapper<OrderItem> orderItemLambdaQueryWrapper=new LambdaQueryWrapper<>();
+        LambdaQueryWrapper<OrderItem> orderItemLambdaQueryWrapper = new LambdaQueryWrapper<>();
 
-        orderItemLambdaQueryWrapper.between(OrderItem::getCreateTime,dates[0], dates[1]);
-        orderItemLambdaQueryWrapper.ne(OrderItem::getIsRefund,RefundStatusEnum.ALL_REFUND.name());
+        orderItemLambdaQueryWrapper.between(OrderItem::getCreateTime, dates[0], dates[1]);
+        orderItemLambdaQueryWrapper.ne(OrderItem::getIsRefund, RefundStatusEnum.ALL_REFUND.name());
 
         return this.baseMapper.getPayOrderNum(orderItemLambdaQueryWrapper);
     }
 
     @Override
-    public Double getPayOrderPrice(Date[] dates, PaymentMethodEnum paymentMethodEnum, DeliveryMethodEnum deliveryMethodEnum) {
+    public Double getPayOrderPrice(Date[] dates, PaymentMethodEnum paymentMethodEnum,
+            DeliveryMethodEnum deliveryMethodEnum) {
 
-        //查看付款金额
+        // 查看付款金额
         QueryWrapper queryWrapper = Wrappers.query();
 
         queryWrapper.between("oi.create_time", dates[0], dates[1]);
         queryWrapper.ne("oi.is_refund", RefundStatusEnum.ALL_REFUND.name());
 
-        if(Objects.nonNull(paymentMethodEnum)){
-            queryWrapper.eq("o.payment_method",paymentMethodEnum.name());
+        if (Objects.nonNull(paymentMethodEnum)) {
+            queryWrapper.eq("o.payment_method", paymentMethodEnum.name());
         }
-        if(Objects.nonNull(deliveryMethodEnum)){
-            if(DeliveryMethodEnum.VIRTUAL.equals(deliveryMethodEnum)){
+        if (Objects.nonNull(deliveryMethodEnum)) {
+            if (DeliveryMethodEnum.VIRTUAL.equals(deliveryMethodEnum)) {
                 queryWrapper.eq("o.order_type", OrderTypeEnum.VIRTUAL.name());
-            }else{
-                queryWrapper.eq("o.delivery_method",deliveryMethodEnum.name());
+            } else {
+                queryWrapper.eq("o.delivery_method", deliveryMethodEnum.name());
             }
 
         }
@@ -203,10 +208,10 @@ public class OrderStatisticsServiceImpl extends ServiceImpl<OrderStatisticsMappe
 
     @Override
     public Double getGoodsPrice(Date[] dates) {
-        LambdaQueryWrapper<OrderItem> orderItemLambdaQueryWrapper=new LambdaQueryWrapper<>();
+        LambdaQueryWrapper<OrderItem> orderItemLambdaQueryWrapper = new LambdaQueryWrapper<>();
 
-        orderItemLambdaQueryWrapper.between(OrderItem::getCreateTime,dates[0], dates[1]);
-        orderItemLambdaQueryWrapper.ne(OrderItem::getIsRefund,RefundStatusEnum.ALL_REFUND.name());
+        orderItemLambdaQueryWrapper.between(OrderItem::getCreateTime, dates[0], dates[1]);
+        orderItemLambdaQueryWrapper.ne(OrderItem::getIsRefund, RefundStatusEnum.ALL_REFUND.name());
 
         return this.baseMapper.getGoodsPrice(orderItemLambdaQueryWrapper);
     }
@@ -214,42 +219,43 @@ public class OrderStatisticsServiceImpl extends ServiceImpl<OrderStatisticsMappe
     @Override
     public Double getFreight(Date[] dates) {
 
-        LambdaQueryWrapper<OrderItem> orderItemLambdaQueryWrapper=new LambdaQueryWrapper<>();
+        LambdaQueryWrapper<OrderItem> orderItemLambdaQueryWrapper = new LambdaQueryWrapper<>();
 
-        orderItemLambdaQueryWrapper.between(OrderItem::getCreateTime,dates[0], dates[1]);
-        orderItemLambdaQueryWrapper.ne(OrderItem::getIsRefund,RefundStatusEnum.ALL_REFUND.name());
+        orderItemLambdaQueryWrapper.between(OrderItem::getCreateTime, dates[0], dates[1]);
+        orderItemLambdaQueryWrapper.ne(OrderItem::getIsRefund, RefundStatusEnum.ALL_REFUND.name());
 
-        List<OrderItem> orderItems=orderItemService.list(orderItemLambdaQueryWrapper);
-        Double freight=0D;
-        for (OrderItem orderItem:orderItems){
-            PriceDetailDTO priceDetailDTO=orderItem.getPriceDetailDTO();
-            freight=CurrencyUtil.add(freight,priceDetailDTO.getFreightPrice());
+        List<OrderItem> orderItems = orderItemService.list(orderItemLambdaQueryWrapper);
+        Double freight = 0D;
+        for (OrderItem orderItem : orderItems) {
+            PriceDetailDTO priceDetailDTO = orderItem.getPriceDetailDTO();
+            freight = CurrencyUtil.add(freight, priceDetailDTO.getFreightPrice());
         }
         return freight;
     }
 
     @Override
     public Double getDistribution(Date[] dates) {
-        LambdaQueryWrapper<OrderItem> orderItemLambdaQueryWrapper=new LambdaQueryWrapper<>();
+        LambdaQueryWrapper<OrderItem> orderItemLambdaQueryWrapper = new LambdaQueryWrapper<>();
 
-        orderItemLambdaQueryWrapper.between(OrderItem::getCreateTime,dates[0], dates[1]);
-        orderItemLambdaQueryWrapper.ne(OrderItem::getIsRefund,RefundStatusEnum.ALL_REFUND.name());
+        orderItemLambdaQueryWrapper.between(OrderItem::getCreateTime, dates[0], dates[1]);
+        orderItemLambdaQueryWrapper.ne(OrderItem::getIsRefund, RefundStatusEnum.ALL_REFUND.name());
 
-        List<OrderItem> orderItems=orderItemService.list(orderItemLambdaQueryWrapper);
-        Double distributionCommission=0D;
-        for (OrderItem orderItem:orderItems){
-            PriceDetailDTO priceDetailDTO=orderItem.getPriceDetailDTO();
-            distributionCommission=CurrencyUtil.add(distributionCommission,priceDetailDTO.getDistributionCommission());
+        List<OrderItem> orderItems = orderItemService.list(orderItemLambdaQueryWrapper);
+        Double distributionCommission = 0D;
+        for (OrderItem orderItem : orderItems) {
+            PriceDetailDTO priceDetailDTO = orderItem.getPriceDetailDTO();
+            distributionCommission = CurrencyUtil.add(distributionCommission,
+                    priceDetailDTO.getDistributionCommission());
         }
         return distributionCommission;
     }
 
     @Override
     public Long getRefundNum(Date[] dates) {
-        LambdaQueryWrapper<OrderItem> orderItemLambdaQueryWrapper=new LambdaQueryWrapper<>();
+        LambdaQueryWrapper<OrderItem> orderItemLambdaQueryWrapper = new LambdaQueryWrapper<>();
 
-        orderItemLambdaQueryWrapper.between(OrderItem::getCreateTime,dates[0], dates[1]);
-        orderItemLambdaQueryWrapper.eq(OrderItem::getIsRefund,RefundStatusEnum.ALL_REFUND.name());
+        orderItemLambdaQueryWrapper.between(OrderItem::getCreateTime, dates[0], dates[1]);
+        orderItemLambdaQueryWrapper.eq(OrderItem::getIsRefund, RefundStatusEnum.ALL_REFUND.name());
 
         return this.baseMapper.getPayOrderNum(orderItemLambdaQueryWrapper);
     }
@@ -262,7 +268,6 @@ public class OrderStatisticsServiceImpl extends ServiceImpl<OrderStatisticsMappe
         queryWrapper.between("oi.create_time", dates[0], dates[1]);
         queryWrapper.eq("oi.is_refund", RefundStatusEnum.ALL_REFUND.name());
 
-
         return this.baseMapper.getRefundPrice(queryWrapper);
     }
 
@@ -273,9 +278,8 @@ public class OrderStatisticsServiceImpl extends ServiceImpl<OrderStatisticsMappe
 
         queryWrapper.between("create_time", dates[0], dates[1]);
 
-
-        Long orderNum= this.baseMapper.getPayOrderNum(queryWrapper);
-        return CurrencyUtil.mul(CurrencyUtil.div(this.getRefundNum(dates),orderNum),100);
+        Long orderNum = this.baseMapper.getPayOrderNum(queryWrapper);
+        return CurrencyUtil.mul(CurrencyUtil.div(this.getRefundNum(dates), orderNum), 100);
     }
 
     /**
@@ -294,53 +298,53 @@ public class OrderStatisticsServiceImpl extends ServiceImpl<OrderStatisticsMappe
         if (totalNum == null || totalNum <= 0 || returnNum == null || returnNum < 0) {
             return totalDiscountPrice;
         }
-        
+
         Integer remainingNum = totalNum - returnNum;
         if (remainingNum <= 0) {
             return 0.0;
         }
-        
+
         // 按剩余数量比例计算优惠金额
         Double ratio = CurrencyUtil.div(remainingNum.doubleValue(), totalNum.doubleValue(), 4);
         return CurrencyUtil.mul(totalDiscountPrice, ratio);
     }
 
-
     @Override
     public List<OrderStatisticsDataVO> statisticsChart(StatisticsQueryParam statisticsQueryParam) {
         Date[] dates = StatisticsDateUtil.getDateArray(statisticsQueryParam);
         QueryWrapper queryWrapper = new QueryWrapper();
-        //已支付
+        // 已支付
         queryWrapper.eq("pay_status", PayStatusEnum.PAID.name());
-        //选择商家判定
-        queryWrapper.eq(StringUtils.isNotEmpty(statisticsQueryParam.getStoreId()), "store_id", statisticsQueryParam.getStoreId());
-//      查询时间区间
+        // 选择商家判定
+        queryWrapper.eq(StringUtils.isNotEmpty(statisticsQueryParam.getStoreId()), "store_id",
+                statisticsQueryParam.getStoreId());
+        // 查询时间区间
         queryWrapper.between("create_time", dates[0], dates[1]);
-//       格式化时间
+        // 格式化时间
         queryWrapper.groupBy("DATE_FORMAT(create_time,'%Y-%m-%d')");
         List<OrderStatisticsDataVO> orderStatisticsDataVOS = this.baseMapper.getOrderStatisticsData(queryWrapper);
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(dates[0]);
 
         List<OrderStatisticsDataVO> result = new ArrayList<>();
-        //时间判定，将数据填充好
-        //如果当前的时间，在结束时间之前
+        // 时间判定，将数据填充好
+        // 如果当前的时间，在结束时间之前
         while (calendar.getTime().before(dates[1])) {
             OrderStatisticsDataVO item = null;
-            //判定是否已经有这一天的数据
+            // 判定是否已经有这一天的数据
             for (OrderStatisticsDataVO orderStatisticsDataVO : orderStatisticsDataVOS) {
                 if (orderStatisticsDataVO.getCreateTime().equals(calendar.getTime())) {
                     item = orderStatisticsDataVO;
                 }
             }
-            //如果数据不存在，则进行数据填充
+            // 如果数据不存在，则进行数据填充
             if (item == null) {
                 item = new OrderStatisticsDataVO();
                 item.setPrice(0d);
                 item.setCreateTime(calendar.getTime());
             }
             result.add(item);
-            //增加时间
+            // 增加时间
             calendar.set(Calendar.DAY_OF_MONTH, calendar.get(Calendar.DAY_OF_MONTH) + 1);
         }
         return result;
@@ -368,11 +372,11 @@ public class OrderStatisticsServiceImpl extends ServiceImpl<OrderStatisticsMappe
         Date[] dates = StatisticsDateUtil.getDateArray(statisticsQueryParam);
         queryWrapper.between("create_time", dates[0], dates[1]);
 
-        //设置店铺ID
-        queryWrapper.eq(StringUtils.isNotEmpty(statisticsQueryParam.getStoreId()), "store_id", statisticsQueryParam.getStoreId());
+        // 设置店铺ID
+        queryWrapper.eq(StringUtils.isNotEmpty(statisticsQueryParam.getStoreId()), "store_id",
+                statisticsQueryParam.getStoreId());
 
-
-        //设置为付款查询
+        // 设置为付款查询
         queryWrapper.eq("flow_type", FlowTypeEnum.PAY.name());
 
         return queryWrapper;

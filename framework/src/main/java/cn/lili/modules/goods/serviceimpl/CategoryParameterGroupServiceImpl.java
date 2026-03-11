@@ -17,6 +17,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,26 +33,28 @@ import java.util.stream.Collectors;
  * @author pikachu
  * @version v1.0
  * @since v1.0
- * 2020-03-02 16:45:03
+ *        2020-03-02 16:45:03
  */
 @Service
-public class CategoryParameterGroupServiceImpl extends ServiceImpl<CategoryParameterGroupMapper, CategoryParameterGroup> implements CategoryParameterGroupService {
+public class CategoryParameterGroupServiceImpl extends ServiceImpl<CategoryParameterGroupMapper, CategoryParameterGroup>
+        implements CategoryParameterGroupService {
     /**
      * 商品参数
      */
     @Autowired
     private ParametersService parametersService;
 
+    @Lazy
     @Autowired
     private GoodsService goodsService;
 
     @Override
     public List<ParameterGroupVO> getCategoryParams(String categoryId) {
-        //根据id查询参数组
+        // 根据id查询参数组
         List<CategoryParameterGroup> groups = this.getCategoryGroup(categoryId);
-        //查询参数
+        // 查询参数
         List<Parameters> params = parametersService.list(new QueryWrapper<Parameters>().eq("category_id", categoryId));
-        //组合参数vo
+        // 组合参数vo
         return convertParamList(groups, params);
     }
 
@@ -81,7 +84,9 @@ public class CategoryParameterGroupServiceImpl extends ServiceImpl<CategoryParam
         for (Map<String, Object> goods : goodsList) {
             String params = (String) goods.get("params");
             List<GoodsParamsDTO> goodsParamsDTOS = JSONUtil.toList(params, GoodsParamsDTO.class);
-            List<GoodsParamsDTO> goodsParamsDTOList = goodsParamsDTOS.stream().filter(i -> i.getGroupId() != null && i.getGroupId().equals(origin.getId())).collect(Collectors.toList());
+            List<GoodsParamsDTO> goodsParamsDTOList = goodsParamsDTOS.stream()
+                    .filter(i -> i.getGroupId() != null && i.getGroupId().equals(origin.getId()))
+                    .collect(Collectors.toList());
             for (GoodsParamsDTO goodsParamsDTO : goodsParamsDTOList) {
                 goodsParamsDTO.setGroupName(categoryParameterGroup.getGroupName());
             }
@@ -93,7 +98,8 @@ public class CategoryParameterGroupServiceImpl extends ServiceImpl<CategoryParam
 
     @Override
     public void deleteByCategoryId(String categoryId) {
-        this.baseMapper.delete(new LambdaUpdateWrapper<CategoryParameterGroup>().eq(CategoryParameterGroup::getCategoryId, categoryId));
+        this.baseMapper.delete(new LambdaUpdateWrapper<CategoryParameterGroup>()
+                .eq(CategoryParameterGroup::getCategoryId, categoryId));
     }
 
     /**

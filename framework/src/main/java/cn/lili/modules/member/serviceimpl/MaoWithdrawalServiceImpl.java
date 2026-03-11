@@ -38,13 +38,13 @@ public class MaoWithdrawalServiceImpl extends ServiceImpl<MaoWithdrawalLogMapper
     @Autowired
     private MemberService memberService;
 
-    @Value("${lili.maollar.solana.gateway-url}")
+    @Value("${lili.maollar.solana.gateway-url:}")
     private String gatewayUrl;
 
-    @Value("${lili.maollar.solana.gateway-secret}")
+    @Value("${lili.maollar.solana.gateway-secret:}")
     private String gatewaySecret;
 
-    @Value("${lili.maollar.solana.daily-max-issuance}")
+    @Value("${lili.maollar.solana.daily-max-issuance:1000.0}")
     private Double dailyMaxIssuance;
 
     @Override

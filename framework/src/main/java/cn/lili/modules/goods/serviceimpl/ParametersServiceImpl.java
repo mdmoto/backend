@@ -18,6 +18,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,7 +36,7 @@ import java.util.stream.Collectors;
 @Service
 public class ParametersServiceImpl extends ServiceImpl<ParametersMapper, Parameters> implements ParametersService {
 
-
+    @Lazy
     @Autowired
     private GoodsService goodsService;
 
@@ -69,15 +70,19 @@ public class ParametersServiceImpl extends ServiceImpl<ParametersMapper, Paramet
             for (Map<String, Object> goods : goodsList) {
                 String params = (String) goods.get("params");
                 List<GoodsParamsDTO> goodsParamsDTOS = JSONUtil.toList(params, GoodsParamsDTO.class);
-                List<GoodsParamsDTO> goodsParamsDTOList = goodsParamsDTOS.stream().filter(i -> i.getGroupId() != null && i.getGroupId().equals(parameters.getGroupId())).collect(Collectors.toList());
+                List<GoodsParamsDTO> goodsParamsDTOList = goodsParamsDTOS.stream()
+                        .filter(i -> i.getGroupId() != null && i.getGroupId().equals(parameters.getGroupId()))
+                        .collect(Collectors.toList());
                 this.setGoodsItemDTOList(goodsParamsDTOList, parameters);
                 this.goodsService.updateGoodsParams(goods.get("id").toString(), JSONUtil.toJsonStr(goodsParamsDTOS));
                 goodsIds.add(goods.get("id").toString());
             }
 
-            String destination = rocketmqCustomProperties.getGoodsTopic() + ":" + GoodsTagsEnum.UPDATE_GOODS_INDEX.name();
-            //发送mq消息
-            rocketMQTemplate.asyncSend(destination, JSONUtil.toJsonStr(goodsIds), RocketmqSendCallbackBuilder.commonCallback());
+            String destination = rocketmqCustomProperties.getGoodsTopic() + ":"
+                    + GoodsTagsEnum.UPDATE_GOODS_INDEX.name();
+            // 发送mq消息
+            rocketMQTemplate.asyncSend(destination, JSONUtil.toJsonStr(goodsIds),
+                    RocketmqSendCallbackBuilder.commonCallback());
         }
         return this.updateById(parameters);
     }
@@ -90,7 +95,9 @@ public class ParametersServiceImpl extends ServiceImpl<ParametersMapper, Paramet
      */
     private void setGoodsItemDTOList(List<GoodsParamsDTO> goodsParamsDTOList, Parameters parameters) {
         for (GoodsParamsDTO goodsParamsDTO : goodsParamsDTOList) {
-            List<GoodsParamsItemDTO> goodsParamsItemDTOList = goodsParamsDTO.getGoodsParamsItemDTOList().stream().filter(i -> i.getParamId() != null && i.getParamId().equals(parameters.getId())).collect(Collectors.toList());
+            List<GoodsParamsItemDTO> goodsParamsItemDTOList = goodsParamsDTO.getGoodsParamsItemDTOList().stream()
+                    .filter(i -> i.getParamId() != null && i.getParamId().equals(parameters.getId()))
+                    .collect(Collectors.toList());
             for (GoodsParamsItemDTO goodsParamsItemDTO : goodsParamsItemDTOList) {
                 this.setGoodsItemDTO(goodsParamsItemDTO, parameters);
             }
@@ -110,9 +117,12 @@ public class ParametersServiceImpl extends ServiceImpl<ParametersMapper, Paramet
             goodsParamsItemDTO.setRequired(parameters.getRequired());
             goodsParamsItemDTO.setIsIndex(parameters.getIsIndex());
             goodsParamsItemDTO.setSort(parameters.getSort());
-            if (CharSequenceUtil.isNotEmpty(parameters.getOptions()) && CharSequenceUtil.isNotEmpty(goodsParamsItemDTO.getParamValue()) && !parameters.getOptions().contains(goodsParamsItemDTO.getParamValue())) {
+            if (CharSequenceUtil.isNotEmpty(parameters.getOptions())
+                    && CharSequenceUtil.isNotEmpty(goodsParamsItemDTO.getParamValue())
+                    && !parameters.getOptions().contains(goodsParamsItemDTO.getParamValue())) {
                 if (parameters.getOptions().contains(",")) {
-                    goodsParamsItemDTO.setParamValue(parameters.getOptions().substring(0, parameters.getOptions().indexOf(",")));
+                    goodsParamsItemDTO
+                            .setParamValue(parameters.getOptions().substring(0, parameters.getOptions().indexOf(",")));
                 } else {
                     goodsParamsItemDTO.setParamValue(parameters.getOptions());
                 }

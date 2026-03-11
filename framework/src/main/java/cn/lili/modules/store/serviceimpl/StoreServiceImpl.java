@@ -83,6 +83,7 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
     /**
      * 店铺详情
      */
+    @Lazy
     @Autowired
     private StoreDetailService storeDetailService;
 

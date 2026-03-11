@@ -59,9 +59,11 @@ public class PromotionGoodsServiceImpl extends ServiceImpl<PromotionGoodsMapper,
     /**
      * 规格商品
      */
+    @Lazy
     @Autowired
     private GoodsSkuService goodsSkuService;
 
+    @Lazy
     @Autowired
     private GoodsService goodsService;
 

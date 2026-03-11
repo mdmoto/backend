@@ -19,6 +19,7 @@ import cn.lili.modules.member.service.StoreMenuRoleService;
 import cn.lili.modules.store.entity.dos.Store;
 import cn.lili.modules.store.service.StoreService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -35,6 +36,10 @@ import java.util.Map;
  */
 @Component
 public class StoreTokenGenerate extends AbstractTokenGenerate<Member> {
+    /**
+     * 店铺
+     */
+    @Lazy
     @Autowired
     private StoreService storeService;
     @Autowired
@@ -43,6 +48,7 @@ public class StoreTokenGenerate extends AbstractTokenGenerate<Member> {
     private StoreMenuRoleService storeMenuRoleService;
     @Autowired
     private Cache cache;
+    @Lazy
     @Autowired
     private ClerkService clerkService;
 
@@ -51,7 +57,7 @@ public class StoreTokenGenerate extends AbstractTokenGenerate<Member> {
         if (Boolean.FALSE.equals(member.getHaveStore())) {
             throw new ServiceException(ResultCode.STORE_NOT_OPEN);
         }
-        //根据会员id查询店员信息
+        // 根据会员id查询店员信息
         Clerk clerk = clerkService.getClerkByMemberId(member.getId());
 
         if (clerk == null) {
@@ -60,16 +66,17 @@ public class StoreTokenGenerate extends AbstractTokenGenerate<Member> {
         if (Boolean.FALSE.equals(clerk.getStatus())) {
             throw new ServiceException(ResultCode.CLERK_DISABLED_ERROR);
         }
-        //获取当前用户权限
+        // 获取当前用户权限
         List<StoreUserMenuVO> storeUserMenuVOS = storeMenuRoleService.findAllMenu(clerk.getId(), member.getId());
-        //缓存权限列表
-        cache.put(CachePrefix.PERMISSION_LIST.getPrefix(UserEnums.STORE) + member.getId(), this.permissionList(storeUserMenuVOS));
-        //查询店铺信息
+        // 缓存权限列表
+        cache.put(CachePrefix.PERMISSION_LIST.getPrefix(UserEnums.STORE) + member.getId(),
+                this.permissionList(storeUserMenuVOS));
+        // 查询店铺信息
         Store store = storeService.getById(clerk.getStoreId());
         if (store == null) {
             throw new ServiceException(ResultCode.STORE_NOT_OPEN);
         }
-        //构建对象
+        // 构建对象
         AuthUser authUser = AuthUser.builder()
                 .username(member.getUsername())
                 .id(member.getId())
@@ -103,32 +110,32 @@ public class StoreTokenGenerate extends AbstractTokenGenerate<Member> {
         List<String> queryPermissions = new ArrayList<>();
         initPermission(superPermissions, queryPermissions);
 
-        //循环权限菜单
+        // 循环权限菜单
         if (userMenuVOList != null && !userMenuVOList.isEmpty()) {
             userMenuVOList.forEach(menu -> {
-                //循环菜单，赋予用户权限
+                // 循环菜单，赋予用户权限
                 if (CharSequenceUtil.isNotEmpty(menu.getPermission())) {
-                    //获取路径集合
+                    // 获取路径集合
                     String[] permissionUrl = menu.getPermission().split(",");
-                    //for循环路径集合
+                    // for循环路径集合
                     for (String url : permissionUrl) {
-                        //如果是超级权限 则计入超级权限
+                        // 如果是超级权限 则计入超级权限
                         if (Boolean.TRUE.equals(menu.getSuper())) {
-                            //如果已有超级权限，则这里就不做权限的累加
+                            // 如果已有超级权限，则这里就不做权限的累加
                             if (!superPermissions.contains(url)) {
                                 superPermissions.add(url);
                             }
                         }
-                        //否则计入浏览权限
+                        // 否则计入浏览权限
                         else {
-                            //没有权限，则累加。
+                            // 没有权限，则累加。
                             if (!queryPermissions.contains(url)) {
                                 queryPermissions.add(url);
                             }
                         }
                     }
                 }
-                //去除重复的权限
+                // 去除重复的权限
                 queryPermissions.removeAll(superPermissions);
             });
         }
@@ -136,7 +143,6 @@ public class StoreTokenGenerate extends AbstractTokenGenerate<Member> {
         permission.put(PermissionEnum.QUERY.name(), queryPermissions);
         return permission;
     }
-
 
     /**
      * 初始赋予的权限，查看权限包含首页流量统计权限，
@@ -146,21 +152,19 @@ public class StoreTokenGenerate extends AbstractTokenGenerate<Member> {
      * @param queryPermissions 查询权限
      */
     void initPermission(List<String> superPermissions, List<String> queryPermissions) {
-        //菜单管理
+        // 菜单管理
         superPermissions.add("/store/menu*");
-        //退出权限
+        // 退出权限
         superPermissions.add("/store/passport/login/logout*");
-        //修改
+        // 修改
         superPermissions.add("/store/passport/login*");
 
-
-        //店铺设置
+        // 店铺设置
         queryPermissions.add("/store/settings/storeSettings*");
-        //文章接口
+        // 文章接口
         queryPermissions.add("/store/other/article*");
-        //首页统计
+        // 首页统计
         queryPermissions.add("/store/statistics/index*");
-
 
     }
 }

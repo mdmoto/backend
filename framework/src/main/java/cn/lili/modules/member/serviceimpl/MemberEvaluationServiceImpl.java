@@ -41,6 +41,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,7 +56,8 @@ import java.util.Map;
  * @since 2020-02-25 14:10:16
  */
 @Service
-public class MemberEvaluationServiceImpl extends ServiceImpl<MemberEvaluationMapper, MemberEvaluation> implements MemberEvaluationService {
+public class MemberEvaluationServiceImpl extends ServiceImpl<MemberEvaluationMapper, MemberEvaluation>
+        implements MemberEvaluationService {
 
     /**
      * 订单
@@ -75,6 +77,7 @@ public class MemberEvaluationServiceImpl extends ServiceImpl<MemberEvaluationMap
     /**
      * 商品
      */
+    @Lazy
     @Autowired
     private GoodsSkuService goodsSkuService;
     /**
@@ -88,67 +91,69 @@ public class MemberEvaluationServiceImpl extends ServiceImpl<MemberEvaluationMap
 
     @Override
     public IPage<MemberEvaluation> managerQuery(EvaluationQueryParams queryParams) {
-        //获取评价分页
+        // 获取评价分页
         return this.page(PageUtil.initPage(queryParams), queryParams.queryWrapper());
     }
 
     @Override
     public IPage<MemberEvaluationListVO> queryPage(EvaluationQueryParams evaluationQueryParams) {
-        return this.baseMapper.getMemberEvaluationList(PageUtil.initPage(evaluationQueryParams), evaluationQueryParams.queryWrapper());
+        return this.baseMapper.getMemberEvaluationList(PageUtil.initPage(evaluationQueryParams),
+                evaluationQueryParams.queryWrapper());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public MemberEvaluationDTO addMemberEvaluation(MemberEvaluationDTO memberEvaluationDTO, Boolean isSelf) {
-        //获取子订单信息
+        // 获取子订单信息
         OrderItem orderItem = orderItemService.getBySn(memberEvaluationDTO.getOrderItemSn());
 
         if (orderItem == null) {
             throw new ServiceException(ResultCode.ORDER_ITEM_NOT_EXIST);
         }
 
-        //获取订单信息
+        // 获取订单信息
         Order order = orderService.getBySn(orderItem.getOrderSn());
 
         if (order == null) {
             throw new ServiceException(ResultCode.ORDER_NOT_EXIST);
         }
 
-        //检测是否可以添加会员评价
+        // 检测是否可以添加会员评价
         Member member;
 
         checkMemberEvaluation(orderItem, order);
 
         if (Boolean.TRUE.equals(isSelf)) {
-            //自我评价商品时，获取当前登录用户信息
+            // 自我评价商品时，获取当前登录用户信息
             member = memberService.getUserInfo();
         } else {
-            //获取用户信息 非自己评价时，读取数据库
+            // 获取用户信息 非自己评价时，读取数据库
             member = memberService.getById(order.getMemberId());
             if (member == null) {
                 throw new ServiceException(ResultCode.USER_NOT_EXIST);
             }
         }
 
-        //获取商品信息
+        // 获取商品信息
         GoodsSku goodsSku = goodsSkuService.getGoodsSkuByIdFromCache(memberEvaluationDTO.getSkuId());
 
         if (goodsSku == null) {
             throw new ServiceException(ResultCode.GOODS_NOT_EXIST);
         }
 
-        //新增用户评价
+        // 新增用户评价
         MemberEvaluation memberEvaluation = new MemberEvaluation(memberEvaluationDTO, goodsSku, member, order);
-        //过滤商品咨询敏感词
+        // 过滤商品咨询敏感词
         memberEvaluation.setContent(SensitiveWordsFilter.filter(memberEvaluation.getContent()));
-        //添加评价
+        // 添加评价
         this.save(memberEvaluation);
 
-        //修改订单货物评价状态为已评价
+        // 修改订单货物评价状态为已评价
         orderItemService.updateCommentStatus(orderItem.getSn(), CommentStatusEnum.FINISHED);
-        //发送商品评价消息
+        // 发送商品评价消息
         applicationEventPublisher.publishEvent(new TransactionCommitSendMQEvent("同步商品评价消息",
-                rocketmqCustomProperties.getGoodsTopic(), GoodsTagsEnum.GOODS_COMMENT_COMPLETE.name(), JSONUtil.toJsonStr(memberEvaluation)));
+                rocketmqCustomProperties.getGoodsTopic(), GoodsTagsEnum.GOODS_COMMENT_COMPLETE.name(),
+                JSONUtil.toJsonStr(memberEvaluation)));
         return memberEvaluationDTO;
     }
 
@@ -161,7 +166,8 @@ public class MemberEvaluationServiceImpl extends ServiceImpl<MemberEvaluationMap
     public boolean updateStatus(String id, String status) {
         UpdateWrapper updateWrapper = Wrappers.update();
         updateWrapper.eq("id", id);
-        updateWrapper.set("status", status.equals(SwitchEnum.OPEN.name()) ? SwitchEnum.OPEN.name() : SwitchEnum.CLOSE.name());
+        updateWrapper.set("status",
+                status.equals(SwitchEnum.OPEN.name()) ? SwitchEnum.OPEN.name() : SwitchEnum.CLOSE.name());
         return this.update(updateWrapper);
     }
 
@@ -191,7 +197,6 @@ public class MemberEvaluationServiceImpl extends ServiceImpl<MemberEvaluationMap
         EvaluationNumberVO evaluationNumberVO = new EvaluationNumberVO();
         List<Map<String, Object>> list = this.baseMapper.getEvaluationNumber(goodsId);
 
-
         Integer good = 0;
         Integer moderate = 0;
         Integer worse = 0;
@@ -218,7 +223,8 @@ public class MemberEvaluationServiceImpl extends ServiceImpl<MemberEvaluationMap
 
     @Override
     public long todayMemberEvaluation() {
-        return this.count(new LambdaQueryWrapper<MemberEvaluation>().ge(MemberEvaluation::getCreateTime, DateUtil.beginOfDay(new DateTime())));
+        return this.count(new LambdaQueryWrapper<MemberEvaluation>().ge(MemberEvaluation::getCreateTime,
+                DateUtil.beginOfDay(new DateTime())));
     }
 
     @Override
@@ -263,12 +269,12 @@ public class MemberEvaluationServiceImpl extends ServiceImpl<MemberEvaluationMap
      */
     public void checkMemberEvaluation(OrderItem orderItem, Order order) {
 
-        //根据子订单编号判断是否评价过
+        // 根据子订单编号判断是否评价过
         if (orderItem.getCommentStatus().equals(CommentStatusEnum.FINISHED.name())) {
             throw new ServiceException(ResultCode.EVALUATION_DOUBLE_ERROR);
         }
 
-        //判断是否是当前会员的订单
+        // 判断是否是当前会员的订单
         if (UserContext.getCurrentUser() != null && !order.getMemberId().equals(UserContext.getCurrentUser().getId())) {
             throw new ServiceException(ResultCode.ORDER_NOT_USER);
         }
