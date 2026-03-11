@@ -26,6 +26,36 @@ if [ -n "${BAD1}${BAD2}" ]; then
 fi
 echo "✅ [CI] No flattened test files found."
 
+# 0.2 Circular Dependency Prevention Check
+echo "🔍 [CI] Checking for allow-circular-references=false (P1 Guard)..."
+# Check application.yml
+if grep -q "allow-circular-references: true" "$PROJECT_ROOT/backend/config/application.yml"; then
+  echo "❌ [P1 BLOCK] Circular references are explicitly enabled in application.yml!"
+  exit 5
+fi
+if ! grep -q "allow-circular-references: false" "$PROJECT_ROOT/backend/config/application.yml"; then
+  echo "❌ [P1 BLOCK] Circular references are not disabled in application.yml!"
+  exit 5
+fi
+# Check setup-persistence.sh
+if grep -q "SPRING_MAIN_ALLOW_CIRCULAR_REFERENCES=true" "$PROJECT_ROOT/ops/setup-persistence.sh"; then
+  echo "❌ [P1 BLOCK] Circular references are explicitly enabled in setup-persistence.sh!"
+  exit 5
+fi
+if ! grep -q "SPRING_MAIN_ALLOW_CIRCULAR_REFERENCES=false" "$PROJECT_ROOT/ops/setup-persistence.sh"; then
+  echo "❌ [P1 BLOCK] Circular references are not disabled in setup-persistence.sh!"
+  exit 5
+fi
+echo "✅ [CI] Circular reference config check passed."
+
+# 0.3 Circular Dependency Runtime Guard Test
+echo "🔍 [CI] Running CircularDependencyGuardTest..."
+if [ -d "$PROJECT_ROOT/backend" ] && [ -f "$PROJECT_ROOT/backend/mvnw" ]; then
+    (cd "$PROJECT_ROOT/backend" && ./mvnw -B -pl buyer-api -am -Dtest=CircularDependencyGuardTest,TradeBuilderRegressionTest -Dsurefire.failIfNoSpecifiedTests=false test)
+    echo "✅ [CI] CircularDependencyGuardTest passed."
+else
+    echo "⏭️ [CI] Skipping runtime guard test (backend or mvnw not found)."
+fi
 # 1. Backend Build & Test
 echo "🏗️ [CI] 1/3: Building Backend & Running Tests (mvn test)..."
 BACKEND_PATH="$PROJECT_ROOT/backend"
@@ -135,6 +165,20 @@ for url in "${HEALTH_URLS[@]}"; do
         exit 1
     fi
 done
+
+# 3.2 Transactional Smoke Test (Optional)
+if [ "${RUN_WRITE_SMOKE:-0}" -eq 1 ]; then
+    echo "⚡ [CI] RUN_WRITE_SMOKE=1: Starting Transactional Smoke Test..."
+    if [ -f "$PROJECT_ROOT/ops/write-smoke.sh" ]; then
+        # Use default smoke test credentials if not provided
+        export SMOKE_USER="${SMOKE_USER:-smoke_test_01}"
+        export SMOKE_PWD="${SMOKE_PWD:-MaollarSmoke123}"
+        export SMOKE_ALLOW_DB_MUTATION=1
+        bash "$PROJECT_ROOT/ops/write-smoke.sh"
+    else
+        echo "⚠️ [CI] write-smoke.sh not found, skipping."
+    fi
+fi
 
 
 # 4. Production Security Audit (P1 Final Check)

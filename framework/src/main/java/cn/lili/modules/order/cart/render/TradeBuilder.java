@@ -4,7 +4,7 @@ import cn.lili.common.exception.ServiceException;
 import cn.lili.modules.order.cart.entity.dto.TradeDTO;
 import cn.lili.modules.order.cart.entity.enums.CartTypeEnum;
 import cn.lili.modules.order.cart.entity.enums.RenderStepEnums;
-import cn.lili.modules.order.cart.service.CartService;
+import cn.lili.modules.order.cart.service.CartPersistenceService;
 import cn.lili.modules.order.order.entity.dos.Trade;
 import cn.lili.modules.order.order.service.TradeService;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +17,7 @@ import java.util.List;
  * 交易构造&&创建
  *
  * @author Chopper
- * @since2020-04-01 9:47 下午
+ *         @since2020-04-01 9:47 下午
  */
 @Service
 @Slf4j
@@ -34,11 +34,10 @@ public class TradeBuilder {
     @Autowired
     private TradeService tradeService;
     /**
-     * 购物车业务
+     * 购物车持久化业务
      */
     @Autowired
-    private CartService cartService;
-
+    private CartPersistenceService cartPersistenceService;
 
     /**
      * 构造购物车
@@ -48,16 +47,16 @@ public class TradeBuilder {
      * @return 购物车展示信息
      */
     public TradeDTO buildCart(CartTypeEnum checkedWay) {
-        //读取对应购物车的商品信息
-        TradeDTO tradeDTO = cartService.readDTO(checkedWay);
+        // 读取对应购物车的商品信息
+        TradeDTO tradeDTO = cartPersistenceService.readDTO(checkedWay);
 
-        //购物车需要将交易中的优惠券取消掉
+        // 购物车需要将交易中的优惠券取消掉
         if (checkedWay.equals(CartTypeEnum.CART)) {
             tradeDTO.setStoreCoupons(null);
             tradeDTO.setPlatformCoupon(null);
         }
 
-        //按照计划进行渲染
+        // 按照计划进行渲染
         renderCartBySteps(tradeDTO, RenderStepStatement.cartRender);
         return tradeDTO;
     }
@@ -66,9 +65,9 @@ public class TradeBuilder {
      * 构造结算页面
      */
     public TradeDTO buildChecked(CartTypeEnum checkedWay) {
-        //读取对应购物车的商品信息
-        TradeDTO tradeDTO = cartService.readDTO(checkedWay);
-        //需要对购物车渲染
+        // 读取对应购物车的商品信息
+        TradeDTO tradeDTO = cartPersistenceService.readDTO(checkedWay);
+        // 需要对购物车渲染
         if (isSingle(checkedWay)) {
             renderCartBySteps(tradeDTO, RenderStepStatement.checkedSingleRender);
         } else if (checkedWay.equals(CartTypeEnum.PINTUAN)) {
@@ -90,7 +89,7 @@ public class TradeBuilder {
      */
     public Trade createTrade(TradeDTO tradeDTO) {
 
-        //需要对购物车渲染
+        // 需要对购物车渲染
         if (isSingle(tradeDTO.getCartTypeEnum())) {
             renderCartBySteps(tradeDTO, RenderStepStatement.singleTradeRender);
         } else if (tradeDTO.getCartTypeEnum().equals(CartTypeEnum.PINTUAN)) {
@@ -99,7 +98,7 @@ public class TradeBuilder {
             renderCartBySteps(tradeDTO, RenderStepStatement.tradeRender);
         }
 
-        //添加order订单及order_item子订单并返回
+        // 添加order订单及order_item子订单并返回
         return tradeService.createTrade(tradeDTO);
     }
 
@@ -110,7 +109,7 @@ public class TradeBuilder {
      * @return 返回是否单品
      */
     private boolean isSingle(CartTypeEnum checkedWay) {
-        //拼团   喵币   砍价商品
+        // 拼团 喵币 砍价商品
 
         return (checkedWay.equals(CartTypeEnum.POINTS) || checkedWay.equals(CartTypeEnum.KANJIA));
     }
