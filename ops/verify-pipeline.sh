@@ -23,6 +23,17 @@ else
     echo "⚠️ [CI] No .env file found in $PROJECT_ROOT/backend/. No environment variables loaded."
 fi
 
+# Install local JARs if required (e.g. systemPath replacement for vendor SDKs)
+if [ -x "$PROJECT_ROOT/ops/install-local-jars.sh" ]; then
+    echo "📦 [CI] Installing local JAR dependencies..."
+    bash "$PROJECT_ROOT/ops/install-local-jars.sh"
+elif [ -x "$PROJECT_ROOT/backend/ops/install-local-jars.sh" ]; then
+    echo "📦 [CI] Installing local JAR dependencies..."
+    bash "$PROJECT_ROOT/backend/ops/install-local-jars.sh"
+else
+    echo "ℹ️ [CI] No install-local-jars.sh found; skipping local JAR installation."
+fi
+
 
 # 0. Pre-build Regression Check (P1-2)
 echo "🔍 [CI] Checking for flattened test files (duplicate class prevention)..."

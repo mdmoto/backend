@@ -26,8 +26,8 @@ spring:
   mail:
     host: smtp.qq.com
     port: 465
-    username: lifenlong@foxmail.com
-    password: ${LILI_MAIL_PASSWORD:dirpxpqgfvysbefh}
+    username: YOUR_EMAIL@qq.com
+    password: ${LILI_MAIL_PASSWORD}
     protocol: smtps
     properties:
       mail:
@@ -43,21 +43,22 @@ spring:
         url: http://127.0.0.1:8000
   cache:
     type: redis
-  # Redis
-  redis:
-    host: 127.0.0.1
-    port: 6379
-    password: ${LILI_REDIS_PASSWORD:lilishop}
-    lettuce:
-      pool:
-        # 连接池最大连接数（使用负值表示没有限制） 默认 8
-        max-active: 200
-        # 连接池最大阻塞等待时间（使用负值表示没有限制） 默认 -1
-        max-wait: 20
-        # 连接池中的最大空闲连接 默认 8
-        max-idle: 10
-        # 连接池中的最小空闲连接 默认 8
-        min-idle: 8
+  data:
+    # Redis
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      password: ${LILI_REDIS_PASSWORD:lilishop}
+      lettuce:
+        pool:
+          # 连接池最大连接数（使用负值表示没有限制） 默认 8
+          max-active: 200
+          # 连接池最大阻塞等待时间（使用负值表示没有限制） 默认 -1
+          max-wait: 20
+          # 连接池中的最大空闲连接 默认 8
+          max-idle: 10
+          # 连接池中的最小空闲连接 默认 8
+          min-idle: 8
   # 文件大小上传配置
   servlet:
     multipart:
@@ -78,7 +79,7 @@ spring:
         driverClassName: com.mysql.cj.jdbc.Driver
         url: jdbc:mysql://127.0.0.1:3306/lilishop?useUnicode=true&characterEncoding=utf-8&useSSL=false&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
         username: root
-        password: ${LILI_REDIS_PASSWORD:lilishop}
+        password: ${LILI_DB_PASSWORD:lilishop}
         maxActive: 50
         initialSize: 20
         maxWait: 60000

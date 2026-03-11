@@ -5,11 +5,24 @@
 set -e
 
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-JAR_FILE="$BASE_DIR/backend/framework/src/main/resources/maven-repository/SF-CSIM-EXPRESS-SDK-V2.1.7.jar"
+
+# Support both layouts:
+# - Repo root:        <root>/mvnw + <root>/framework/...
+# - Azure deployment: <root>/backend/mvnw + <root>/backend/framework/...
+if [ -f "$BASE_DIR/mvnw" ]; then
+    BACKEND_DIR="$BASE_DIR"
+elif [ -f "$BASE_DIR/backend/mvnw" ]; then
+    BACKEND_DIR="$BASE_DIR/backend"
+else
+    echo "❌ Error: mvnw not found in $BASE_DIR or $BASE_DIR/backend"
+    exit 1
+fi
+
+JAR_FILE="$BACKEND_DIR/framework/src/main/resources/maven-repository/SF-CSIM-EXPRESS-SDK-V2.1.7.jar"
 
 if [ -f "$JAR_FILE" ]; then
     echo "📦 Installing SF-CSIM-EXPRESS-SDK-V2.1.7.jar to local Maven repository..."
-    "$BASE_DIR/backend/mvnw" install:install-file \
+    "$BACKEND_DIR/mvnw" install:install-file \
         -Dfile="$JAR_FILE" \
         -DgroupId=com.qiyuesuo.sdk \
         -DartifactId=SDK \

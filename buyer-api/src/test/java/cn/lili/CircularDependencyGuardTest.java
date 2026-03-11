@@ -3,8 +3,12 @@ package cn.lili;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.redisson.api.RedissonClient;
+
+import java.lang.reflect.Proxy;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -24,15 +28,43 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
         // Avoid environment-coupled failures: this guard is about bean graph cycles.
         "spring.data.elasticsearch.repositories.enabled=false"
-}, classes = BuyerApiApplication.class)
+}, classes = {BuyerApiApplication.class, CircularDependencyGuardTest.TestOverrides.class})
 public class CircularDependencyGuardTest {
 
-    // Prevent context boot failures when Redis isn't available locally.
-    @MockBean(name = "redisson")
+    @Autowired
     private RedissonClient redissonClient;
 
     @Test
     public void contextLoads() {
         assertNotNull(redissonClient);
+    }
+
+    @TestConfiguration
+    static class TestOverrides {
+        /**
+         * Provide a lightweight RedissonClient stub so the context can boot even if Redis is not
+         * running locally. We avoid Mockito here because some JDK distributions restrict agent
+         * attachment, which can break @MockBean initialization.
+         */
+        @Bean(name = "redisson")
+        @Primary
+        RedissonClient redissonStub() {
+            return (RedissonClient) Proxy.newProxyInstance(
+                    RedissonClient.class.getClassLoader(),
+                    new Class<?>[]{RedissonClient.class},
+                    (proxy, method, args) -> {
+                        Class<?> returnType = method.getReturnType();
+                        if (returnType.equals(boolean.class)) return false;
+                        if (returnType.equals(byte.class)) return (byte) 0;
+                        if (returnType.equals(short.class)) return (short) 0;
+                        if (returnType.equals(int.class)) return 0;
+                        if (returnType.equals(long.class)) return 0L;
+                        if (returnType.equals(float.class)) return 0f;
+                        if (returnType.equals(double.class)) return 0d;
+                        if (returnType.equals(char.class)) return '\0';
+                        return null;
+                    }
+            );
+        }
     }
 }
