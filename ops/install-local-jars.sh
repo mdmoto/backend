@@ -5,11 +5,11 @@
 set -e
 
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-JAR_FILE="$BASE_DIR/framework/src/main/resources/maven-repository/SF-CSIM-EXPRESS-SDK-V2.1.7.jar"
+JAR_FILE="$BASE_DIR/backend/framework/src/main/resources/maven-repository/SF-CSIM-EXPRESS-SDK-V2.1.7.jar"
 
 if [ -f "$JAR_FILE" ]; then
     echo "📦 Installing SF-CSIM-EXPRESS-SDK-V2.1.7.jar to local Maven repository..."
-    mvn install:install-file \
+    "$BASE_DIR/backend/mvnw" install:install-file \
         -Dfile="$JAR_FILE" \
         -DgroupId=com.qiyuesuo.sdk \
         -DartifactId=SDK \
