@@ -26,7 +26,8 @@ import cn.lili.modules.order.cart.entity.vo.CartSkuVO;
 import cn.lili.modules.order.cart.entity.vo.CartVO;
 import cn.lili.modules.order.cart.render.CartRenderStep;
 import cn.lili.modules.order.order.entity.dos.Order;
-import cn.lili.modules.order.order.service.OrderService;
+import cn.lili.modules.order.order.mapper.OrderMapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import cn.lili.modules.promotion.entity.dos.Coupon;
 import cn.lili.modules.promotion.entity.dos.Pintuan;
 import cn.lili.modules.promotion.entity.dos.PointsGoods;
@@ -56,7 +57,7 @@ public class CheckDataRender implements CartRenderStep {
     private GoodsSkuService goodsSkuService;
 
     @Autowired
-    private OrderService orderService;
+    private OrderMapper orderMapper;
 
     @Autowired
     private MemberService memberService;
@@ -215,7 +216,7 @@ public class CheckDataRender implements CartRenderStep {
             //拼团判定，不能参与自己创建的拼团
             if (tradeDTO.getParentOrderSn() != null) {
                 //订单接收
-                Order parentOrder = orderService.getBySn(tradeDTO.getParentOrderSn());
+                Order parentOrder = orderMapper.selectOne(new LambdaQueryWrapper<Order>().eq(Order::getSn, tradeDTO.getParentOrderSn()));
                 //参与活动判定
                 if (parentOrder.getMemberId().equals(UserContext.getCurrentUser().getId())) {
                     throw new ServiceException(ResultCode.PINTUAN_JOIN_ERROR);

@@ -42,7 +42,7 @@ import cn.lili.modules.promotion.entity.dos.Coupon;
 import cn.lili.modules.promotion.entity.dos.PromotionGoods;
 import cn.lili.modules.promotion.entity.dto.search.PromotionGoodsSearchParams;
 import cn.lili.modules.promotion.entity.enums.CouponGetEnum;
-import cn.lili.modules.promotion.service.CouponService;
+import cn.lili.modules.promotion.mapper.CouponMapper;
 import cn.lili.modules.promotion.service.MemberCouponService;
 import cn.lili.modules.promotion.service.PromotionGoodsService;
 import cn.lili.modules.search.entity.dos.EsGoodsIndex;
@@ -64,6 +64,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -113,6 +114,7 @@ public class GoodsSkuServiceImpl extends ServiceImpl<GoodsSkuMapper, GoodsSku> i
     /**
      * 商品
      */
+    @Lazy
     @Autowired
     private GoodsService goodsService;
     /**
@@ -131,7 +133,7 @@ public class GoodsSkuServiceImpl extends ServiceImpl<GoodsSkuMapper, GoodsSku> i
     private WholesaleService wholesaleService;
 
     @Autowired
-    private CouponService couponService;
+    private CouponMapper couponMapper;
 
     @Autowired
     private List<SalesModelRender> salesModelRenders;
@@ -307,7 +309,7 @@ public class GoodsSkuServiceImpl extends ServiceImpl<GoodsSkuMapper, GoodsSku> i
                 JSONObject jsonObject = JSONUtil.parseObj(i.getValue());
                 if (i.getKey().contains(PromotionTypeEnum.COUPON.name()) && currentUser != null) {
                     Integer couponLimitNum = jsonObject.getInt("couponLimitNum");
-                    Coupon coupon = couponService.getById(jsonObject.getStr("id"));
+                    Coupon coupon = couponMapper.selectById(jsonObject.getStr("id"));
                     if (coupon == null || (coupon.getPublishNum() != 0 && coupon.getReceivedNum() >= coupon.getPublishNum())) {
                         return false;
                     }

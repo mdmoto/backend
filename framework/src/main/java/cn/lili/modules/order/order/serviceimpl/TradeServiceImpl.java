@@ -20,6 +20,7 @@ import cn.lili.modules.order.order.entity.dos.Order;
 import cn.lili.modules.order.order.entity.dos.Trade;
 import cn.lili.modules.order.order.entity.enums.PayStatusEnum;
 import cn.lili.modules.order.order.mapper.TradeMapper;
+import cn.lili.modules.order.order.mapper.OrderMapper;
 import cn.lili.modules.order.order.service.OrderService;
 import cn.lili.modules.order.order.service.TradeService;
 import cn.lili.modules.promotion.service.CouponService;
@@ -31,7 +32,6 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
@@ -53,12 +53,13 @@ public class TradeServiceImpl extends ServiceImpl<TradeMapper, Trade> implements
      */
     @Autowired
     private Cache<Object> cache;
+    @Autowired
+    private OrderService orderService;
     /**
      * 订单
      */
-    @Lazy
     @Autowired
-    private OrderService orderService;
+    private OrderMapper orderMapper;
     /**
      * 会员
      */
@@ -162,7 +163,7 @@ public class TradeServiceImpl extends ServiceImpl<TradeMapper, Trade> implements
     public void payTrade(String tradeSn, String paymentName, String receivableNo) {
         LambdaQueryWrapper<Order> orderQueryWrapper = new LambdaQueryWrapper<>();
         orderQueryWrapper.eq(Order::getTradeSn, tradeSn);
-        List<Order> orders = orderService.list(orderQueryWrapper);
+        List<Order> orders = orderMapper.selectList(orderQueryWrapper);
         for (Order order : orders) {
             orderService.payOrder(order.getSn(), paymentName, receivableNo);
         }

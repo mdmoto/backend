@@ -18,8 +18,8 @@ SKU_ID="${SMOKE_SKU_ID:-1772999003}"
 API_BASE="http://127.0.0.1:8888" # Direct to buyer-api
 # Safety Locks
 ALLOW_MUTATION="${SMOKE_ALLOW_DB_MUTATION:-0}"
-REDIS_PW="${LILI_REDIS_PASSWORD:-lilishop}"
-DB_PW="${LILI_DB_PASSWORD:-lilishop}"
+REDIS_PW="${LILI_REDIS_PASSWORD:-REQUIRED_OVERRIDE}"
+DB_PW="${LILI_DB_PASSWORD:-REQUIRED_OVERRIDE}"
 
 log() { echo "[$(date +'%H:%M:%S')] $*"; }
 error_exit() { log "ERROR: $*"; exit 1; }

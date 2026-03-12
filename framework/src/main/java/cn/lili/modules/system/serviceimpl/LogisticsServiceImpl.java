@@ -15,6 +15,7 @@ import cn.lili.modules.order.order.entity.dos.OrderItem;
 import cn.lili.modules.order.order.entity.enums.DeliverStatusEnum;
 import cn.lili.modules.order.order.entity.enums.OrderStatusEnum;
 import cn.lili.modules.order.order.entity.vo.OrderDetailVO;
+import cn.lili.modules.order.order.mapper.OrderMapper;
 import cn.lili.modules.order.order.service.OrderItemService;
 import cn.lili.modules.order.order.service.OrderService;
 import cn.lili.modules.store.entity.dos.StoreLogistics;
@@ -31,7 +32,7 @@ import cn.lili.modules.system.service.SettingService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import groovy.util.logging.Slf4j;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -50,7 +51,7 @@ public class LogisticsServiceImpl extends ServiceImpl<LogisticsMapper, Logistics
     @Autowired
     private LogisticsPluginFactory logisticsPluginFactory;
     @Autowired
-    private OrderService orderService;
+    private OrderMapper orderMapper;
     @Autowired
     private OrderItemService orderItemService;
     @Autowired
@@ -88,7 +89,7 @@ public class LogisticsServiceImpl extends ServiceImpl<LogisticsMapper, Logistics
         //获取设置
         LogisticsSetting logisticsSetting = this.getLogisticsSetting();
         //获取订单及子订单
-        Order order = OperationalJudgment.judgment(orderService.getBySn(orderSn));
+        Order order = OperationalJudgment.judgment(orderMapper.selectOne(new LambdaQueryWrapper<Order>().eq(Order::getSn, orderSn)));
         if ((LogisticsEnum.SHUNFENG.name().equals(logisticsSetting.getType()) && order.getDeliverStatus().equals(DeliverStatusEnum.DELIVERED.name()) && order.getOrderStatus().equals(OrderStatusEnum.DELIVERED.name()))
                 || (order.getDeliverStatus().equals(DeliverStatusEnum.UNDELIVERED.name()) && order.getOrderStatus().equals(OrderStatusEnum.UNDELIVERED.name()))) {
             //订单货物

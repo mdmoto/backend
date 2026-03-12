@@ -7,8 +7,9 @@ import cn.lili.modules.order.order.entity.dos.Order;
 import cn.lili.modules.order.order.entity.dos.Trade;
 import cn.lili.modules.order.order.entity.enums.OrderStatusEnum;
 import cn.lili.modules.order.order.entity.enums.PayStatusEnum;
-import cn.lili.modules.order.order.service.OrderService;
+import cn.lili.modules.order.order.mapper.OrderMapper;
 import cn.lili.modules.order.order.service.TradeService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import cn.lili.modules.payment.kit.dto.PayParam;
 import cn.lili.modules.payment.kit.dto.PaymentSuccessParams;
 import cn.lili.modules.payment.entity.enums.CashierEnum;
@@ -43,7 +44,7 @@ public class TradeCashier implements CashierExecute {
      * 订单
      */
     @Autowired
-    private OrderService orderService;
+    private OrderMapper orderMapper;
     /**
      * 设置
      */
@@ -64,7 +65,7 @@ public class TradeCashier implements CashierExecute {
             //订单信息获取
             Trade trade = tradeService.getBySn(payParam.getSn());
 
-            List<Order> orders = orderService.getByTradeSn(payParam.getSn());
+            List<Order> orders = orderMapper.selectList(new LambdaQueryWrapper<Order>().eq(Order::getTradeSn, payParam.getSn()));
 
 
             String orderSns = orders.stream().map(Order::getSn).collect(Collectors.joining(", "));

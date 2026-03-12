@@ -16,7 +16,7 @@ import cn.lili.modules.promotion.entity.enums.PromotionsScopeTypeEnum;
 import cn.lili.modules.promotion.entity.enums.PromotionsStatusEnum;
 import cn.lili.modules.promotion.entity.vos.MemberCouponVO;
 import cn.lili.modules.promotion.mapper.MemberCouponMapper;
-import cn.lili.modules.promotion.service.CouponService;
+import cn.lili.modules.promotion.mapper.CouponMapper;
 import cn.lili.modules.promotion.service.MemberCouponService;
 import cn.lili.modules.promotion.tools.PromotionTools;
 import cn.lili.mybatis.util.PageUtil;
@@ -50,7 +50,7 @@ public class MemberCouponServiceImpl extends ServiceImpl<MemberCouponMapper, Mem
      * 优惠券
      */
     @Autowired
-    private CouponService couponService;
+    private CouponMapper couponMapper;
 
     /**
      * 缓存
@@ -60,7 +60,7 @@ public class MemberCouponServiceImpl extends ServiceImpl<MemberCouponMapper, Mem
 
     @Override
     public void checkCouponLimit(String couponId, String memberId) {
-        Coupon coupon = couponService.getById(couponId);
+        Coupon coupon = couponMapper.selectById(couponId);
         LambdaQueryWrapper<MemberCoupon> queryWrapper = new LambdaQueryWrapper<MemberCoupon>()
                 .eq(MemberCoupon::getCouponId, couponId)
                 .eq(MemberCoupon::getMemberId, memberId);
@@ -87,7 +87,7 @@ public class MemberCouponServiceImpl extends ServiceImpl<MemberCouponMapper, Mem
     @CacheEvict(key = "#memberId")
     @Transactional(rollbackFor = Exception.class)
     public void receiveBuyerCoupon(String couponId, String memberId, String memberName) {
-        Coupon coupon = couponService.getById(couponId);
+        Coupon coupon = couponMapper.selectById(couponId);
         if (coupon != null && !CouponGetEnum.FREE.name().equals(coupon.getGetType())) {
             throw new ServiceException(ResultCode.COUPON_DO_NOT_RECEIVER);
         } else if (coupon != null) {
@@ -100,7 +100,7 @@ public class MemberCouponServiceImpl extends ServiceImpl<MemberCouponMapper, Mem
     @CacheEvict(key = "#memberId")
     @Transactional(rollbackFor = Exception.class)
     public void receiveCoupon(String couponId, String memberId, String memberName) {
-        Coupon coupon = couponService.getById(couponId);
+        Coupon coupon = couponMapper.selectById(couponId);
         if (coupon != null) {
             this.receiverCoupon(couponId, memberId, memberName, coupon);
         } else {
@@ -360,6 +360,7 @@ public class MemberCouponServiceImpl extends ServiceImpl<MemberCouponMapper, Mem
         memberCoupon.setMemberCouponStatus(MemberCouponStatusEnum.NEW.name());
         memberCoupon.setPlatformFlag((PromotionTools.PLATFORM_ID).equals(coupon.getStoreId()));
         this.save(memberCoupon);
-        couponService.receiveCoupon(couponId, 1);
+        couponMapper.update(null, new LambdaUpdateWrapper<Coupon>().eq(Coupon::getId, couponId).set(Coupon::getReceivedNum,
+                coupon.getReceivedNum() + 1));
     }
 }

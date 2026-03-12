@@ -15,7 +15,7 @@ import cn.lili.modules.member.entity.dto.ConnectQueryDTO;
 import cn.lili.modules.order.order.entity.dos.Order;
 import cn.lili.modules.order.order.entity.dos.OrderItem;
 import cn.lili.modules.order.order.service.OrderItemService;
-import cn.lili.modules.order.order.service.OrderService;
+import cn.lili.modules.order.order.mapper.OrderMapper;
 import cn.lili.modules.wechat.entity.dos.WechatMPMessage;
 import cn.lili.modules.wechat.entity.dos.WechatMessage;
 import cn.lili.modules.wechat.entity.enums.WechatMessageItemEnums;
@@ -42,7 +42,7 @@ public class WechatMessageUtil {
     @Autowired
     private ConnectService connectService;
     @Autowired
-    private OrderService orderService;
+    private OrderMapper orderMapper;
     @Autowired
     private OrderItemService orderItemService;
     @Autowired
@@ -74,7 +74,7 @@ public class WechatMessageUtil {
      */
     public void wechatMessage(String sn) {
 
-        Order order = orderService.getBySn(sn);
+        Order order = orderMapper.selectOne(new LambdaQueryWrapper<Order>().eq(Order::getSn, sn));
         if (order == null) {
             throw new ServiceException("订单" + sn + "不存在，发送微信公众号消息错误");
         }
@@ -137,7 +137,7 @@ public class WechatMessageUtil {
     public void wechatMpMessage(String sn) {
 
         log.info("发送消息订阅");
-        Order order = orderService.getBySn(sn);
+        Order order = orderMapper.selectOne(new LambdaQueryWrapper<Order>().eq(Order::getSn, sn));
         if (order == null) {
             throw new ServiceException("订单" + sn + "不存在，发送订阅消息错误");
         }

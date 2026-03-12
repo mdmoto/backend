@@ -14,31 +14,52 @@ echo "📄 [CI] Log: $LOG_FILE"
 echo "📁 [CI] Project root: $PROJECT_ROOT"
 
 # Load Environment Variables for Tests
-ENV_FILE="$PROJECT_ROOT/backend/.env"
+ENV_FILE="$PROJECT_ROOT/.env"
 if [ -f "$ENV_FILE" ]; then
     echo "🔐 [CI] Loading environment variables from .env..."
     # Export variables from .env (ignoring comments and empty lines)
     export $(grep -v '^#' "$ENV_FILE" | xargs)
 else
-    echo "⚠️ [CI] No .env file found in $PROJECT_ROOT/backend/. No environment variables loaded."
+    echo "⚠️ [CI] No .env file found in $PROJECT_ROOT/. No environment variables loaded."
 fi
 
 # Install local JARs if required (e.g. systemPath replacement for vendor SDKs)
 if [ -x "$PROJECT_ROOT/ops/install-local-jars.sh" ]; then
     echo "📦 [CI] Installing local JAR dependencies..."
     bash "$PROJECT_ROOT/ops/install-local-jars.sh"
-elif [ -x "$PROJECT_ROOT/backend/ops/install-local-jars.sh" ]; then
+elif [ -x "$PROJECT_ROOT/ops/install-local-jars.sh" ]; then
     echo "📦 [CI] Installing local JAR dependencies..."
-    bash "$PROJECT_ROOT/backend/ops/install-local-jars.sh"
+    bash "$PROJECT_ROOT/ops/install-local-jars.sh"
 else
     echo "ℹ️ [CI] No install-local-jars.sh found; skipping local JAR installation."
 fi
 
+# 0.1 REQUIRED_OVERRIDE Intercept (Security Gatekeeper)
+echo "🛡️ [CI] 0.1: Ensuring all critical secrets are provided (no REQUIRED_OVERRIDE leaks)..."
+# This intercept ensures that if a config uses :REQUIRED_OVERRIDE, it MUST be overridden in the environment.
+CRITICAL_VARS=("LILI_DB_PASSWORD" "LILI_REDIS_PASSWORD" "LILI_JASYPT_PASSWORD")
+for var in "${CRITICAL_VARS[@]}"; do
+    val="${!var:-}"
+    if [ "$val" == "REQUIRED_OVERRIDE" ]; then
+        echo "🚨 [SECURITY BLOCK] Environment variable $var is set to literal 'REQUIRED_OVERRIDE'!"
+        exit 8
+    fi
+    
+    if [ -z "$val" ]; then
+        # grep recursively in config and deploy dirs
+        if grep -rq "\${$var:REQUIRED_OVERRIDE}" "$PROJECT_ROOT" --include="application.yml" --include="deploy-api.yml" --exclude-dir=.git; then
+            echo "🚨 [SECURITY BLOCK] $var is missing in environment but has a REQUIRED_OVERRIDE default in config!"
+            exit 8
+        fi
+    fi
+done
+echo "✅ [CI] Secret placeholder check passed."
+
 
 # 0. Pre-build Regression Check (P1-2)
 echo "🔍 [CI] Checking for flattened test files (duplicate class prevention)..."
-BAD1=$(find "$PROJECT_ROOT/backend/manager-api/src/test/java/cn/lili/test" -maxdepth 1 -type f -name "*.java" -print || true)
-BAD2=$(find "$PROJECT_ROOT/backend/consumer/src/test/java/cn/lili/buyer/test" -maxdepth 1 -type f -name "*.java" -print || true)
+BAD1=$(find "$PROJECT_ROOT/manager-api/src/test/java/cn/lili/test" -maxdepth 1 -type f -name "*.java" -print || true)
+BAD2=$(find "$PROJECT_ROOT/consumer/src/test/java/cn/lili/buyer/test" -maxdepth 1 -type f -name "*.java" -print || true)
 
 if [ -n "${BAD1}${BAD2}" ]; then
   echo "❌ [P1 BLOCK] Found flattened test files (will cause duplicate class):"
@@ -51,11 +72,11 @@ echo "✅ [CI] No flattened test files found."
 # 0.2 Circular Dependency Prevention Check
 echo "🔍 [CI] Checking for allow-circular-references=false (P1 Guard)..."
 # Check application.yml
-if grep -q "allow-circular-references: true" "$PROJECT_ROOT/backend/config/application.yml"; then
+if grep -q "allow-circular-references: true" "$PROJECT_ROOT/config/application.yml"; then
   echo "❌ [P1 BLOCK] Circular references are explicitly enabled in application.yml!"
   exit 5
 fi
-if ! grep -q "allow-circular-references: false" "$PROJECT_ROOT/backend/config/application.yml"; then
+if ! grep -q "allow-circular-references: false" "$PROJECT_ROOT/config/application.yml"; then
   echo "❌ [P1 BLOCK] Circular references are not disabled in application.yml!"
   exit 5
 fi
@@ -72,15 +93,15 @@ echo "✅ [CI] Circular reference config check passed."
 
 # 0.3 Circular Dependency Runtime Guard Test
 echo "🔍 [CI] Running CircularDependencyGuardTest..."
-if [ -d "$PROJECT_ROOT/backend" ] && [ -f "$PROJECT_ROOT/backend/mvnw" ]; then
-    (cd "$PROJECT_ROOT/backend" && ./mvnw -B -pl buyer-api -am -Dtest=CircularDependencyGuardTest,TradeBuilderRegressionTest -Dsurefire.failIfNoSpecifiedTests=false test)
-    echo "✅ [CI] CircularDependencyGuardTest passed."
+if [ -d "$PROJECT_ROOT" ] && [ -f "$PROJECT_ROOT/mvnw" ]; then
+    (cd "$PROJECT_ROOT" && ./mvnw -B -pl buyer-api -am -Dtest=CircularDependencyGuardTest,TradeBuilderRegressionTest -Dsurefire.failIfNoSpecifiedTests=false test)
+    echo "✅ [CI] Engineering Quality guards passed (Circular + Trade)."
 else
     echo "⏭️ [CI] Skipping runtime guard test (backend or mvnw not found)."
 fi
 # 1. Backend Build & Test
 echo "🏗️ [CI] 1/3: Building Backend & Running Tests (mvn test)..."
-BACKEND_PATH="$PROJECT_ROOT/backend"
+BACKEND_PATH="$PROJECT_ROOT"
 
 if [ -d "$BACKEND_PATH" ]; then
     # Ensure middleware is up before SpringBootTest tries to connect.
@@ -161,7 +182,7 @@ fi
 
 # 3. Running Service Smoke Test
 echo "🚦 [CI] 3/3: Running Health Check Smoke Test..."
-# Ports 8888 (buyer), 8889 (seller), 8890 (manager), 8891 (common), 8892 (consumer)
+SERVICES=("lili-buyer-api" "lili-seller-api" "lili-manager-api" "lili-common-api" "lili-consumer")
 HEALTH_URLS=(
     "http://127.0.0.1:8888/actuator/health"
     "http://127.0.0.1:8889/actuator/health"
@@ -187,6 +208,25 @@ for url in "${HEALTH_URLS[@]}"; do
         exit 1
     fi
 done
+
+# 3.3 Startup Log Noise Check (Boot 3 Gatekeeper)
+echo "🔍 [CI] 3.3: Scanning startup logs for ERROR/alarms..."
+# Look for critical keywords in the last 5 minutes of systemd logs
+# Exclude known benign warnings (e.g., BeanPostProcessor eligiblity warnings)
+BENIGN_WARNINGS="eligible for getting processed by all BeanPostProcessors"
+for svc in "${SERVICES[@]}"; do
+    LOG_NOISE=$(sudo journalctl -u "$svc" --since "5 minutes ago" | grep -Ei "error|exception|stacktrace|fallback" | grep -vEi "$BENIGN_WARNINGS" || true)
+    if [ -n "$LOG_NOISE" ]; then
+        echo "❌ [LOG NOISE] Critical errors detected in $svc startup logs:"
+        echo "$LOG_NOISE" | tail -n 20
+        # If we find "ERROR" or "Exception" that isn't handled, fail the pipeline
+        if echo "$LOG_NOISE" | grep -Ei "ERROR|Exception" >/dev/null; then
+           echo "🚨 [CI BLOCK] Pipeline failed due to critical log noise in $svc."
+           exit 7
+        fi
+    fi
+done
+echo "✅ [CI] Startup log audit passed."
 
 # 3.2 Transactional Smoke Test (Optional)
 if [ "${RUN_WRITE_SMOKE:-0}" -eq 1 ]; then
@@ -234,12 +274,14 @@ echo "✅ [CI] Port exposure check passed."
 # 4.2 Local Secret Scan (PROD BLOCKER)
 echo "🔍 [CI] Checking for potential hardcoded secrets..."
 # Matches 'password:' followed by spaces and a character that is NOT '$' or space at line start
-SECRET_ERROR=$(grep -rEi '^[[:space:]]*(password|token|secret):[[:space:]]*[^[:space:]$]' "$PROJECT_ROOT/backend/" --include="*.yml" --exclude-dir=.git || true)
+SECRET_ERROR=$(grep -rEi '^[[:space:]]*(password|token|secret):[[:space:]]*[^[:space:]$]' "$PROJECT_ROOT/" --include="*.yml" --exclude-dir=.git || true)
 if [ -n "$SECRET_ERROR" ]; then
     echo "❌ [SECURITY ALERT] Found plaintext secrets in production config!"
     echo "$SECRET_ERROR"
     exit 4
 fi
+
+# 4.3 REQUIRED_OVERRIDE intercept (DEPRECATED: Moved to step 0.1)
 echo "✅ [CI] Secret scan passed (All secrets are placeholders)."
 
 # 5. External Domain/SSL Check

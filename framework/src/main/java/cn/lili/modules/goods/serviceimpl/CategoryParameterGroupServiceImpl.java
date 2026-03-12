@@ -9,8 +9,8 @@ import cn.lili.modules.goods.entity.dos.Parameters;
 import cn.lili.modules.goods.entity.dto.GoodsParamsDTO;
 import cn.lili.modules.goods.entity.vos.ParameterGroupVO;
 import cn.lili.modules.goods.mapper.CategoryParameterGroupMapper;
+import cn.lili.modules.goods.mapper.GoodsMapper;
 import cn.lili.modules.goods.service.CategoryParameterGroupService;
-import cn.lili.modules.goods.service.GoodsService;
 import cn.lili.modules.goods.service.ParametersService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -44,9 +44,11 @@ public class CategoryParameterGroupServiceImpl extends ServiceImpl<CategoryParam
     @Autowired
     private ParametersService parametersService;
 
-    @Lazy
+    /**
+     * 商品
+     */
     @Autowired
-    private GoodsService goodsService;
+    private GoodsMapper goodsMapper;
 
     @Override
     public List<ParameterGroupVO> getCategoryParams(String categoryId) {
@@ -79,7 +81,7 @@ public class CategoryParameterGroupServiceImpl extends ServiceImpl<CategoryParam
         LambdaQueryWrapper<Goods> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.select(Goods::getId, Goods::getParams);
         queryWrapper.like(Goods::getParams, origin.getId());
-        List<Map<String, Object>> goodsList = this.goodsService.listMaps(queryWrapper);
+        List<Map<String, Object>> goodsList = this.goodsMapper.selectMaps(queryWrapper);
 
         for (Map<String, Object> goods : goodsList) {
             String params = (String) goods.get("params");
@@ -90,7 +92,9 @@ public class CategoryParameterGroupServiceImpl extends ServiceImpl<CategoryParam
             for (GoodsParamsDTO goodsParamsDTO : goodsParamsDTOList) {
                 goodsParamsDTO.setGroupName(categoryParameterGroup.getGroupName());
             }
-            this.goodsService.updateGoodsParams(goods.get("id").toString(), JSONUtil.toJsonStr(goodsParamsDTOS));
+            this.goodsMapper.update(null, new LambdaUpdateWrapper<Goods>()
+                    .eq(Goods::getId, goods.get("id").toString())
+                    .set(Goods::getParams, JSONUtil.toJsonStr(goodsParamsDTOS)));
         }
 
         return this.updateById(categoryParameterGroup);

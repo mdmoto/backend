@@ -33,9 +33,6 @@ import java.util.Objects;
 @Transactional(rollbackFor = Exception.class)
 public class ImMessageServiceImpl extends ServiceImpl<ImMessageMapper, ImMessage> implements ImMessageService {
 
-    @Lazy
-    @Autowired
-    private ImTalkService imTalkService;
 
     @Override
     public void read(String talkId, String accessToken) {

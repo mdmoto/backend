@@ -11,6 +11,7 @@ import cn.lili.modules.store.entity.dos.Bill;
 import cn.lili.modules.store.entity.dto.BillSearchParams;
 import cn.lili.modules.store.entity.vos.BillListVO;
 import cn.lili.modules.store.service.BillService;
+import cn.lili.modules.order.order.entity.dto.StoreFlowQueryDTO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
@@ -58,7 +59,8 @@ public class BillManagerController {
     })
     @GetMapping(value = "/{id}/getStoreFlow")
     public ResultMessage<IPage<StoreFlow>> getStoreFlow(@PathVariable String id, String flowType, PageVO pageVO) {
-        return ResultUtil.data(storeFlowService.getStoreFlow(id, flowType, pageVO));
+        Bill bill = billService.getById(id);
+        return ResultUtil.data(storeFlowService.getStoreFlow(StoreFlowQueryDTO.builder().type(flowType).pageVO(pageVO).bill(bill).build()));
     }
 
     @ApiOperation(value = "支付结算单")

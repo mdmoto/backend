@@ -15,6 +15,9 @@ This checklist defines the "Definition of Done" (DoD) for all pull requests and 
 - [ ] **⚡ Transactional Integrity**: Run `RUN_WRITE_SMOKE=1 bash verify-pipeline.sh`.
     - [ ] Order creation & cancellation flows are SUCCESSFUL.
     - [ ] Smoke DB cleanup is verified.
+- [ ] **🛡️ Circular Dependency Guard**: Runtime check `CircularDependencyGuardTest` passes.
+    - [ ] `allow-circular-references: false` is preserved.
+    - [ ] No new `@Lazy` required unless documented.
 
 ## 📄 Documentation Requirements
 - [ ] **Impact Assessment**: Note any changes to `application.yml` or database DDL.
@@ -29,6 +32,8 @@ This checklist defines the "Definition of Done" (DoD) for all pull requests and 
 ## 🚀 Deployment Gate
 > [!IMPORTANT]
 > The final `ops/deploy-gatekeeper.sh` script on the Azure production cluster MUST be executed and return SUCCESS before the "Merge" button is pressed.
+- [ ] **🏷️ Release Tagging**: Tagged version `vX.X.X` (or task-specific tag) pushed to origin.
+- [ ] **📄 Release Note**: Standard Release Note generated in `ops/release-notes-YYYYMMDD.md`.
 
 ---
 *Created by Maollar Engineering Governance - 2026-03-07*

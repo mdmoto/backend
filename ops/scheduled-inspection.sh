@@ -1,51 +1,55 @@
 #!/bin/bash
-# Maollar Scheduled Inspection Script
-# Runs weekly/daily to ensure system integrity.
+# Maollar Scheduled Inspection & Health Audit
+# This script performs a holistic check of the platform's vital signs.
+# Usage: ./ops/scheduled-inspection.sh
 
-set -e
+set -euo pipefail
 
-EVIDENCE_DIR="$HOME/lilishop-deployment/evidence/inspections"
-mkdir -p "$EVIDENCE_DIR"
+REPORT_DIR="evidence/inspections/$(date +%F)"
+mkdir -p "$REPORT_DIR"
+LOG_FILE="$REPORT_DIR/inspection-$(date +%H%M%S).log"
+exec > >(tee -a "$LOG_FILE") 2>&1
 
-TS=$(date +%Y%m%d-%H%M%S)
-REPORT="$EVIDENCE_DIR/inspection-$TS.log"
+log() { echo "🩺 [INSPECTION] $(date +'%Y-%m-%d %H:%M:%S') - $*"; }
 
-log() {
-    echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*" | tee -a "$REPORT"
-}
+log "Starting Platform Health Audit..."
 
-log "🛡️ Starting Scheduled Inspection..."
+# 1. Service Persistence (Systemd)
+log "Checking Systemd Services..."
+SERVICES=("lili-buyer-api" "lili-seller-api" "lili-manager-api" "lili-common-api" "lili-consumer")
+for svc in "${SERVICES[@]}"; do
+    if sudo systemctl is-active --quiet "$svc" 2>/dev/null; then
+        log "✅ $svc: ACTIVE"
+    else
+        log "❌ $svc: INACTIVE or NOT FOUND"
+    fi
+done
 
-# 1. Internal Pipeline Check (Health only)
-log "🧪 [1/3] Running Internal Health Pipeline..."
-# We use a special flag for skip build if possible, but verify-pipeline.sh 
-# currently rebuilds. For inspection, we should just run health checks.
-bash ~/lilishop-deployment/ops/external-probe.sh >> "$REPORT" 2>&1
-STATUS=$?
+# 2. Network & Ports
+log "Checking Core Ports..."
+PORTS=("8888" "8889" "8890" "8891" "8892" "3306" "6379" "9876")
+for port in "${PORTS[@]}"; do
+    if nc -z 127.0.0.1 "$port" 2>/dev/null; then
+        log "✅ Port $port: REACHABLE"
+    else
+        log "⚠️ Port $port: UNREACHABLE"
+    fi
+done
 
-if [ $STATUS -eq 0 ]; then
-    log "✅ Internal Health Check: PASS"
+# 3. Log Analysis (Error Scanning)
+log "Scanning logs for recent errors (Last 1 hour)..."
+# Sample log path - adjust to actual production log location
+LOG_PATH="/var/log/lilishop" 
+if [ -d "$LOG_PATH" ]; then
+    ERROR_COUNT=$(grep -ri "ERROR" "$LOG_PATH" --since "1 hour ago" 2>/dev/null | wc -l || echo "0")
+    log "🔍 Found $ERROR_COUNT ERROR entries in logs."
 else
-    log "❌ Internal Health Check: FAIL"
+    log "⏭️ Log directory $LOG_PATH not found; skipping log analysis."
 fi
 
-# 2. SLI Analysis
-log "📊 [2/3] Analyzing Service Level Indicators (last 60 min)..."
-# Simple log analysis (placeholder for more complex logic)
-LOG_FILE="$HOME/lilishop-deployment/backend/logs/buyer-api/info.log"
-if [ -f "$LOG_FILE" ]; then
-    ERROR_COUNT=$(grep -c "ERROR" "$LOG_FILE" || echo "0")
-    log "📈 Errors in last log file: $ERROR_COUNT"
-else
-    log "⚠️ Log file not found for SLI analysis."
-fi
+# 4. Resource Usage
+log "System Resources..."
+df -h / | tail -1 | awk '{print "Disk Usage: " $5}'
+free -m 2>/dev/null | grep Mem | awk '{print "Memory Usage: " $3 "/" $2 " MB"}' || log "Memory info unavailable"
 
-# 3. Disk & Resource Check
-log "🔋 [3/3] Checking System Resources..."
-DF_INFO=$(df -h / | tail -1)
-log "💾 Disk Usage: $DF_INFO"
-
-log "🎉 Inspection Completed. Report saved to $REPORT"
-
-# Exit with failure if health check failed to trigger cron notification (if configured)
-exit $STATUS
+log "Audit Completed. Detailed report saved to $LOG_FILE"

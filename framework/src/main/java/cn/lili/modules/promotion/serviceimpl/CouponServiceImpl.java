@@ -32,7 +32,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,7 +53,6 @@ public class CouponServiceImpl extends AbstractPromotionsServiceImpl<CouponMappe
     /**
      * 规格商品
      */
-    @Lazy
     @Autowired
     private GoodsSkuService goodsSkuService;
     /**
@@ -65,13 +63,11 @@ public class CouponServiceImpl extends AbstractPromotionsServiceImpl<CouponMappe
     /**
      * 会员优惠券
      */
-    @Lazy
     @Autowired
     private MemberCouponService memberCouponService;
     /**
      * 满额活动
      */
-    @Lazy
     @Autowired
     private FullDiscountService fullDiscountService;
     /**

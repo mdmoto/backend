@@ -12,7 +12,7 @@ import cn.lili.modules.promotion.entity.dto.search.PromotionGoodsSearchParams;
 import cn.lili.modules.promotion.entity.enums.PromotionsScopeTypeEnum;
 import cn.lili.modules.promotion.entity.enums.PromotionsStatusEnum;
 import cn.lili.modules.promotion.mapper.FullDiscountMapper;
-import cn.lili.modules.promotion.service.CouponService;
+import cn.lili.modules.promotion.mapper.CouponMapper;
 import cn.lili.modules.promotion.service.FullDiscountService;
 import cn.lili.modules.promotion.service.PromotionGoodsService;
 import cn.lili.modules.promotion.tools.PromotionTools;
@@ -38,7 +38,7 @@ public class FullDiscountServiceImpl extends AbstractPromotionsServiceImpl<FullD
      * 优惠券
      */
     @Autowired
-    private CouponService couponService;
+    private CouponMapper couponMapper;
     /**
      * 促销商品
      */
@@ -206,7 +206,7 @@ public class FullDiscountServiceImpl extends AbstractPromotionsServiceImpl<FullD
         if (noCouponSelected) {
             throw new ServiceException(ResultCode.COUPON_NOT_EXIST);
         }
-        Coupon coupon = this.couponService.getById(couponId);
+        Coupon coupon = this.couponMapper.selectById(couponId);
         if (coupon == null) {
             throw new ServiceException(ResultCode.COUPON_NOT_EXIST);
         }

@@ -9,11 +9,12 @@ import cn.lili.modules.goods.entity.dos.Goods;
 import cn.lili.modules.goods.entity.dos.Parameters;
 import cn.lili.modules.goods.entity.dto.GoodsParamsDTO;
 import cn.lili.modules.goods.entity.dto.GoodsParamsItemDTO;
+import cn.lili.modules.goods.mapper.GoodsMapper;
 import cn.lili.modules.goods.mapper.ParametersMapper;
-import cn.lili.modules.goods.service.GoodsService;
 import cn.lili.modules.goods.service.ParametersService;
 import cn.lili.rocketmq.RocketmqSendCallbackBuilder;
 import cn.lili.rocketmq.tags.GoodsTagsEnum;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
@@ -36,9 +37,8 @@ import java.util.stream.Collectors;
 @Service
 public class ParametersServiceImpl extends ServiceImpl<ParametersMapper, Parameters> implements ParametersService {
 
-    @Lazy
     @Autowired
-    private GoodsService goodsService;
+    private GoodsMapper goodsMapper;
 
     @Autowired
     private RocketmqCustomProperties rocketmqCustomProperties;
@@ -64,7 +64,7 @@ public class ParametersServiceImpl extends ServiceImpl<ParametersMapper, Paramet
         LambdaQueryWrapper<Goods> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.select(Goods::getId, Goods::getParams);
         queryWrapper.like(Goods::getParams, parameters.getGroupId());
-        List<Map<String, Object>> goodsList = this.goodsService.listMaps(queryWrapper);
+        List<Map<String, Object>> goodsList = this.goodsMapper.selectMaps(queryWrapper);
 
         if (!goodsList.isEmpty()) {
             for (Map<String, Object> goods : goodsList) {
@@ -74,7 +74,9 @@ public class ParametersServiceImpl extends ServiceImpl<ParametersMapper, Paramet
                         .filter(i -> i.getGroupId() != null && i.getGroupId().equals(parameters.getGroupId()))
                         .collect(Collectors.toList());
                 this.setGoodsItemDTOList(goodsParamsDTOList, parameters);
-                this.goodsService.updateGoodsParams(goods.get("id").toString(), JSONUtil.toJsonStr(goodsParamsDTOS));
+                this.goodsMapper.update(null, new LambdaUpdateWrapper<Goods>()
+                        .eq(Goods::getId, goods.get("id").toString())
+                        .set(Goods::getParams, JSONUtil.toJsonStr(goodsParamsDTOS)));
                 goodsIds.add(goods.get("id").toString());
             }
 

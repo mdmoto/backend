@@ -8,6 +8,7 @@ import cn.lili.common.vo.PageVO;
 import cn.lili.common.vo.ResultMessage;
 import cn.lili.modules.order.order.entity.dos.StoreFlow;
 import cn.lili.modules.order.order.service.StoreFlowService;
+import cn.lili.modules.order.order.entity.dto.StoreFlowQueryDTO;
 import cn.lili.modules.store.entity.dos.Bill;
 import cn.lili.modules.store.entity.dto.BillSearchParams;
 import cn.lili.modules.store.entity.vos.BillListVO;
@@ -62,8 +63,8 @@ public class BillStoreController {
     })
     @GetMapping(value = "/{id}/getStoreFlow")
     public ResultMessage<IPage<StoreFlow>> getStoreFlow(@PathVariable String id, String flowType, PageVO pageVO) {
-        OperationalJudgment.judgment(billService.getById(id));
-        return ResultUtil.data(storeFlowService.getStoreFlow(id, flowType, pageVO));
+        Bill bill = billService.getById(id);
+        return ResultUtil.data(storeFlowService.getStoreFlow(StoreFlowQueryDTO.builder().type(flowType).pageVO(pageVO).bill(bill).build()));
     }
 
     @ApiOperation(value = "获取商家分销订单流水分页")
@@ -72,8 +73,8 @@ public class BillStoreController {
     })
     @GetMapping(value = "/{id}/getDistributionFlow")
     public ResultMessage<IPage<StoreFlow>> getDistributionFlow(@PathVariable String id, PageVO pageVO) {
-        OperationalJudgment.judgment(billService.getById(id));
-        return ResultUtil.data(storeFlowService.getDistributionFlow(id, pageVO));
+        Bill bill = billService.getById(id);
+        return ResultUtil.data(storeFlowService.getStoreFlow(StoreFlowQueryDTO.builder().pageVO(pageVO).bill(bill).build()));
     }
 
     @ApiOperation(value = "核对结算单")

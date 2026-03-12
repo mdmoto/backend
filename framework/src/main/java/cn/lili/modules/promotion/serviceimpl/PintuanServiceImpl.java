@@ -13,6 +13,7 @@ import cn.lili.modules.order.order.entity.dos.Order;
 import cn.lili.modules.order.order.entity.dto.OrderSearchParams;
 import cn.lili.modules.order.order.entity.enums.OrderStatusEnum;
 import cn.lili.modules.order.order.entity.enums.PayStatusEnum;
+import cn.lili.modules.order.order.mapper.OrderMapper;
 import cn.lili.modules.order.order.service.OrderService;
 import cn.lili.modules.promotion.entity.dos.Pintuan;
 import cn.lili.modules.promotion.entity.dos.PromotionGoods;
@@ -31,6 +32,9 @@ import cn.lili.trigger.interfaces.TimeTrigger;
 import cn.lili.trigger.model.TimeExecuteConstant;
 import cn.lili.trigger.model.TimeTriggerMsg;
 import cn.lili.trigger.util.DelayQueueTools;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -64,8 +68,14 @@ public class PintuanServiceImpl extends AbstractPromotionsServiceImpl<PintuanMap
     /**
      * 订单
      */
+    @Lazy
     @Autowired
     private OrderService orderService;
+    /**
+     * 订单
+     */
+    @Autowired
+    private OrderMapper orderMapper;
 
     /**
      * 延时任务
@@ -99,7 +109,10 @@ public class PintuanServiceImpl extends AbstractPromotionsServiceImpl<PintuanMap
         searchParams.setOrderPromotionType(PromotionTypeEnum.PINTUAN.name());
         searchParams.setParentOrderSn("");
         searchParams.setMemberId("");
-        List<Order> orders = orderService.queryListByParams(searchParams);
+        QueryWrapper<Order> queryWrapper = searchParams.queryWrapper();
+        queryWrapper.groupBy("o.id");
+        queryWrapper.orderByDesc("o.id");
+        List<Order> orders = orderMapper.queryListByParams(queryWrapper);
         //遍历订单状态为已支付，为团长的拼团订单
         for (Order order : orders) {
             Member member = memberService.getById(order.getMemberId());
@@ -146,11 +159,20 @@ public class PintuanServiceImpl extends AbstractPromotionsServiceImpl<PintuanMap
         PintuanShareVO pintuanShareVO = new PintuanShareVO();
         pintuanShareVO.setPintuanMemberVOS(new ArrayList<>());
         //查找团长订单和已和当前拼团订单拼团的订单
-        List<Order> orders = orderService.queryListByPromotion(PromotionTypeEnum.PINTUAN.name(), PayStatusEnum.PAID.name(), parentOrderSn, parentOrderSn);
+        LambdaQueryWrapper<Order> queryWrapper = new LambdaQueryWrapper<>();
+        // 查找团长订单和已和当前拼团订单拼团的订单
+        queryWrapper.eq(Order::getOrderPromotionType, PromotionTypeEnum.PINTUAN.name())
+                .eq(Order::getPayStatus, PayStatusEnum.PAID.name())
+                .and(i -> i.eq(Order::getParentOrderSn, parentOrderSn).or(j -> j.eq(Order::getSn, parentOrderSn)));
+        List<Order> orders = orderMapper.selectList(queryWrapper);
         this.setPintuanOrderInfo(orders, pintuanShareVO, skuId);
         //如果为根据团员订单sn查询拼团订单信息时，找到团长订单sn，然后找到所有参与到同一拼团的订单信息
         if (!orders.isEmpty() && pintuanShareVO.getPromotionGoods() == null) {
-            List<Order> parentOrders = orderService.queryListByPromotion(PromotionTypeEnum.PINTUAN.name(), PayStatusEnum.PAID.name(), orders.get(0).getParentOrderSn(), orders.get(0).getParentOrderSn());
+            LambdaQueryWrapper<Order> parentQueryWrapper = new LambdaQueryWrapper<>();
+            parentQueryWrapper.eq(Order::getOrderPromotionType, PromotionTypeEnum.PINTUAN.name())
+                    .eq(Order::getPayStatus, PayStatusEnum.PAID.name())
+                    .and(i -> i.eq(Order::getParentOrderSn, orders.get(0).getParentOrderSn()).or(j -> j.eq(Order::getSn, orders.get(0).getParentOrderSn())));
+            List<Order> parentOrders = orderMapper.selectList(parentQueryWrapper);
             this.setPintuanOrderInfo(parentOrders, pintuanShareVO, skuId);
         }
         return pintuanShareVO;
@@ -240,8 +262,13 @@ public class PintuanServiceImpl extends AbstractPromotionsServiceImpl<PintuanMap
     }
 
     private void setMemberVONum(PintuanMemberVO memberVO, Integer requiredNum, String orderSn) {
-        long count = this.orderService.queryCountByPromotion(PromotionTypeEnum.PINTUAN.name(), PayStatusEnum.PAID.name(), orderSn, orderSn);
-        Order order = orderService.getBySn(orderSn);
+        LambdaQueryWrapper<Order> queryWrapper = new LambdaQueryWrapper<>();
+        // 查找团长订单和已和当前拼团订单拼团的订单
+        queryWrapper.eq(Order::getOrderPromotionType, PromotionTypeEnum.PINTUAN.name())
+                .eq(Order::getPayStatus, PayStatusEnum.PAID.name())
+                .and(i -> i.eq(Order::getParentOrderSn, orderSn).or(j -> j.eq(Order::getSn, orderSn)));
+        long count = orderMapper.selectCount(queryWrapper);
+        Order order = orderMapper.selectOne(new LambdaQueryWrapper<Order>().eq(Order::getSn, orderSn));
         long toBoGrouped = requiredNum - count;
         if(order.getOrderStatus().equals(OrderStatusEnum.UNDELIVERED.name())){
             toBoGrouped = 0L;

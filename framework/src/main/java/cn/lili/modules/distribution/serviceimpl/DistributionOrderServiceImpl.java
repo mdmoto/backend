@@ -16,7 +16,7 @@ import cn.lili.modules.order.order.entity.dto.StoreFlowProfitSharingDTO;
 import cn.lili.modules.order.order.entity.dto.StoreFlowQueryDTO;
 import cn.lili.modules.order.order.entity.enums.FlowTypeEnum;
 import cn.lili.modules.order.order.entity.enums.PayStatusEnum;
-import cn.lili.modules.order.order.service.OrderService;
+import cn.lili.modules.order.order.mapper.OrderMapper;
 import cn.lili.modules.order.order.service.StoreFlowService;
 import cn.lili.modules.system.service.SettingService;
 import cn.lili.mybatis.util.PageUtil;
@@ -48,7 +48,7 @@ public class DistributionOrderServiceImpl extends ServiceImpl<DistributionOrderM
      * 订单
      */
     @Autowired
-    private OrderService orderService;
+    private OrderMapper orderMapper;
     /**
      * 店铺流水
      */
@@ -81,7 +81,7 @@ public class DistributionOrderServiceImpl extends ServiceImpl<DistributionOrderM
     public void calculationDistribution(String orderSn) {
 
         // 根据订单编号获取订单数据
-        Order order = orderService.getBySn(orderSn);
+        Order order = orderMapper.selectOne(new LambdaQueryWrapper<Order>().eq(Order::getSn, orderSn));
 
         // 判断是否为分销订单，如果为分销订单则获取分销佣金
         if (order.getDistributionId() != null) {
@@ -124,7 +124,7 @@ public class DistributionOrderServiceImpl extends ServiceImpl<DistributionOrderM
     @Transactional(rollbackFor = Exception.class)
     public void cancelOrder(String orderSn) {
         // 根据订单编号获取订单数据
-        Order order = orderService.getBySn(orderSn);
+        Order order = orderMapper.selectOne(new LambdaQueryWrapper<Order>().eq(Order::getSn, orderSn));
 
         // 判断是否为已付款的分销订单，则获取分销佣金
         if (order.getDistributionId() != null && order.getPayStatus().equals(PayStatusEnum.PAID.name())) {

@@ -10,10 +10,11 @@ import cn.lili.modules.order.order.entity.dos.Order;
 import cn.lili.modules.order.order.entity.dos.OrderItem;
 import cn.lili.modules.order.order.entity.dto.PriceDetailDTO;
 import cn.lili.modules.order.order.entity.enums.PayStatusEnum;
+import cn.lili.modules.order.order.mapper.OrderMapper;
 import cn.lili.modules.order.order.service.OrderItemService;
 import cn.lili.modules.order.order.service.OrderPriceService;
-import cn.lili.modules.order.order.service.OrderService;
 import cn.lili.modules.order.order.service.TradeService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import cn.lili.modules.payment.kit.plugin.bank.BankTransferPlugin;
 import cn.lili.modules.system.aspect.annotation.SystemLogPoint;
 import lombok.extern.slf4j.Slf4j;
@@ -51,7 +52,7 @@ public class OrderPriceServiceImpl implements OrderPriceService {
      * 订单
      */
     @Autowired
-    private OrderService orderService;
+    private OrderMapper orderMapper;
 
     @Override
     @SystemLogPoint(description = "修改订单价格", customerLog = "'订单编号:'+#orderSn +'，价格修改为：'+#orderPrice")
@@ -69,7 +70,7 @@ public class OrderPriceServiceImpl implements OrderPriceService {
     @Override
     @OrderLogPoint(description = "'管理员操作订单['+#orderSn+']付款'", orderSn = "#orderSn")
     public void adminPayOrder(String orderSn) {
-        Order order = OperationalJudgment.judgment(orderService.getBySn(orderSn));
+        Order order = OperationalJudgment.judgment(orderMapper.selectOne(new LambdaQueryWrapper<Order>().eq(Order::getSn, orderSn)));
         //如果订单已付款，则抛出异常
         if (order.getPayStatus().equals(PayStatusEnum.PAID.name())) {
             throw new ServiceException(ResultCode.PAY_DOUBLE_ERROR);
@@ -91,7 +92,7 @@ public class OrderPriceServiceImpl implements OrderPriceService {
      * @param orderPrice 修改订单金额
      */
     private Order updateOrderPrice(String orderSn, Double orderPrice) {
-        Order order = OperationalJudgment.judgment(orderService.getBySn(orderSn));
+        Order order = OperationalJudgment.judgment(orderMapper.selectOne(new LambdaQueryWrapper<Order>().eq(Order::getSn, orderSn)));
         //判定是否支付
         if (order.getPayStatus().equals(PayStatusEnum.PAID.name())) {
             throw new ServiceException(ResultCode.ORDER_UPDATE_PRICE_ERROR);
@@ -108,7 +109,7 @@ public class OrderPriceServiceImpl implements OrderPriceService {
         order.setFlowPrice(orderPriceDetailDTO.getFlowPrice());
         //修改订单
         order.setPriceDetailDTO(orderPriceDetailDTO);
-        orderService.updateById(order);
+        orderMapper.updateById(order);
 
         //修改子订单
         updateOrderItemPrice(order);

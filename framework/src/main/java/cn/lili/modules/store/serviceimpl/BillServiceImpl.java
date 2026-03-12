@@ -31,7 +31,6 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -56,13 +55,11 @@ public class BillServiceImpl extends ServiceImpl<BillMapper, Bill> implements Bi
     /**
      * 店铺详情
      */
-    @Lazy
     @Autowired
     private StoreDetailService storeDetailService;
     /**
      * 商家流水
      */
-    @Lazy
     @Autowired
     private StoreFlowService storeFlowService;
 

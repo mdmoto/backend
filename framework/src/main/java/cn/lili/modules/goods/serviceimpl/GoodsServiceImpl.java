@@ -93,7 +93,6 @@ public class GoodsServiceImpl extends ServiceImpl<GoodsMapper, Goods> implements
     /**
      * 店铺详情
      */
-    @Lazy
     @Autowired
     private StoreService storeService;
     /**

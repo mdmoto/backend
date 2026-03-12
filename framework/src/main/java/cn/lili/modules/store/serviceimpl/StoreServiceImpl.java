@@ -22,6 +22,7 @@ import cn.lili.modules.member.entity.dto.ClerkAddDTO;
 import cn.lili.modules.member.entity.dto.CollectionDTO;
 import cn.lili.modules.member.service.ClerkService;
 import cn.lili.modules.member.service.FootprintService;
+import cn.lili.modules.member.mapper.MemberMapper;
 import cn.lili.modules.member.service.MemberService;
 import cn.lili.modules.store.entity.dos.Store;
 import cn.lili.modules.store.entity.dos.StoreDetail;
@@ -63,9 +64,8 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
     /**
      * 会员
      */
-    @Lazy
     @Autowired
-    private MemberService memberService;
+    private MemberMapper memberMapper;
 
     /**
      * 店员
@@ -75,6 +75,7 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
     /**
      * 商品
      */
+    @Lazy
     @Autowired
     private GoodsService goodsService;
 
@@ -83,7 +84,6 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
     /**
      * 店铺详情
      */
-    @Lazy
     @Autowired
     private StoreDetailService storeDetailService;
 
@@ -123,7 +123,7 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
             throw new ServiceException(ResultCode.STORE_NAME_EXIST_ERROR);
         }
 
-        Member member = memberService.getById(adminStoreApplyDTO.getMemberId());
+        Member member = memberMapper.selectById(adminStoreApplyDTO.getMemberId());
         // 判断用户是否存在
         if (member == null) {
             throw new ServiceException(ResultCode.USER_NOT_EXIST);
@@ -143,7 +143,7 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         storeDetailService.save(storeDetail);
 
         // 设置会员-店铺信息
-        memberService.update(new LambdaUpdateWrapper<Member>()
+        memberMapper.update(null, new LambdaUpdateWrapper<Member>()
                 .eq(Member::getId, member.getId())
                 .set(Member::getHaveStore, true)
                 .set(Member::getStoreId, store.getId()));
@@ -215,10 +215,10 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         if (passed == 0) {
             store.setStoreDisable(StoreStatusEnum.OPEN.value());
             // 修改会员 表示已有店铺
-            Member member = memberService.getById(store.getMemberId());
+            Member member = memberMapper.selectById(store.getMemberId());
             member.setHaveStore(true);
             member.setStoreId(id);
-            memberService.updateById(member);
+            memberMapper.updateById(member);
             // 创建店员
             ClerkAddDTO clerkAddDTO = new ClerkAddDTO();
             clerkAddDTO.setMemberId(member.getId());
@@ -281,7 +281,7 @@ public class StoreServiceImpl extends ServiceImpl<StoreMapper, Store> implements
         // 店铺为空，则新增店铺
         if (store == null) {
             AuthUser authUser = Objects.requireNonNull(UserContext.getCurrentUser());
-            Member member = memberService.getById(authUser.getId());
+            Member member = memberMapper.selectById(authUser.getId());
             // 根据会员创建店铺
             store = new Store(member);
             BeanUtil.copyProperties(storeCompanyDTO, store);

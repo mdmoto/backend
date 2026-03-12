@@ -14,7 +14,8 @@ import cn.lili.modules.order.order.entity.dos.Order;
 import cn.lili.modules.order.order.entity.dos.OrderItem;
 import cn.lili.modules.order.order.entity.enums.OrderStatusEnum;
 import cn.lili.modules.order.order.service.OrderItemService;
-import cn.lili.modules.order.order.service.OrderService;
+import cn.lili.modules.order.order.mapper.OrderMapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import cn.lili.modules.payment.entity.enums.PaymentMethodEnum;
 import cn.lili.modules.system.entity.dos.Setting;
 import cn.lili.modules.system.entity.dto.payment.WechatPaymentSetting;
@@ -46,7 +47,7 @@ import java.util.Map;
 public class WechatMPServiceImpl implements WechatMPService {
 
     @Autowired
-    private OrderService orderService;
+    private OrderMapper orderMapper;
     @Autowired
     private OrderItemService orderItemService;
     @Autowired
@@ -77,7 +78,7 @@ public class WechatMPServiceImpl implements WechatMPService {
     @Override
     public void uploadShippingInfo(String orderSn) {
 
-        Order order = orderService.getBySn(orderSn);
+        Order order = orderMapper.selectOne(new LambdaQueryWrapper<Order>().eq(Order::getSn, orderSn));
         //是否是微信小程序订单 && 微信支付
         if (!order.getClientType().equals(ClientTypeEnum.WECHAT_MP.name())
                 || !order.getPaymentMethod().equals(PaymentMethodEnum.WECHAT.name())) {

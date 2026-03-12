@@ -15,7 +15,7 @@ import cn.lili.modules.connect.entity.enums.SourceEnum;
 import cn.lili.modules.connect.service.ConnectService;
 import cn.lili.modules.member.entity.dto.ConnectQueryDTO;
 import cn.lili.modules.order.order.entity.dos.Order;
-import cn.lili.modules.order.order.service.OrderService;
+import cn.lili.modules.order.order.mapper.OrderMapper;
 import cn.lili.modules.payment.entity.RefundLog;
 import cn.lili.modules.payment.entity.enums.PaymentMethodEnum;
 import cn.lili.modules.payment.kit.CashierSupport;
@@ -99,7 +99,7 @@ public class WechatPlugin implements Payment {
     @Autowired
     private ConnectService connectService;
     @Autowired
-    private OrderService orderService;
+    private OrderMapper orderMapper;
 
     @Override
     public ResultMessage<Object> h5pay(HttpServletRequest request, HttpServletResponse response1, PayParam payParam) {
@@ -246,11 +246,11 @@ public class WechatPlugin implements Payment {
 
     private void updateOrderPayNo(PayParam payParam, String outOrderNo) {
         if ("ORDER".equals(payParam.getOrderType())) {
-            orderService.update(new LambdaUpdateWrapper<Order>()
+            orderMapper.update(new LambdaUpdateWrapper<Order>()
                     .eq(Order::getSn, payParam.getSn())
                     .set(Order::getPayOrderNo, outOrderNo));
         } else if ("TRADE".equals(payParam.getOrderType())) {
-            orderService.update(new LambdaUpdateWrapper<Order>()
+            orderMapper.update(new LambdaUpdateWrapper<Order>()
                     .eq(Order::getTradeSn, payParam.getSn())
                     .set(Order::getPayOrderNo, outOrderNo));
         }

@@ -30,7 +30,7 @@ import cn.lili.modules.order.order.entity.dos.Order;
 import cn.lili.modules.order.order.entity.dos.OrderItem;
 import cn.lili.modules.order.order.entity.enums.CommentStatusEnum;
 import cn.lili.modules.order.order.service.OrderItemService;
-import cn.lili.modules.order.order.service.OrderService;
+import cn.lili.modules.order.order.mapper.OrderMapper;
 import cn.lili.mybatis.util.PageUtil;
 import cn.lili.rocketmq.tags.GoodsTagsEnum;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -63,7 +63,7 @@ public class MemberEvaluationServiceImpl extends ServiceImpl<MemberEvaluationMap
      * 订单
      */
     @Autowired
-    private OrderService orderService;
+    private OrderMapper orderMapper;
     /**
      * 子订单
      */
@@ -112,7 +112,7 @@ public class MemberEvaluationServiceImpl extends ServiceImpl<MemberEvaluationMap
         }
 
         // 获取订单信息
-        Order order = orderService.getBySn(orderItem.getOrderSn());
+        Order order = orderMapper.selectOne(new LambdaQueryWrapper<Order>().eq(Order::getSn, orderItem.getOrderSn()));
 
         if (order == null) {
             throw new ServiceException(ResultCode.ORDER_NOT_EXIST);

@@ -16,8 +16,8 @@ import cn.lili.modules.order.order.entity.enums.FlowTypeEnum;
 import cn.lili.modules.order.order.entity.enums.PayStatusEnum;
 import cn.lili.modules.order.order.entity.enums.ProfitSharingStatusEnum;
 import cn.lili.modules.order.order.mapper.StoreFlowMapper;
+import cn.lili.modules.order.order.mapper.OrderMapper;
 import cn.lili.modules.order.order.service.OrderItemService;
-import cn.lili.modules.order.order.service.OrderService;
 import cn.lili.modules.order.order.service.StoreFlowService;
 import cn.lili.modules.payment.entity.RefundLog;
 import cn.lili.modules.payment.service.RefundLogService;
@@ -55,7 +55,7 @@ public class StoreFlowServiceImpl extends ServiceImpl<StoreFlowMapper, StoreFlow
      * 订单
      */
     @Autowired
-    private OrderService orderService;
+    private OrderMapper orderMapper;
     /**
      * 订单货物
      */
@@ -66,9 +66,6 @@ public class StoreFlowServiceImpl extends ServiceImpl<StoreFlowMapper, StoreFlow
      */
     @Autowired
     private RefundLogService refundLogService;
-
-    @Autowired
-    private BillService billService;
 
     @Autowired
     private DistributionOrderService distributionOrderService;
@@ -83,7 +80,7 @@ public class StoreFlowServiceImpl extends ServiceImpl<StoreFlowMapper, StoreFlow
         //根据订单编号获取子订单列表
         List<OrderItem> orderItems = orderItemService.getByOrderSn(orderSn);
         //根据订单编号获取订单数据
-        Order order = orderService.getBySn(orderSn);
+        Order order = orderMapper.selectOne(new LambdaQueryWrapper<Order>().eq(Order::getSn, orderSn));
 
         //循环子订单记录流水
         for (OrderItem item : orderItems) {
@@ -98,7 +95,7 @@ public class StoreFlowServiceImpl extends ServiceImpl<StoreFlowMapper, StoreFlow
     @Override
     public void orderCancel(String orderSn) {
         //根据订单编号获取订单数据
-        Order order = orderService.getBySn(orderSn);
+        Order order = orderMapper.selectOne(new LambdaQueryWrapper<Order>().eq(Order::getSn, orderSn));
         // 判断订单是否是付款
         if (!PayStatusEnum.PAID.name()
                 .equals((order.getPayStatus()))) {
@@ -260,18 +257,6 @@ public class StoreFlowServiceImpl extends ServiceImpl<StoreFlowMapper, StoreFlow
         return baseMapper.getStoreFlowRefundDownloadVO(generatorQueryWrapper(storeFlowQueryDTO));
     }
 
-
-    @Override
-    public IPage<StoreFlow> getStoreFlow(String id, String type, PageVO pageVO) {
-        Bill bill = billService.getById(id);
-        return this.getStoreFlow(StoreFlowQueryDTO.builder().type(type).pageVO(pageVO).bill(bill).build());
-    }
-
-    @Override
-    public IPage<StoreFlow> getDistributionFlow(String id, PageVO pageVO) {
-        Bill bill = billService.getById(id);
-        return this.getStoreFlow(StoreFlowQueryDTO.builder().pageVO(pageVO).bill(bill).build());
-    }
 
     @Override
     public List<StoreFlow> listStoreFlow(StoreFlowQueryDTO storeFlowQueryDTO) {

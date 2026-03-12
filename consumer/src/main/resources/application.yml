@@ -38,7 +38,7 @@ spring:
     redis:
       host: 127.0.0.1
       port: 6379
-      password: ${LILI_REDIS_PASSWORD:lilishop}
+      password: ${LILI_REDIS_PASSWORD:REQUIRED_OVERRIDE}
     lettuce:
       pool:
         # 连接池最大连接数（使用负值表示没有限制） 默认 8
@@ -65,7 +65,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://127.0.0.1:3306/lilishop?useUnicode=true&characterEncoding=utf-8&useSSL=false&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
     username: ${LILI_DB_USERNAME:root}
-    password: ${LILI_DB_PASSWORD:lilishop}
+    password: ${LILI_DB_PASSWORD:REQUIRED_OVERRIDE}
     druid:
       max-active: 20
       initial-size: 5
@@ -83,7 +83,7 @@ spring:
       connection-properties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000
       use-global-data-source-stat: true
       login-username: druid
-      login-password: ${LILI_DRUID_PASSWORD:druid}
+      login-password: ${LILI_DRUID_PASSWORD:REQUIRED_OVERRIDE}
 
 # 忽略鉴权url
 ignored:
@@ -158,7 +158,7 @@ logging:
 #加密参数
 jasypt:
   encryptor:
-    password: ${LILI_JASYPT_PASSWORD:lili}
+    password: ${LILI_JASYPT_PASSWORD:REQUIRED_OVERRIDE}
 
 lili:
   system:

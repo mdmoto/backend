@@ -7,8 +7,11 @@ import cn.lili.modules.order.order.entity.dos.Order;
 import cn.lili.modules.order.order.entity.dos.OrderItem;
 import cn.lili.modules.order.order.entity.enums.OrderStatusEnum;
 import cn.lili.modules.order.order.entity.enums.PayStatusEnum;
-import cn.lili.modules.order.order.entity.vo.OrderDetailVO;
+import cn.lili.modules.order.order.mapper.OrderItemMapper;
+import cn.lili.modules.order.order.mapper.OrderMapper;
 import cn.lili.modules.order.order.service.OrderService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import org.springframework.context.annotation.Lazy;
 import cn.lili.modules.payment.kit.dto.PayParam;
 import cn.lili.modules.payment.kit.dto.PaymentSuccessParams;
 import cn.lili.modules.payment.entity.enums.CashierEnum;
@@ -36,6 +39,11 @@ public class OrderCashier implements CashierExecute {
      * 订单
      */
     @Autowired
+    private OrderMapper orderMapper;
+    @Autowired
+    private OrderItemMapper orderItemMapper;
+    @Lazy
+    @Autowired
     private OrderService orderService;
     /**
      * 设置
@@ -54,17 +62,20 @@ public class OrderCashier implements CashierExecute {
             //准备返回的数据
             CashierParam cashierParam = new CashierParam();
             //订单信息获取
-            OrderDetailVO order = orderService.queryDetail(payParam.getSn());
+            Order order = orderMapper.selectOne(new LambdaQueryWrapper<Order>().eq(Order::getSn, payParam.getSn()));
+            if (order == null) {
+                throw new ServiceException(ResultCode.ORDER_NOT_EXIST);
+            }
 
             //如果订单已支付，则不能发器支付
-            if (order.getOrder().getPayStatus().equals(PayStatusEnum.PAID.name())) {
+            if (order.getPayStatus().equals(PayStatusEnum.PAID.name())) {
                 throw new ServiceException(ResultCode.PAY_DOUBLE_ERROR);
             }
             //如果订单状态不是待付款，则抛出异常
-            if (!order.getOrder().getOrderStatus().equals(OrderStatusEnum.UNPAID.name())) {
+            if (!order.getOrderStatus().equals(OrderStatusEnum.UNPAID.name())) {
                 throw new ServiceException(ResultCode.PAY_BAN);
             }
-            cashierParam.setPrice(order.getOrder().getFlowPrice());
+            cashierParam.setPrice(order.getFlowPrice());
 
             try {
                 BaseSetting baseSetting = JSONUtil.toBean(settingService.get(SettingEnum.BASE_SETTING.name()).getSettingValue(), BaseSetting.class);
@@ -74,7 +85,7 @@ public class OrderCashier implements CashierExecute {
             }
 
 
-            List<OrderItem> orderItemList = order.getOrderItems();
+            List<OrderItem> orderItemList = orderItemMapper.selectList(new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderSn, payParam.getSn()));
             StringBuilder subject = new StringBuilder();
             for (OrderItem orderItem : orderItemList) {
                 subject.append(orderItem.getGoodsName()).append(";");
@@ -83,7 +94,7 @@ public class OrderCashier implements CashierExecute {
             cashierParam.setDetail(subject.toString());
 
             cashierParam.setOrderSns(payParam.getSn());
-            cashierParam.setCreateTime(order.getOrder().getCreateTime());
+            cashierParam.setCreateTime(order.getCreateTime());
             return cashierParam;
         }
 
@@ -107,7 +118,7 @@ public class OrderCashier implements CashierExecute {
     @Override
     public Boolean paymentResult(PayParam payParam) {
         if (payParam.getOrderType().equals(CashierEnum.ORDER.name())) {
-            Order order = orderService.getBySn(payParam.getSn());
+            Order order = orderMapper.selectOne(new LambdaQueryWrapper<Order>().eq(Order::getSn, payParam.getSn()));
             if (order != null) {
                 return PayStatusEnum.PAID.name().equals(order.getPayStatus());
             } else {

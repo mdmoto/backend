@@ -36,6 +36,7 @@ import cn.lili.modules.member.token.MemberTokenGenerate;
 import cn.lili.modules.member.token.StoreTokenGenerate;
 import cn.lili.modules.store.entity.dos.Store;
 import cn.lili.modules.store.entity.enums.StoreStatusEnum;
+import cn.lili.modules.store.mapper.StoreMapper;
 import cn.lili.modules.store.service.StoreService;
 import cn.lili.mybatis.util.PageUtil;
 import cn.lili.rocketmq.RocketmqSendCallbackBuilder;
@@ -87,9 +88,8 @@ public class MemberServiceImpl extends ServiceImpl<MemberMapper, Member> impleme
     /**
      * 店铺
      */
-    @Lazy
     @Autowired
-    private StoreService storeService;
+    private StoreMapper storeMapper;
     /**
      * RocketMQ 配置
      */
@@ -217,7 +217,7 @@ public class MemberServiceImpl extends ServiceImpl<MemberMapper, Member> impleme
 
     private Token checkMemberStore(Member member) {
         if (Boolean.TRUE.equals(member.getHaveStore())) {
-            Store store = storeService.getById(member.getStoreId());
+            Store store = storeMapper.selectById(member.getStoreId());
             if (!store.getStoreDisable().equals(StoreStatusEnum.OPEN.name())) {
                 throw new ServiceException(ResultCode.STORE_CLOSE_ERROR);
             }

@@ -26,7 +26,7 @@ import cn.lili.modules.order.order.entity.dos.Order;
 import cn.lili.modules.order.order.entity.dos.OrderItem;
 import cn.lili.modules.order.order.entity.enums.*;
 import cn.lili.modules.order.order.service.OrderItemService;
-import cn.lili.modules.order.order.service.OrderService;
+import cn.lili.modules.order.order.mapper.OrderMapper;
 import cn.lili.modules.order.trade.entity.enums.AfterSaleRefundWayEnum;
 import cn.lili.modules.order.trade.entity.enums.AfterSaleStatusEnum;
 import cn.lili.modules.order.trade.entity.enums.AfterSaleTypeEnum;
@@ -70,7 +70,7 @@ public class AfterSaleServiceImpl extends ServiceImpl<AfterSaleMapper, AfterSale
      * 订单
      */
     @Autowired
-    private OrderService orderService;
+    private OrderMapper orderMapper;
     /**
      * 订单货物
      */
@@ -179,7 +179,7 @@ public class AfterSaleServiceImpl extends ServiceImpl<AfterSaleMapper, AfterSale
         }
 
         //获取售后类型
-        Order order = OperationalJudgment.judgment(orderService.getBySn(orderItem.getOrderSn()));
+        Order order = OperationalJudgment.judgment(orderMapper.selectOne(new LambdaQueryWrapper<Order>().eq(Order::getSn, orderItem.getOrderSn())));
 
         //订单未支付，不能申请申请售后
         if (order.getPaymentMethod() == null) {
@@ -439,7 +439,7 @@ public class AfterSaleServiceImpl extends ServiceImpl<AfterSaleMapper, AfterSale
 
         //写入商家信息
         OrderItem orderItem = orderItemService.getBySn(afterSaleDTO.getOrderItemSn());
-        Order order = OperationalJudgment.judgment(orderService.getBySn(orderItem.getOrderSn()));
+        Order order = OperationalJudgment.judgment(orderMapper.selectOne(new LambdaQueryWrapper<Order>().eq(Order::getSn, orderItem.getOrderSn())));
         afterSale.setStoreId(order.getStoreId());
         afterSale.setStoreName(order.getStoreName());
 
@@ -556,7 +556,7 @@ public class AfterSaleServiceImpl extends ServiceImpl<AfterSaleMapper, AfterSale
 
 
         //获取售后类型
-        Order order = orderService.getBySn(orderItem.getOrderSn());
+        Order order = orderMapper.selectOne(new LambdaQueryWrapper<Order>().eq(Order::getSn, orderItem.getOrderSn()));
         AfterSaleTypeEnum afterSaleTypeEnum = AfterSaleTypeEnum.valueOf(afterSaleDTO.getServiceType());
         switch (afterSaleTypeEnum) {
             case RETURN_MONEY:

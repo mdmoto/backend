@@ -4,7 +4,8 @@ import cn.lili.common.utils.SnowFlake;
 import cn.lili.common.utils.SpringContextUtil;
 import cn.lili.modules.order.aftersale.entity.dos.AfterSale;
 import cn.lili.modules.order.order.entity.dos.Order;
-import cn.lili.modules.order.order.service.OrderService;
+import cn.lili.modules.order.order.mapper.OrderMapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import cn.lili.modules.order.order.service.StoreFlowService;
 import cn.lili.modules.payment.entity.RefundLog;
 import cn.lili.modules.payment.entity.enums.PaymentMethodEnum;
@@ -32,7 +33,7 @@ public class RefundSupport {
      * 订单
      */
     @Autowired
-    private OrderService orderService;
+    private OrderMapper orderMapper;
 
     /**
      * 售后退款
@@ -40,7 +41,7 @@ public class RefundSupport {
      * @param afterSale
      */
     public void refund(AfterSale afterSale) {
-        Order order = orderService.getBySn(afterSale.getOrderSn());
+        Order order = orderMapper.selectOne(new LambdaQueryWrapper<Order>().eq(Order::getSn, afterSale.getOrderSn()));
         RefundLog refundLog = RefundLog.builder()
                 .isRefund(false)
                 .totalAmount(afterSale.getActualRefundPrice())

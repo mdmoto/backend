@@ -9,6 +9,12 @@ target
 .settings/
 .factorypath
 
+# Session logs
+verify-pipeline.*.log
+maven_debug*.log
+RELEASE_NOTE_REF_*.md
+backend/
+
 log/
 logs/
 *.factorypath
@@ -43,3 +49,7 @@ build/
 # secrets
 .env
 **/.env
+
+# Binaries
+*.jar
+

@@ -30,12 +30,13 @@ import cn.lili.modules.order.order.entity.dto.*;
 import cn.lili.modules.order.order.entity.enums.*;
 import cn.lili.modules.order.order.entity.vo.*;
 import cn.lili.modules.order.order.mapper.OrderMapper;
+import cn.lili.modules.order.order.mapper.TradeMapper;
 import cn.lili.modules.order.order.service.*;
 import cn.lili.modules.order.trade.entity.dos.OrderLog;
 import cn.lili.modules.order.trade.service.OrderLogService;
 import cn.lili.modules.payment.entity.enums.PaymentMethodEnum;
 import cn.lili.modules.promotion.entity.dos.Pintuan;
-import cn.lili.modules.promotion.service.PintuanService;
+import cn.lili.modules.promotion.mapper.PintuanMapper;
 import cn.lili.modules.store.entity.dto.StoreDeliverGoodsAddressDTO;
 import cn.lili.modules.store.service.StoreDetailService;
 import cn.lili.modules.system.aspect.annotation.SystemLogPoint;
@@ -70,9 +71,8 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.util.CellRangeAddressList;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.annotation.Lazy;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -114,7 +114,6 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     /**
      * 物流公司
      */
-    @Lazy
     @Autowired
     private LogisticsService logisticsService;
     /**
@@ -135,31 +134,23 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     /**
      * 订单流水
      */
-    @Lazy
     @Autowired
     private StoreFlowService storeFlowService;
     /**
      * 拼团
      */
-    @Lazy
     @Autowired
-    private PintuanService pintuanService;
+    private PintuanMapper pintuanMapper;
 
-    @Lazy
     @Autowired
-    private TradeService tradeService;
+    private TradeMapper tradeMapper;
 
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
 
-    @Lazy
     @Autowired
     private StoreDetailService storeDetailService;
 
-    /**
-     * 订单包裹
-     */
-    @Lazy
     @Autowired
     private OrderPackageService orderPackageService;
     /**
@@ -709,7 +700,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     @Transactional(rollbackFor = Exception.class)
     public void agglomeratePintuanOrder(String pintuanId, String parentOrderSn) {
         // 获取拼团配置
-        Pintuan pintuan = pintuanService.getById(pintuanId);
+        Pintuan pintuan = pintuanMapper.selectById(pintuanId);
         List<Order> list = this.getPintuanOrder(pintuanId, parentOrderSn);
         if (Boolean.TRUE.equals(pintuan.getFictitious()) && pintuan.getRequiredNum() > list.size()) {
             // 如果开启虚拟成团且当前订单数量不足成团数量，则认为拼团成功
@@ -787,9 +778,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     @Override
     public Double getPaymentTotal(String orderSn) {
         Order order = this.getBySn(orderSn);
-        Trade trade = tradeService.getBySn(order.getTradeSn());
+        Trade trade = tradeMapper.selectOne(new LambdaQueryWrapper<Trade>().eq(Trade::getSn, order.getTradeSn()));
         // 如果交易不为空，则返回交易的金额，否则返回订单金额
-        if (CharSequenceUtil.isNotEmpty(trade.getPayStatus())
+        if (trade != null && CharSequenceUtil.isNotEmpty(trade.getPayStatus())
                 && trade.getPayStatus().equals(PayStatusEnum.PAID.name())) {
             return trade.getFlowPrice();
         }
@@ -1060,7 +1051,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     @Transactional(rollbackFor = Exception.class)
     public void checkPintuanOrder(String pintuanId, String parentOrderSn) {
         // 获取拼团配置
-        Pintuan pintuan = pintuanService.getById(pintuanId);
+        Pintuan pintuan = pintuanMapper.selectById(pintuanId);
         List<Order> list = this.getPintuanOrder(pintuanId, parentOrderSn);
         int count = list.size();
         if (count == 1) {
@@ -1167,12 +1158,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
      */
     @Transactional(rollbackFor = Exception.class)
     public void normalOrderConfirm(String orderSn) {
-        OrderStatusEnum orderStatusEnum = null;
+        OrderStatusEnum orderStatusEnum = OrderStatusEnum.UNDELIVERED;
         Order order = this.getBySn(orderSn);
         if (DeliveryMethodEnum.SELF_PICK_UP.name().equals(order.getDeliveryMethod())) {
             orderStatusEnum = OrderStatusEnum.STAY_PICKED_UP;
-        } else if (DeliveryMethodEnum.LOGISTICS.name().equals(order.getDeliveryMethod())) {
-            orderStatusEnum = OrderStatusEnum.UNDELIVERED;
         }
         // 修改订单
         this.update(new LambdaUpdateWrapper<Order>()
