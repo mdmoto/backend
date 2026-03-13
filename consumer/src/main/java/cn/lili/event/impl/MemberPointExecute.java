@@ -95,18 +95,24 @@ public class MemberPointExecute
                 // 2. 获取本单 Stripe 真实收款快照 (USD)
                 StripePaymentSnapshot snapshot = stripePaymentSnapshotService.getConfirmedSnapshot(order.getSn());
                 
-                if (snapshot == null) {
-                    log.warn("【Mao Mall 计价告警】订单 {} 尚未确认 Stripe 真实收款，暂停发币。请确保 Stripe Webhook 已同步快照。", order.getSn());
-                    // 改为重试逻辑或待处理任务 (此处暂且记录告警并跳过，实际生产需配合补发 Job)
+                if (snapshot == null || snapshot.getAmountNetUsd() == null) {
+                    log.warn("【Mao Mall 计价告警】订单 {} 尚未确认 Stripe 真实收款或金额为空，暂停发币。请确保 Stripe Webhook 已同步快照。", order.getSn());
                     return;
                 }
 
                 BigDecimal amountNetUsd = snapshot.getAmountNetUsd();
-                BigDecimal fundReserve = amountNetUsd.multiply(new BigDecimal("0.1"));
+                // 仅对金额大于 0 的收款发币
+                if (amountNetUsd.compareTo(BigDecimal.ZERO) <= 0) {
+                    return;
+                }
+                
+                BigDecimal fundReserve = amountNetUsd.multiply(new BigDecimal("0.1")).setScale(8, RoundingMode.HALF_UP);
 
                 // 4. 计算赠送喵币 (真实 USD * 汇率 * 精度)
+                // 采用 HALF_UP 舍入，确保财务逻辑一致性
                 long point = amountNetUsd.multiply(BigDecimal.valueOf(rate))
                                         .multiply(BigDecimal.valueOf(MEOW_COIN_SCALE))
+                                        .setScale(0, RoundingMode.HALF_UP)
                                         .longValue();
 
                 if (point > 0) {
@@ -126,18 +132,14 @@ public class MemberPointExecute
     public void afterSaleStatusChange(AfterSale afterSale) {
         if (afterSale.getServiceStatus().equals(AfterSaleStatusEnum.COMPLETE.name())) {
             // P0 Fix: Avoid "Rate Arbitrage" by looking up the actual points issued for the original order
-            // Instead of calculating based on current rate, we calculate based on the refund ratio of the original issued points
             Order order = orderService.getBySn(afterSale.getOrderSn());
             if (order == null) return;
 
-            // Fetch original issuance from history to get exact count
-            // Note: bizId was saved with REWARD_MEOW_ prefix in orderChange
+            // P0 Fix: 使用 bizId + pointType 作为主条件，不再强匹配 content 前缀
             MemberPointsHistory originalHistory = memberPointsHistoryService.getOne(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<MemberPointsHistory>()
                     .eq(MemberPointsHistory::getMemberId, afterSale.getMemberId())
                     .eq(MemberPointsHistory::getBizId, "REWARD_MEOW_" + order.getSn())
-                    .eq(MemberPointsHistory::getPointType, PointTypeEnum.INCREASE.name())
-                    .like(MemberPointsHistory::getContent, "喵领计划：消费赠送喵币"));
-
+                    .eq(MemberPointsHistory::getPointType, PointTypeEnum.INCREASE.name()));
 
             long pointToReduce;
             java.math.BigDecimal fundToReduce;
@@ -146,19 +148,19 @@ public class MemberPointExecute
                 // 基于 Stripe 收款快照按真实比例扣回
                 StripePaymentSnapshot snapshot = stripePaymentSnapshotService.getOne(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<StripePaymentSnapshot>()
                         .eq(StripePaymentSnapshot::getOrderSn, order.getSn())
-                        .isNotNull(StripePaymentSnapshot::getAmountNetUsd));
+                        .isNotNull(StripePaymentSnapshot::getAmountNetUsd), false);
+
+                // P1 Fix: 增加退款比例边界钳制 [0, 1]
+                double refundRatio = afterSale.getActualRefundPrice() / order.getFlowPrice();
+                refundRatio = Math.max(0, Math.min(1, refundRatio));
 
                 if (snapshot != null && snapshot.getAmountNetUsd().compareTo(BigDecimal.ZERO) > 0) {
-                    // 逻辑：退款确认后，Stripe 侧会同步退款后的净额变化或单独记录退款。
-                    // 此处模拟按订单金额比例，但在生产中应读取 Stripe Refund Balance Transaction 的金额
-                    double refundRatio = afterSale.getActualRefundPrice() / order.getFlowPrice();
                     pointToReduce = (long) (originalHistory.getVariablePoint() * refundRatio);
-                    fundToReduce = originalHistory.getFundReserve().multiply(BigDecimal.valueOf(refundRatio));
+                    fundToReduce = originalHistory.getFundReserve().multiply(BigDecimal.valueOf(refundRatio)).setScale(8, RoundingMode.HALF_UP);
                 } else {
                     // Fallback
-                    double refundRatio = afterSale.getActualRefundPrice() / order.getFlowPrice();
                     pointToReduce = (long) (originalHistory.getVariablePoint() * refundRatio);
-                    fundToReduce = originalHistory.getFundReserve().multiply(BigDecimal.valueOf(refundRatio));
+                    fundToReduce = originalHistory.getFundReserve().multiply(BigDecimal.valueOf(refundRatio)).setScale(8, RoundingMode.HALF_UP);
                 }
             } else {
                 pointToReduce = 0L;

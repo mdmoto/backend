@@ -22,14 +22,16 @@ public class StripePaymentSnapshotServiceImpl extends ServiceImpl<StripePaymentS
     public StripePaymentSnapshot getConfirmedSnapshot(String orderSn) {
         return this.getOne(new LambdaQueryWrapper<StripePaymentSnapshot>()
                 .eq(StripePaymentSnapshot::getOrderSn, orderSn)
-                .eq(StripePaymentSnapshot::getPaymentStatus, "CONFIRMED"));
+                .eq(StripePaymentSnapshot::getPaymentStatus, "CONFIRMED")
+                .isNotNull(StripePaymentSnapshot::getAmountNetUsd)
+                .orderByDesc(StripePaymentSnapshot::getUpdateTime), false); // false = don't throw exception if multiple found
     }
 
     @Override
     public double getCompletedTotalSalesUSD() {
         // 求和已确认的真实净收款 (USD)
         QueryWrapper<StripePaymentSnapshot> queryWrapper = new QueryWrapper<>();
-        queryWrapper.select("sum(amount_net_usd) as totalSales");
+        queryWrapper.select("IFNULL(sum(amount_net_usd), 0) as totalSales");
         queryWrapper.eq("payment_status", "CONFIRMED");
         Map<String, Object> map = this.getMap(queryWrapper);
         if (map != null && map.get("totalSales") != null) {

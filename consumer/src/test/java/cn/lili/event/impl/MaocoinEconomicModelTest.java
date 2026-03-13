@@ -102,7 +102,8 @@ class MaocoinEconomicModelTest {
 
         StripePaymentSnapshot snapshot = new StripePaymentSnapshot();
         snapshot.setAmountNetUsd(new BigDecimal("14.0"));
-        when(stripePaymentSnapshotService.getOne(any())).thenReturn(snapshot);
+        // 匹配二参数版本的 getOne
+        when(stripePaymentSnapshotService.getOne(any(), anyBoolean())).thenReturn(snapshot);
         
         memberPointExecute.afterSaleStatusChange(afterSale);
         
