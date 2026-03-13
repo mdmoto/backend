@@ -125,8 +125,12 @@ if [ -d "$BACKEND_PATH" ]; then
         # Package to recreate jars, without tests to save time
         ./mvnw -B clean package -DskipTests=true
         
-        echo "⚙️ [CI] Invoking setup-persistence.sh to restart services..."
-        bash "$HOME/setup-persistence.sh"
+        if [ -f "$HOME/setup-persistence.sh" ]; then
+            echo "⚙️ [CI] Invoking setup-persistence.sh to restart services..."
+            bash "$HOME/setup-persistence.sh"
+        else
+            echo "⚠️ [CI] setup-persistence.sh not found in $HOME; skipping service restart."
+        fi
     else
         echo "❌ mvnw not found in $BACKEND_PATH"
         exit 1

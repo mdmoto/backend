@@ -163,13 +163,17 @@ public class MemberServiceImpl extends ServiceImpl<MemberMapper, Member> impleme
     }
 
     @Override
-    public void resetPassword(List<String> ids) {
-        String password = new BCryptPasswordEncoder().encode(StringUtils.md5("123456"));
+    public Object resetPassword(List<String> ids) {
+        // 生成随机 8 位密码
+        String password = StringUtils.getUUID().substring(0, 8);
+        String encryptPassword = new BCryptPasswordEncoder().encode(password);
         LambdaUpdateWrapper<Member> lambdaUpdateWrapper = Wrappers.lambdaUpdate();
         lambdaUpdateWrapper.in(Member::getId, ids);
-        lambdaUpdateWrapper.set(Member::getPassword, password);
+        lambdaUpdateWrapper.set(Member::getPassword, encryptPassword);
         this.update(lambdaUpdateWrapper);
+        return password;
     }
+
 
     @Override
     public void updateHaveShop(Boolean haveStore, String storeId, List<String> memberIds) {

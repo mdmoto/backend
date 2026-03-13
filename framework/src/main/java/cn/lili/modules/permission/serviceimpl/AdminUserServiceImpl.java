@@ -198,17 +198,20 @@ public class AdminUserServiceImpl extends ServiceImpl<AdminUserMapper, AdminUser
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void resetPassword(List<String> ids) {
+    public Object resetPassword(List<String> ids) {
         LambdaQueryWrapper<AdminUser> lambdaQueryWrapper = new LambdaQueryWrapper<>();
         lambdaQueryWrapper.in(AdminUser::getId, ids);
         List<AdminUser> adminUsers = this.list(lambdaQueryWrapper);
-        String password = StringUtils.md5("123456");
+        // 生成随机 8 位密码
+        String password = StringUtils.getUUID().substring(0, 8);
         String newEncryptPass = new BCryptPasswordEncoder().encode(password);
         if (null != adminUsers && !adminUsers.isEmpty()) {
             adminUsers.forEach(item -> item.setPassword(newEncryptPass));
             this.updateBatchById(adminUsers);
         }
+        return password;
     }
+
 
     @Override
     @Transactional(rollbackFor = Exception.class)

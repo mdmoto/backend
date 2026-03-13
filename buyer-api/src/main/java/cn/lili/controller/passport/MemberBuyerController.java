@@ -71,9 +71,10 @@ public class MemberBuyerController {
      * @return
      */
     @ApiOperation(value = "web-二维码登录")
-    @PostMapping(value = "/session_login/{token}", produces = "application/json;charset=UTF-8")
-    public Object loginWithSession(@PathVariable("token") String token, Integer beforeSessionStatus) {
-        log.info("receive login with session key {}", token);
+    @PostMapping(value = "/session_login", produces = "application/json;charset=UTF-8")
+    public Object loginWithSession(@RequestParam("token") String token, Integer beforeSessionStatus) {
+        log.info("receive login with session key {}", StringUtils.desensitize(token));
+
         ResponseEntity<ResultMessage<Object>> timeoutResponseEntity =
                 new ResponseEntity<>(ResultUtil.error(ResultCode.ERROR), HttpStatus.OK);
         int timeoutSecond = 20;
@@ -172,29 +173,28 @@ public class MemberBuyerController {
 
     @ApiOperation(value = "绑定手机号")
     @ApiImplicitParams({
-            @ApiImplicitParam(name = "username", value = "用户名", required = true, paramType = "query"),
             @ApiImplicitParam(name = "mobile", value = "手机号", required = true, paramType = "query"),
             @ApiImplicitParam(name = "code", value = "验证码", required = true, paramType = "query"),
     })
     @PostMapping("/bindMobile")
-    public ResultMessage<Object> bindMobile(@NotNull(message = "用户名不能为空") @RequestParam String username,
-                                            @NotNull(message = "手机号为空") @RequestParam String mobile,
+    public ResultMessage<Object> bindMobile(@NotNull(message = "手机号为空") @RequestParam String mobile,
                                             @NotNull(message = "验证码为空") @RequestParam String code,
                                             @RequestHeader String uuid) {
+        AuthUser currentUser = UserContext.getCurrentUser();
+        if (currentUser == null) {
+            throw new ServiceException(ResultCode.USER_NOT_LOGIN);
+        }
         if (smsUtil.verifyCode(mobile, VerificationEnums.BIND_MOBILE, uuid, code)) {
-            Member member = memberService.findByUsername(username);
             Member memberByMobile = memberService.findByMobile(mobile);
-            if (member == null) {
-                throw new ServiceException(ResultCode.USER_NOT_EXIST);
-            }
-            if(memberByMobile != null){
+            if (memberByMobile != null) {
                 throw new ServiceException(ResultCode.USER_MOBILE_REPEATABLE_ERROR);
             }
-            return ResultUtil.data(memberService.changeMobile(member.getId(), mobile));
+            return ResultUtil.data(memberService.changeMobile(currentUser.getId(), mobile));
         } else {
             throw new ServiceException(ResultCode.VERIFICATION_SMS_CHECKED_ERROR);
         }
     }
+
 
     @ApiOperation(value = "注册用户（仅支持邮箱注册）")
     @ApiImplicitParams({
@@ -309,8 +309,8 @@ public class MemberBuyerController {
     }
 
     @ApiOperation(value = "刷新token")
-    @GetMapping("/refresh/{refreshToken}")
-    public ResultMessage<Object> refreshToken(@NotNull(message = "刷新token不能为空") @PathVariable String refreshToken) {
+    @PostMapping("/refresh")
+    public ResultMessage<Object> refreshToken(@NotNull(message = "刷新token不能为空") @RequestParam String refreshToken) {
         return ResultUtil.data(this.memberService.refreshToken(refreshToken));
     }
 

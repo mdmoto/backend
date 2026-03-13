@@ -190,6 +190,22 @@ public class StringUtils extends StrUtil {
         return str;
     }
 
+    /**
+     * 字符串脱敏
+     * @param str 待脱敏字符串
+     * @return 脱敏后的字符串
+     */
+    public static String desensitize(String str) {
+        if (StrUtil.isBlank(str)) {
+            return "";
+        }
+        if (str.length() <= 8) {
+            return "****";
+        }
+        return str.substring(0, 4) + "****" + str.substring(str.length() - 4);
+    }
+
+
 }
 
 

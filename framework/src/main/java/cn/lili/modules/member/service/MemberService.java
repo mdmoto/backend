@@ -278,11 +278,13 @@ public interface MemberService extends IService<Member> {
     void updateHaveShop(Boolean haveStore, String storeId, List<String> memberIds);
 
     /**
-     * 重置会员密码为123456
+     * 重置会员密码
      *
      * @param ids 会员id
+     * @return 新密码
      */
-    void resetPassword(List<String> ids);
+    Object resetPassword(List<String> ids);
+
 
     /**
      * 获取所有会员的手机号

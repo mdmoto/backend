@@ -77,8 +77,8 @@ public class AdminUserManagerController {
     }
 
     @ApiOperation(value = "刷新token")
-    @GetMapping("/refresh/{refreshToken}")
-    public ResultMessage<Object> refreshToken(@NotNull(message = "刷新token不能为空") @PathVariable String refreshToken) {
+    @PostMapping("/refresh")
+    public ResultMessage<Object> refreshToken(@NotNull(message = "刷新token不能为空") @RequestParam String refreshToken) {
         return ResultUtil.data(this.adminUserService.refreshToken(refreshToken));
     }
 
@@ -142,10 +142,10 @@ public class AdminUserManagerController {
     @PostMapping(value = "/resetPassword/{ids}")
     @ApiOperation(value = "重置密码")
     @DemoSite
-    public ResultMessage<Object> resetPassword(@PathVariable List ids) {
-        adminUserService.resetPassword(ids);
-        return ResultUtil.success(ResultCode.USER_EDIT_SUCCESS);
+    public ResultMessage<Object> resetPassword(@PathVariable List<String> ids) {
+        return ResultUtil.data(adminUserService.resetPassword(ids));
     }
+
 
     @GetMapping
     @ApiOperation(value = "多条件分页获取用户列表")

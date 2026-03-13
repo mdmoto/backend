@@ -64,8 +64,10 @@ public interface AdminUserService extends IService<AdminUser> {
      * 重置密码
      *
      * @param ids id集合
+     * @return 新密码或结果映射
      */
-    void resetPassword(List<String> ids);
+    Object resetPassword(List<String> ids);
+
 
     /**
      * 新增管理员

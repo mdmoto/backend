@@ -125,7 +125,11 @@ ignored:
     - /buyer/store/**
     - /buyer/passport/connect/**
     - /buyer/members/**
-    - /buyer/passport/member/**
+    - /buyer/passport/member/userLogin
+    - /buyer/passport/member/smsLogin
+    - /buyer/passport/member/register
+    - /buyer/passport/member/pc_session
+    - /buyer/passport/member/session_login/**
     - /buyer/passport/member/refresh/**
     - /buyer/promotion/pintuan/**
     - /buyer/promotion/seckill/**

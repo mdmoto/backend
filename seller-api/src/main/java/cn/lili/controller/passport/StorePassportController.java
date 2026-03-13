@@ -129,8 +129,8 @@ public class StorePassportController {
     }
 
     @ApiOperation(value = "刷新token")
-    @GetMapping("/refresh/{refreshToken}")
-    public ResultMessage<Object> refreshToken(@NotNull(message = "刷新token不能为空") @PathVariable String refreshToken) {
+    @PostMapping("/refresh")
+    public ResultMessage<Object> refreshToken(@NotNull(message = "刷新token不能为空") @RequestParam String refreshToken) {
         return ResultUtil.data(this.memberService.refreshStoreToken(refreshToken));
     }
 }

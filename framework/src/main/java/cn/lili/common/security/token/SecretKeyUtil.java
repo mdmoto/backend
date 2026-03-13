@@ -15,14 +15,20 @@ import javax.crypto.SecretKey;
  */
 public class SecretKeyUtil {
     public static SecretKey generalKey() {
-        //自定义
-        byte[] encodedKey = Base64.decodeBase64("cuAihCz53DZRjZwbsGcZJ2Ai6At+T142uphtJMsk7iQ=");
-        SecretKey key = Keys.hmacShaKeyFor(encodedKey);
-        return key;
+        String secret = System.getenv("LILI_JWT_SECRET_BASE64");
+        if (secret == null || secret.trim().isEmpty()) {
+            throw new RuntimeException("CRITICAL SECURITY ERROR: Environment variable LILI_JWT_SECRET_BASE64 is missing! Insecure hardcoded keys are no longer allowed.");
+        }
+        byte[] encodedKey = Base64.decodeBase64(secret);
+        return Keys.hmacShaKeyFor(encodedKey);
     }
 
     public static SecretKey generalKeyByDecoders() {
-        return Keys.hmacShaKeyFor(Decoders.BASE64.decode("cuAihCz53DZRjZwbsGcZJ2Ai6At+T142uphtJMsk7iQ="));
-
+        String secret = System.getenv("LILI_JWT_SECRET_BASE64");
+        if (secret == null || secret.trim().isEmpty()) {
+             throw new RuntimeException("CRITICAL SECURITY ERROR: Environment variable LILI_JWT_SECRET_BASE64 is missing! Insecure hardcoded keys are no longer allowed.");
+        }
+        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
     }
+
 }
