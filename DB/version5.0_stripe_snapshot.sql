@@ -1,6 +1,7 @@
 -- Lilishop Stripe Payment Snapshot Table
 -- Purpose: Store locally cached Stripe payment data for accurate Maocoin issuance.
 
+-- 1. Create table if not exists (including unique index for new tables)
 CREATE TABLE IF NOT EXISTS li_stripe_payment_snapshot (
     id VARCHAR(32) PRIMARY KEY,
     order_sn VARCHAR(32) NOT NULL COMMENT '订单编号',
@@ -18,3 +19,44 @@ CREATE TABLE IF NOT EXISTS li_stripe_payment_snapshot (
     UNIQUE INDEX uk_order_sn (order_sn),
     INDEX idx_payment_status (payment_status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Stripe 支付快照表';
+
+-- 2. Maintenance for existing tables: Cleanup duplicates before adding index
+-- P0 Fix: Handle cases where update_time is identical by using ID as tie-break
+DELETE s1
+FROM li_stripe_payment_snapshot s1
+JOIN li_stripe_payment_snapshot s2
+  ON s1.order_sn = s2.order_sn
+ AND (
+      s1.update_time < s2.update_time
+   OR (s1.update_time = s2.update_time AND s1.id < s2.id)
+ );
+
+-- 3. Maintenance: Fix existing NULL values before applying NOT NULL constraint
+-- P0 Fix: Prevent "Data truncated" error when modifying columns to NOT NULL
+UPDATE li_stripe_payment_snapshot SET amount_net_usd = 0.00000000 WHERE amount_net_usd IS NULL;
+UPDATE li_stripe_payment_snapshot SET amount_gross_usd = 0.00000000 WHERE amount_gross_usd IS NULL;
+UPDATE li_stripe_payment_snapshot SET fee_usd = 0.00000000 WHERE fee_usd IS NULL;
+
+-- 4. Maintenance: Ensure the UNIQUE INDEX exists on order_sn (Idempotent)
+-- We use a stored procedure to safely apply the index to an existing table.
+DROP PROCEDURE IF EXISTS AddUniqueIndexToStripeSnapshot;
+DELIMITER //
+CREATE PROCEDURE AddUniqueIndexToStripeSnapshot()
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.statistics 
+        WHERE table_schema = DATABASE() 
+        AND table_name = 'li_stripe_payment_snapshot' 
+        AND index_name = 'uk_order_sn'
+    ) THEN
+        ALTER TABLE li_stripe_payment_snapshot ADD UNIQUE INDEX uk_order_sn (order_sn);
+    END IF;
+END //
+DELIMITER ;
+CALL AddUniqueIndexToStripeSnapshot();
+DROP PROCEDURE AddUniqueIndexToStripeSnapshot;
+
+-- 5. Maintenance: Ensure financial columns are NOT NULL and have default values
+ALTER TABLE li_stripe_payment_snapshot MODIFY amount_net_usd DECIMAL(18, 8) NOT NULL DEFAULT 0.00000000;
+ALTER TABLE li_stripe_payment_snapshot MODIFY amount_gross_usd DECIMAL(18, 8) NOT NULL DEFAULT 0.00000000;
+ALTER TABLE li_stripe_payment_snapshot MODIFY fee_usd DECIMAL(18, 8) NOT NULL DEFAULT 0.00000000;
