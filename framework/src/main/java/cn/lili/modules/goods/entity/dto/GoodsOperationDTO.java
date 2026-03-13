@@ -39,6 +39,9 @@ public class GoodsOperationDTO implements Serializable {
     @Max(value = 99999999, message = "商品价格不能超过99999999")
     private Double price;
 
+    @ApiModelProperty(value = "USD 基准价")
+    private Double priceUsd;
+
     @ApiModelProperty(value = "分类path")
     private String categoryPath;
 

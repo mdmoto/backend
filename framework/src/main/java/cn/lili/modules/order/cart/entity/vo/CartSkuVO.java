@@ -46,6 +46,9 @@ public class CartSkuVO extends CartBase implements Serializable {
     @ApiModelProperty(value = "购买时的成交价")
     private Double purchasePrice;
 
+    @ApiModelProperty(value = "购买时的成交价 USD")
+    private Double purchasePriceUsd;
+
     @ApiModelProperty(value = "小记")
     private Double subTotal;
 
@@ -111,6 +114,7 @@ public class CartSkuVO extends CartBase implements Serializable {
         this.errorMessage = "";
         this.isShip = true;
         this.purchasePrice = goodsSku.getPromotionFlag() != null && goodsSku.getPromotionFlag() ? goodsSku.getPromotionPrice() : goodsSku.getPrice();
+        this.purchasePriceUsd = goodsSku.getPriceUsd();
         this.isFreeFreight = false;
         this.utilPrice = goodsSku.getPromotionFlag() != null && goodsSku.getPromotionFlag() ? goodsSku.getPromotionPrice() : goodsSku.getPrice();
         this.setStoreId(goodsSku.getStoreId());
@@ -130,6 +134,7 @@ public class CartSkuVO extends CartBase implements Serializable {
     public void rebuildBySku(GoodsSku goodsSku) {
         this.goodsSku = goodsSku;
         this.purchasePrice = goodsSku.getPromotionFlag() != null && goodsSku.getPromotionFlag() ? goodsSku.getPromotionPrice() : goodsSku.getPrice();
+        this.purchasePriceUsd = goodsSku.getPriceUsd();
         this.utilPrice = goodsSku.getPromotionFlag() != null && goodsSku.getPromotionFlag() ? goodsSku.getPromotionPrice() : goodsSku.getPrice();
 
 

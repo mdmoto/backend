@@ -53,6 +53,9 @@ public class GoodsSku extends BaseEntity {
     @ApiModelProperty(value = "商品名称")
     private String goodsName;
 
+    @ApiModelProperty(value = "USD 基准价")
+    private Double priceUsd;
+
     @Length(max = 30, message = "商品规格编号太长，不能超过30个字符")
     @ApiModelProperty(value = "商品编号")
     private String sn;

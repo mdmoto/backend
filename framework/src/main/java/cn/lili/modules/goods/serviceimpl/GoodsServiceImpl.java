@@ -100,6 +100,9 @@ public class GoodsServiceImpl extends ServiceImpl<GoodsMapper, Goods> implements
      */
     @Autowired
     private MemberEvaluationService memberEvaluationService;
+
+    @Autowired
+    private MaollarTierService maollarTierService;
     /**
      * rocketMq
      */
@@ -240,6 +243,11 @@ public class GoodsServiceImpl extends ServiceImpl<GoodsMapper, Goods> implements
         goodsVO = new GoodsVO();
         // 赋值
         BeanUtils.copyProperties(goods, goodsVO);
+        
+        // 确保 priceUsd 有值 (兜底转换)
+        if (goodsVO.getPriceUsd() == null || goodsVO.getPriceUsd() <= 0) {
+            goodsVO.setPriceUsd(maollarTierService.convertToUSD(goods.getPrice(), "CNY"));
+        }
 
         // 多语言支持：根据当前上下文语言替换名称和描述
         String lang = cn.lili.common.context.LanguageContextHolder.get();
@@ -266,6 +274,11 @@ public class GoodsServiceImpl extends ServiceImpl<GoodsMapper, Goods> implements
         // 商品sku赋值
         List<GoodsSkuVO> goodsListByGoodsId = goodsSkuService.getGoodsListByGoodsId(goodsId);
         if (goodsListByGoodsId != null && !goodsListByGoodsId.isEmpty()) {
+            for (GoodsSkuVO skuVO : goodsListByGoodsId) {
+                if (skuVO.getPriceUsd() == null || skuVO.getPriceUsd() <= 0) {
+                    skuVO.setPriceUsd(maollarTierService.convertToUSD(skuVO.getPrice(), "CNY"));
+                }
+            }
             goodsVO.setSkuList(goodsListByGoodsId);
         }
         // 商品分类名称赋值

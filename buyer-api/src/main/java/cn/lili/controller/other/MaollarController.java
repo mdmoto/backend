@@ -1,19 +1,20 @@
 package cn.lili.controller.other;
 
 import lombok.extern.slf4j.Slf4j;
+import java.util.List;
 
 
 import cn.lili.common.enums.ResultCode;
 import cn.lili.common.enums.ResultUtil;
 import cn.lili.common.vo.ResultMessage;
 import cn.lili.modules.member.service.MemberPointsHistoryService;
-import cn.lili.modules.order.order.service.OrderService;
+import cn.lili.modules.payment.service.StripePaymentSnapshotService;
+import cn.lili.modules.system.service.FxRateSnapshotService;
 import cn.lili.modules.system.service.MaollarTierService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
-import cn.lili.modules.system.service.ExchangeRateProvider;
 import cn.lili.modules.member.service.MaoWithdrawalService;
 import cn.lili.modules.member.entity.dos.MaoWithdrawalLog;
 import cn.lili.common.vo.PageVO;
@@ -34,7 +35,7 @@ import java.util.Map;
 @Slf4j
 @RestController
 @Api(tags = "Maollar DApp 集成接口")
-@RequestMapping({ "/api/v1/maollar", "/buyer/api/v1/maollar" })
+@RequestMapping({ "/api/v1/maollar", "/buyer/other/maollar" })
 public class MaollarController {
 
     @org.springframework.beans.factory.annotation.Value("${lili.maollar.solana.gateway-secret:}")
@@ -45,22 +46,22 @@ public class MaollarController {
     private MaollarTierService maollarTierService;
 
     @Autowired
-    private OrderService orderService;
-
-    @Autowired
     private MemberPointsHistoryService memberPointsHistoryService;
-
-    @Autowired
-    private ExchangeRateProvider exchangeRateProvider;
 
     @Autowired
     private MaoWithdrawalService maoWithdrawalService;
 
+    @Autowired
+    private StripePaymentSnapshotService stripePaymentSnapshotService;
+
+    @Autowired
+    private FxRateSnapshotService fxRateSnapshotService;
+
     @ApiOperation(value = "获取当前档位状态")
     @GetMapping("/tier-status")
     public ResultMessage<Map<String, Object>> getTierStatus() {
-        double totalSalesCNY = orderService.getCompletedTotalSales();
-        double totalSalesUSD = maollarTierService.convertToUSD(totalSalesCNY, "CNY");
+        // 基于 Stripe 真实收款数据计算当前档位
+        double totalSalesUSD = stripePaymentSnapshotService.getCompletedTotalSalesUSD();
         return ResultUtil.data(maollarTierService.getTierStatus(totalSalesUSD));
     }
 
@@ -119,11 +120,22 @@ public class MaollarController {
     @ApiOperation(value = "获取当前汇率列表")
     @GetMapping("/rates")
     public ResultMessage<Map<String, Object>> getRates() {
-        Map<String, Object> rates = new HashMap<>();
-        rates.put("CNY", exchangeRateProvider.getRateToUsd("CNY"));
-        rates.put("JPY", exchangeRateProvider.getRateToUsd("JPY"));
-        rates.put("USD", 1.0);
-        return ResultUtil.data(rates);
+        // 重要：此接口仅供前端展示换算使用，不参与发币计价
+        Map<String, Double> rates = fxRateSnapshotService.getRates("USD");
+        if (rates == null) {
+            return ResultUtil.error(ResultCode.ERROR.code(), "Exchange rates unavailable");
+        }
+        Map<String, Object> result = new HashMap<>();
+        result.put("base", "USD");
+        result.put("rates", rates);
+        result.put("asOf", System.currentTimeMillis() / 1000); // 简化处理
+        return ResultUtil.data(result);
+    }
+
+    @ApiOperation(value = "获取支持的展示币种列表")
+    @GetMapping("/supported-currencies")
+    public ResultMessage<List<String>> getSupportedCurrencies() {
+        return ResultUtil.data(fxRateSnapshotService.getSupportedCurrencies());
     }
 
     @ApiOperation(value = "发起积分兑换 $MAO 申请")

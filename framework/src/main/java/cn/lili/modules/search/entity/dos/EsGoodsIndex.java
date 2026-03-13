@@ -163,12 +163,16 @@ public class EsGoodsIndex implements Serializable {
     @ApiModelProperty("店铺分类名称")
     private String storeCategoryNamePath;
 
-    /**
-     * 商品价格
-     */
     @Field(type = FieldType.Double)
     @ApiModelProperty("商品价格")
     private Double price;
+
+    /**
+     * USD 基准价
+     */
+    @Field(type = FieldType.Double)
+    @ApiModelProperty("USD 基准价")
+    private Double priceUsd;
 
     /**
      * 促销价
@@ -308,6 +312,7 @@ public class EsGoodsIndex implements Serializable {
             this.goodsId = sku.getGoodsId();
             this.goodsName = sku.getGoodsName();
             this.price = sku.getPrice();
+            this.priceUsd = sku.getPriceUsd();
             this.storeName = sku.getStoreName();
             this.storeId = sku.getStoreId();
             this.thumbnail = sku.getThumbnail();
@@ -380,6 +385,7 @@ public class EsGoodsIndex implements Serializable {
             this.goodsId = sku.getGoodsId();
             this.goodsName = sku.getGoodsName();
             this.price = sku.getPrice();
+            this.priceUsd = sku.getPriceUsd();
             this.storeName = sku.getStoreName();
             this.storeId = sku.getStoreId();
             this.thumbnail = sku.getThumbnail();

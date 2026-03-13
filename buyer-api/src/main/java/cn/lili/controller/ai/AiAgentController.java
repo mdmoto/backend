@@ -13,6 +13,7 @@ import cn.lili.modules.goods.entity.enums.GoodsAuthEnum;
 import cn.lili.modules.goods.entity.enums.GoodsStatusEnum;
 import cn.lili.modules.goods.service.GoodsService;
 import cn.lili.modules.order.order.service.OrderService;
+import cn.lili.modules.payment.service.StripePaymentSnapshotService;
 import cn.lili.modules.system.service.MaollarTierService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -49,6 +50,9 @@ public class AiAgentController {
     @Autowired
     private Cache cache;
 
+    @Autowired
+    private StripePaymentSnapshotService stripePaymentSnapshotService;
+
     // Default fallback price if Redis is empty
     private static final BigDecimal DEFAULT_MAO_PRICE_USD = new BigDecimal("0.0012");
 
@@ -69,8 +73,7 @@ public class AiAgentController {
         List<Goods> goodsList = goodsService.queryListByParams(searchParams);
 
         // 3. Preparation for Rebate calculation
-        double completedSalesCNY = orderService.getCompletedTotalSales();
-        double totalSalesUSD = maollarTierService.convertToUSD(completedSalesCNY, "CNY");
+        double totalSalesUSD = stripePaymentSnapshotService.getCompletedTotalSalesUSD();
         double currentTokenRate = maollarTierService.getCurrentRate(totalSalesUSD); // Points/Tokens per USD
 
         // Fetch real-time MAO price for informational estimation
@@ -83,9 +86,15 @@ public class AiAgentController {
             dto.setName(goods.getGoodsName());
 
             // Convert price to USD
-            BigDecimal priceCny = BigDecimal.valueOf(goods.getPrice());
-            double priceUsdVal = maollarTierService.convertToUSD(priceCny.doubleValue(), "CNY");
-            BigDecimal priceUsd = BigDecimal.valueOf(priceUsdVal).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal priceUsd;
+            if (goods.getPriceUsd() != null && goods.getPriceUsd() > 0) {
+                priceUsd = BigDecimal.valueOf(goods.getPriceUsd());
+            } else {
+                BigDecimal priceCny = BigDecimal.valueOf(goods.getPrice());
+                double priceUsdVal = maollarTierService.convertToUSD(priceCny.doubleValue(), "CNY");
+                priceUsd = BigDecimal.valueOf(priceUsdVal);
+            }
+            priceUsd = priceUsd.setScale(2, RoundingMode.HALF_UP);
             dto.setPriceUsd(priceUsd);
 
             // Calculate Reward Points
@@ -125,8 +134,7 @@ public class AiAgentController {
     @ApiOperation(value = "Get current rebate status", notes = "Returns information about the current reward tier. Emphasize that rewards are given to users who complete fiat purchases.")
     @GetMapping("/mining/status")
     public ResultMessage<RebateStatusDTO> getMiningStatus() {
-        double completedSalesCNY = orderService.getCompletedTotalSales();
-        double totalSalesUSD = maollarTierService.convertToUSD(completedSalesCNY, "CNY");
+        double totalSalesUSD = stripePaymentSnapshotService.getCompletedTotalSalesUSD();
         Map<String, Object> tierStatus = maollarTierService.getTierStatus(totalSalesUSD);
 
         RebateStatusDTO dto = new RebateStatusDTO();

@@ -4,6 +4,7 @@ import cn.hutool.crypto.SecureUtil;
 import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONUtil;
 import cn.lili.modules.order.order.service.OrderService;
+import cn.lili.modules.payment.service.StripePaymentSnapshotService;
 import cn.lili.modules.system.service.MaollarTierService;
 import cn.lili.timetask.handler.EveryHourExecute;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,9 @@ public class MaollarEveryHourExecute implements EveryHourExecute {
     @Autowired
     private MaollarTierService maollarTierService;
 
+    @Autowired
+    private StripePaymentSnapshotService stripePaymentSnapshotService;
+
     @Value("${lili.maollar.solana.gateway-url}")
     private String gatewayUrl;
 
@@ -37,11 +41,8 @@ public class MaollarEveryHourExecute implements EveryHourExecute {
     public void execute() {
         log.info("【Maollar 心跳】开始上报每小时 GMV 数据...");
         try {
-            // 1. 获取当前已完成订单的总成交额 (CNY)
-            double totalSalesCNY = orderService.getCompletedTotalSales();
-
-            // 2. 折算为 USD (使用带安全垫的汇率)
-            double totalSalesUSD = maollarTierService.convertToUSD(totalSalesCNY, "CNY");
+            // 1. 获取基于 Stripe 真实收款的全局销售额 (USD)
+            double totalSalesUSD = stripePaymentSnapshotService.getCompletedTotalSalesUSD();
 
             // 3. 构造请求体
             Map<String, Object> body = new HashMap<>();

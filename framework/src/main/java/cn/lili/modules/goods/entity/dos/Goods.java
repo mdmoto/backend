@@ -62,6 +62,9 @@ public class Goods extends BaseEntity {
     @ApiModelProperty(value = "计量单位")
     private String goodsUnit;
 
+    @ApiModelProperty(value = "USD 基准价")
+    private Double priceUsd;
+
 
     @Length(max = 60, message = "商品卖点太长，不能超过60个字符")
     @ApiModelProperty(value = "卖点")
@@ -169,6 +172,7 @@ public class Goods extends BaseEntity {
         this.mobileIntro = goodsOperationDTO.getMobileIntro();
         this.goodsVideo = goodsOperationDTO.getGoodsVideo();
         this.price = goodsOperationDTO.getPrice();
+        this.priceUsd = goodsOperationDTO.getPriceUsd();
         if (goodsOperationDTO.getGoodsParamsDTOList() != null && goodsOperationDTO.getGoodsParamsDTOList().isEmpty()) {
             this.params = JSONUtil.toJsonStr(goodsOperationDTO.getGoodsParamsDTOList());
         }

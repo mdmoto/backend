@@ -118,6 +118,9 @@ public class Order extends BaseEntity {
     @ApiModelProperty(value = "总价格")
     private Double flowPrice;
 
+    @ApiModelProperty(value = "订单总额 USD 基准价")
+    private Double totalPriceUsd;
+
     @ApiModelProperty(value = "商品价格")
     private Double goodsPrice;
 
@@ -270,7 +273,11 @@ public class Order extends BaseEntity {
             }
             this.setUseStoreMemberCouponIds(storeCouponIds.toString());
         }
-
+        // 计算 USD 总价
+        this.totalPriceUsd = cartVO.getCheckedSkuList().stream()
+                .filter(i -> i.getPurchasePriceUsd() != null)
+                .mapToDouble(i -> i.getPurchasePriceUsd() * i.getNum())
+                .sum();
     }
 
 

@@ -1,6 +1,5 @@
 package cn.lili.event.impl;
 
-import cn.hutool.core.text.CharSequenceUtil;
 import cn.lili.event.AfterSaleStatusChangeEvent;
 import cn.lili.event.GoodsCommentCompleteEvent;
 import cn.lili.event.MemberRegisterEvent;
@@ -11,7 +10,6 @@ import cn.lili.modules.member.entity.enums.PointTypeEnum;
 import cn.lili.modules.member.service.MemberPointsHistoryService;
 import cn.lili.modules.member.service.MemberService;
 import cn.lili.modules.member.entity.dos.MemberPointsHistory;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 
 import cn.lili.modules.order.aftersale.entity.dos.AfterSale;
 import cn.lili.modules.order.order.entity.dos.Order;
@@ -50,6 +48,8 @@ public class MemberPointExecute
     private MemberPointsHistoryService memberPointsHistoryService;
     @Autowired
     private StripePaymentSnapshotService stripePaymentSnapshotService;
+    @Autowired
+    private cn.lili.cache.Cache cache;
 
     // 喵币精度：6 位 (1.000000)
     private static final long MEOW_COIN_SCALE = 1000000L;
@@ -97,12 +97,15 @@ public class MemberPointExecute
                 
                 if (snapshot == null || snapshot.getAmountNetUsd() == null) {
                     log.warn("【Mao Mall 计价告警】订单 {} 尚未确认 Stripe 真实收款或金额为空，暂停发币。请确保 Stripe Webhook 已同步快照。", order.getSn());
+                    // 增加遗漏计数器用于监控告警/巡检
+                    cache.incr("maocoin_snapshot_missing_total");
                     return;
                 }
 
                 BigDecimal amountNetUsd = snapshot.getAmountNetUsd();
-                // 仅对金额大于 0 的收款发币
+                // 仅对已确认 (CONFIRMED) 且金额大于 0 (amount_net_usd > 0) 的收款发币
                 if (amountNetUsd.compareTo(BigDecimal.ZERO) <= 0) {
+                    log.info("【Mao Mall 计价跳过】订单 {} 的 Stripe 快照金额为 {}，跳过发币。", order.getSn(), amountNetUsd);
                     return;
                 }
                 

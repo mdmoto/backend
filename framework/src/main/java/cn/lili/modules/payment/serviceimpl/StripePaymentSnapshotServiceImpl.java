@@ -33,6 +33,7 @@ public class StripePaymentSnapshotServiceImpl extends ServiceImpl<StripePaymentS
         QueryWrapper<StripePaymentSnapshot> queryWrapper = new QueryWrapper<>();
         queryWrapper.select("IFNULL(sum(amount_net_usd), 0) as totalSales");
         queryWrapper.eq("payment_status", "CONFIRMED");
+        queryWrapper.gt("amount_net_usd", 0);
         Map<String, Object> map = this.getMap(queryWrapper);
         if (map != null && map.get("totalSales") != null) {
             return Double.parseDouble(map.get("totalSales").toString());

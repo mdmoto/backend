@@ -57,8 +57,11 @@ public class OrderItem extends BaseEntity {
     @ApiModelProperty(value = "货品ID")
     private String skuId;
 
-    @ApiModelProperty(value = "销售量")
+    @ApiModelProperty(value = "商品数量")
     private Integer num;
+
+    @ApiModelProperty(value = "商品单价 USD 基准价")
+    private Double priceUsd;
 
     @ApiModelProperty(value = "交易编号")
     private String tradeSn;
@@ -161,6 +164,7 @@ public class OrderItem extends BaseEntity {
         this.setGoodsPrice(cartSkuVO.getGoodsSku().getPrice());
         this.setUnitPrice(cartSkuVO.getPurchasePrice());
         this.setSubTotal(cartSkuVO.getSubTotal());
+        this.setPriceUsd(cartSkuVO.getPurchasePriceUsd());
         this.setSn(SnowFlake.createStr("OI"));
 
 
