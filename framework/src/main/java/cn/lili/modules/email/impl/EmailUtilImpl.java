@@ -120,7 +120,8 @@ public class EmailUtilImpl implements EmailUtil {
 
         // 缓存验证码（5分钟有效期）
         cache.put(CachePrefix.EMAIL_CODE.getPrefix() + verificationEnums.name() + ":" + email, code, 300L);
-        log.info("发送邮箱验证码成功: email={}, code={}, scene={}", email, code, verificationEnums);
+        log.info("发送邮箱验证码成功: email={}, scene={}", email, verificationEnums);
+
     }
 
     @Override

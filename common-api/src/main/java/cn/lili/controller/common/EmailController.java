@@ -52,6 +52,12 @@ public class EmailController {
             @ApiImplicitParam(paramType = "query", dataType = "String", name = "toEmail", value = "接收邮箱", required = true),
     })
     public ResultMessage testEmail(@RequestParam String toEmail) {
+        // P0 Fix: Only managers can send test emails to prevent spam abuse
+        cn.lili.common.security.AuthUser currentUser = cn.lili.common.security.context.UserContext.getCurrentUser();
+        if (currentUser == null || !cn.lili.common.security.enums.UserEnums.MANAGER.equals(currentUser.getRole())) {
+            throw new cn.lili.common.exception.ServiceException(cn.lili.common.enums.ResultCode.USER_AUTHORITY_ERROR);
+        }
+
         String subject = "Maollar 邮箱配置测试";
         String content = "这是一封测试邮件，如果您收到此邮件，说明邮箱配置成功！\n\n" +
                 "发送时间：" + new java.util.Date() + "\n" +
@@ -59,5 +65,6 @@ public class EmailController {
         emailUtil.sendTestEmail(toEmail, subject, content);
         return ResultUtil.success(ResultCode.SUCCESS);
     }
+
 }
 
