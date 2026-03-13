@@ -11,6 +11,8 @@ import cn.lili.modules.order.order.entity.dto.OrderMessage;
 import cn.lili.modules.order.order.entity.enums.OrderStatusEnum;
 import cn.lili.modules.order.order.service.OrderService;
 import cn.lili.modules.system.service.MaollarTierService;
+import cn.lili.modules.payment.entity.StripePaymentSnapshot;
+import cn.lili.modules.payment.service.StripePaymentSnapshotService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -36,6 +38,9 @@ class MaocoinEconomicModelTest {
 
     @Mock
     private MaollarTierService maollarTierService;
+    
+    @Mock
+    private StripePaymentSnapshotService stripePaymentSnapshotService;
 
     @InjectMocks
     private MemberPointExecute memberPointExecute;
@@ -51,9 +56,12 @@ class MaocoinEconomicModelTest {
         order.setFlowPrice(100.0);
         
         when(orderService.getBySn(orderSn)).thenReturn(order);
-        when(maollarTierService.convertToUSD(anyDouble(), anyString())).thenReturn(14.0);
+        when(stripePaymentSnapshotService.getCompletedTotalSalesUSD()).thenReturn(1000.0);
         when(maollarTierService.getCurrentRate(anyDouble())).thenReturn(10.0);
-        when(maollarTierService.calculateFund(anyDouble())).thenReturn(1.4);
+        
+        StripePaymentSnapshot snapshot = new StripePaymentSnapshot();
+        snapshot.setAmountNetUsd(new BigDecimal("14.0"));
+        when(stripePaymentSnapshotService.getConfirmedSnapshot(orderSn)).thenReturn(snapshot);
 
         OrderMessage message = new OrderMessage();
         message.setOrderSn(orderSn);
@@ -91,6 +99,10 @@ class MaocoinEconomicModelTest {
         originalHistory.setFundReserve(new BigDecimal("10.0")); 
         
         when(memberPointsHistoryService.getOne(any())).thenReturn(originalHistory);
+
+        StripePaymentSnapshot snapshot = new StripePaymentSnapshot();
+        snapshot.setAmountNetUsd(new BigDecimal("14.0"));
+        when(stripePaymentSnapshotService.getOne(any())).thenReturn(snapshot);
         
         memberPointExecute.afterSaleStatusChange(afterSale);
         

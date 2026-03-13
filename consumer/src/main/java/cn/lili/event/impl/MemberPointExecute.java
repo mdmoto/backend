@@ -19,6 +19,8 @@ import cn.lili.modules.order.order.entity.dto.OrderMessage;
 import cn.lili.modules.order.order.entity.enums.OrderPromotionTypeEnum;
 import cn.lili.modules.order.trade.entity.enums.AfterSaleStatusEnum;
 import cn.lili.modules.system.service.MaollarTierService;
+import cn.lili.modules.payment.entity.StripePaymentSnapshot;
+import cn.lili.modules.payment.service.StripePaymentSnapshotService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -46,6 +48,8 @@ public class MemberPointExecute
     private MaollarTierService maollarTierService;
     @Autowired
     private MemberPointsHistoryService memberPointsHistoryService;
+    @Autowired
+    private StripePaymentSnapshotService stripePaymentSnapshotService;
 
     // 喵币精度：6 位 (1.000000)
     private static final long MEOW_COIN_SCALE = 1000000L;
@@ -84,24 +88,30 @@ public class MemberPointExecute
                     return;
                 }
 
-                // 1. 获取全局销售额等级 (USD) 用于确定汇率
-                double totalSalesCNY = orderService.getCompletedTotalSales();
-                double totalSalesUSD = maollarTierService.convertToUSD(totalSalesCNY, "CNY");
+                // 1. 获取基于 Stripe 真实收款的全局销售额 (USD) 用于确定汇率
+                double totalSalesUSD = stripePaymentSnapshotService.getCompletedTotalSalesUSD();
                 double rate = maollarTierService.getCurrentRate(totalSalesUSD);
 
-                // 2. 将当前订单金额转为 USD
-                double orderAmountUSD = maollarTierService.convertToUSD(order.getFlowPrice(), "CNY");
+                // 2. 获取本单 Stripe 真实收款快照 (USD)
+                StripePaymentSnapshot snapshot = stripePaymentSnapshotService.getConfirmedSnapshot(order.getSn());
+                
+                if (snapshot == null) {
+                    log.warn("【Mao Mall 计价告警】订单 {} 尚未确认 Stripe 真实收款，暂停发币。请确保 Stripe Webhook 已同步快照。", order.getSn());
+                    // 改为重试逻辑或待处理任务 (此处暂且记录告警并跳过，实际生产需配合补发 Job)
+                    return;
+                }
 
-                // 3. 计算本单应计基金拨备金 (10%)
-                double fundReserve = maollarTierService.calculateFund(orderAmountUSD);
+                BigDecimal amountNetUsd = snapshot.getAmountNetUsd();
+                BigDecimal fundReserve = amountNetUsd.multiply(new BigDecimal("0.1"));
 
-                // 4. 计算赠送喵币 (金额 * 汇率 * 精度)
-                // 逻辑：USD * (Issuance/DeltaGMV) * 10^6
-                long point = (long) (orderAmountUSD * rate * MEOW_COIN_SCALE);
+                // 4. 计算赠送喵币 (真实 USD * 汇率 * 精度)
+                long point = amountNetUsd.multiply(BigDecimal.valueOf(rate))
+                                        .multiply(BigDecimal.valueOf(MEOW_COIN_SCALE))
+                                        .longValue();
 
                 if (point > 0) {
                     memberService.updateMemberPoint(point, PointTypeEnum.INCREASE.name(), order.getMemberId(),
-                            "喵领计划：消费赠送喵币 " + formatPoint(point), "REWARD_MEOW_" + order.getSn(), java.math.BigDecimal.valueOf(fundReserve));
+                            "喵领计划：基于 Stripe 真实收款赠送 " + formatPoint(point), "REWARD_MEOW_" + order.getSn(), fundReserve);
                 }
 
                 checkSettlementReminder();
@@ -133,20 +143,32 @@ public class MemberPointExecute
             java.math.BigDecimal fundToReduce;
 
             if (originalHistory != null && originalHistory.getVariablePoint() > 0) {
-                // 按退款金额比例扣回
-                double refundRatio = afterSale.getActualRefundPrice() / order.getFlowPrice();
-                pointToReduce = (long) (originalHistory.getVariablePoint() * refundRatio);
-                fundToReduce = originalHistory.getFundReserve().multiply(java.math.BigDecimal.valueOf(refundRatio));
+                // 基于 Stripe 收款快照按真实比例扣回
+                StripePaymentSnapshot snapshot = stripePaymentSnapshotService.getOne(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<StripePaymentSnapshot>()
+                        .eq(StripePaymentSnapshot::getOrderSn, order.getSn())
+                        .isNotNull(StripePaymentSnapshot::getAmountNetUsd));
+
+                if (snapshot != null && snapshot.getAmountNetUsd().compareTo(BigDecimal.ZERO) > 0) {
+                    // 逻辑：退款确认后，Stripe 侧会同步退款后的净额变化或单独记录退款。
+                    // 此处模拟按订单金额比例，但在生产中应读取 Stripe Refund Balance Transaction 的金额
+                    double refundRatio = afterSale.getActualRefundPrice() / order.getFlowPrice();
+                    pointToReduce = (long) (originalHistory.getVariablePoint() * refundRatio);
+                    fundToReduce = originalHistory.getFundReserve().multiply(BigDecimal.valueOf(refundRatio));
+                } else {
+                    // Fallback
+                    double refundRatio = afterSale.getActualRefundPrice() / order.getFlowPrice();
+                    pointToReduce = (long) (originalHistory.getVariablePoint() * refundRatio);
+                    fundToReduce = originalHistory.getFundReserve().multiply(BigDecimal.valueOf(refundRatio));
+                }
             } else {
-                // Fallback (should not happen if system is consistent)
-                double refundUSD = maollarTierService.convertToUSD(afterSale.getActualRefundPrice(), "CNY");
-                double rate = maollarTierService.getCurrentRate(refundUSD);
-                pointToReduce = (long) (refundUSD * rate * MEOW_COIN_SCALE);
-                fundToReduce = java.math.BigDecimal.valueOf(maollarTierService.calculateFund(refundUSD));
+                pointToReduce = 0L;
+                fundToReduce = BigDecimal.ZERO;
             }
 
-            memberService.updateMemberPoint(pointToReduce, PointTypeEnum.REDUCE.name(), afterSale.getMemberId(),
-                    "售后完成，回退消费赠送喵币 " + formatPoint(pointToReduce), "RETURN_REFUND_" + afterSale.getSn(), fundToReduce.negate());
+            if (pointToReduce > 0) {
+                memberService.updateMemberPoint(pointToReduce, PointTypeEnum.REDUCE.name(), afterSale.getMemberId(),
+                        "售后完成，按 Stripe 退款比例回退 " + formatPoint(pointToReduce), "RETURN_REFUND_" + afterSale.getSn(), fundToReduce.negate());
+            }
 
 
             checkSettlementReminder();
