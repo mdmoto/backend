@@ -51,7 +51,9 @@ public interface MemberPointsHistoryService extends IService<MemberPointsHistory
      * 
      * @param memberId 会员 ID
      * @param points   扣除积分
+     * @param txHash   链上交易哈希 (必填，作为业务幂等键)
      * @return 是否成功
      */
-    boolean pointExchangeCallback(String memberId, Long points);
+    boolean pointExchangeCallback(String memberId, Long points, String txHash);
+
 }

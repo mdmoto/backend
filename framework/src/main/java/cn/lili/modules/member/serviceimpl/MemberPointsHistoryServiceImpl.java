@@ -124,11 +124,12 @@ public class MemberPointsHistoryServiceImpl extends ServiceImpl<MemberPointsHist
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean pointExchangeCallback(String memberId, Long points) {
-        // P0 Fix: Pass bizId for callback idempotency
-        String bizId = "CALLBACK_" + memberId + "_" + System.currentTimeMillis() / 60000; // 1-minute window idempotency if no better ID
+    public boolean pointExchangeCallback(String memberId, Long points, String txHash) {
+        // P0 Fix: Use txHash as bizId for strict idempotency
+        String bizId = "DEDUCT_CALLBACK_" + txHash;
         boolean result = memberService.updateMemberPoint(points, PointTypeEnum.REDUCE.name(), memberId, "DApp 链上兑换扣减",
                 bizId, java.math.BigDecimal.ZERO);
+
 
         if (result) {
             // 标记刚才生成的历史记录为“已确权”

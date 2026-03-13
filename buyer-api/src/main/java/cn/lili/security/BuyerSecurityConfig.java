@@ -60,8 +60,10 @@ public class BuyerSecurityConfig {
                     authorize.requestMatchers("/api/v1/ai/**").permitAll();
                     authorize.requestMatchers("/buyer/api/v1/maollar/rates", "/buyer/api/v1/maollar/tier-status",
                                     "/buyer/api/v1/maollar/merkle-root", "/buyer/api/v1/maollar/exchange-log",
-                                    "/api/v1/maollar/**")
+                                    "/api/v1/maollar/rates", "/api/v1/maollar/tier-status",
+                                    "/api/v1/maollar/merkle-root", "/api/v1/maollar/exchange-log")
                             .permitAll();
+
 
                     authorize.anyRequest().authenticated();
                 })

@@ -119,10 +119,11 @@ public class FullDiscountExecute implements TradeEvent, OrderStatusChangeEvent {
         // 赠送喵币判定
         try {
             if (cartVO.getGiftPoint() != null && cartVO.getGiftPoint() > 0) {
-                // P0 Fix: Pass orderSn as bizId for idempotency
+                // P0 Fix: Pass prefixed orderSn as bizId for idempotency to avoid collision with REWARD_MEOW_
                 memberService.updateMemberPoint(cartVO.getGiftPoint().longValue(), PointTypeEnum.INCREASE.name(),
-                        order.getMemberId(), "订单满优惠赠送喵币" + cartVO.getGiftPoint(), order.getSn(), java.math.BigDecimal.ZERO);
+                        order.getMemberId(), "订单满优惠赠送喵币" + cartVO.getGiftPoint(), "REWARD_GIFT_" + order.getSn(), java.math.BigDecimal.ZERO);
             }
+
 
         } catch (Exception e) {
             log.error("订单赠送喵币异常", e);

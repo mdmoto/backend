@@ -73,35 +73,47 @@ public class MaollarController {
     @ApiOperation(value = "DApp 兑换回调信号")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "memberId", value = "会员ID", required = true, paramType = "query"),
-            @ApiImplicitParam(name = "points", value = "兑换扣除积分", required = true, paramType = "query")
+            @ApiImplicitParam(name = "points", value = "兑换扣除积分", required = true, paramType = "query"),
+            @ApiImplicitParam(name = "txHash", value = "链上交易哈希", required = true, paramType = "query")
     })
     @PostMapping("/exchange-log")
     public ResultMessage<Object> exchangeLog(
-            @RequestHeader(value = "X-MAO-Timestamp", required = false) String timestamp,
+            @RequestHeader(value = "X-MAO-Timestamp", required = false) String timestampStr,
             @RequestHeader(value = "X-MAO-Signature", required = false) String signature,
-            String memberId, Long points) {
+            String memberId, Long points, String txHash) {
 
-        // P0 Fix: Verify HMAC signature to ensure request comes from trusted Cloudflare Worker
-        if (cn.hutool.core.util.StrUtil.isBlank(signature) || cn.hutool.core.util.StrUtil.isBlank(timestamp)) {
+        // P0 Fix: Verify HMAC signature and Freshness
+        if (cn.hutool.core.util.StrUtil.isBlank(signature) || cn.hutool.core.util.StrUtil.isBlank(timestampStr) || cn.hutool.core.util.StrUtil.isBlank(txHash)) {
             return ResultUtil.error(ResultCode.USER_AUTHORITY_ERROR);
         }
 
-        // Validate signature: timestamp + memberId + points
-        String bodyText = memberId + points;
-        String calcSignature = cn.hutool.crypto.SecureUtil.hmacSha256(gatewaySecret).digestHex(timestamp + bodyText);
+        // 1. Freshness check: 防重放时间窗口 (5分钟)
+        try {
+            long requestTs = Long.parseLong(timestampStr);
+            if (Math.abs(System.currentTimeMillis() - requestTs) > 300000) {
+                log.warn("【安全拦截】DApp 回调请求已失效 (Expired): memberId={}, txHash={}", memberId, txHash);
+                return ResultUtil.error(ResultCode.USER_AUTHORITY_ERROR);
+            }
+        } catch (Exception e) {
+            return ResultUtil.error(ResultCode.USER_AUTHORITY_ERROR);
+        }
 
+        // 2. Validate signature: timestamp + memberId + points + txHash
+        String bodyText = memberId + points + txHash;
+        String calcSignature = cn.hutool.crypto.SecureUtil.hmacSha256(gatewaySecret).digestHex(timestampStr + bodyText);
 
         if (!calcSignature.equalsIgnoreCase(signature)) {
-            log.error("【安全预警】DApp 回调签名校验失败! memberId={}, points={}", memberId, points);
+            log.error("【安全预警】DApp 回调签名校验失败! memberId={}, txHash={}", memberId, txHash);
             return ResultUtil.error(ResultCode.USER_AUTHORITY_ERROR);
         }
 
-        if (memberPointsHistoryService.pointExchangeCallback(memberId, points)) {
+        if (memberPointsHistoryService.pointExchangeCallback(memberId, points, txHash)) {
             return ResultUtil.success();
         } else {
             return ResultUtil.error(ResultCode.POINT_NOT_ENOUGH);
         }
     }
+
 
 
     @ApiOperation(value = "获取当前汇率列表")

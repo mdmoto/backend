@@ -10,6 +10,9 @@ import cn.lili.modules.member.entity.dos.MemberEvaluation;
 import cn.lili.modules.member.entity.enums.PointTypeEnum;
 import cn.lili.modules.member.service.MemberPointsHistoryService;
 import cn.lili.modules.member.service.MemberService;
+import cn.lili.modules.member.entity.dos.MemberPointsHistory;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+
 import cn.lili.modules.order.aftersale.entity.dos.AfterSale;
 import cn.lili.modules.order.order.entity.dos.Order;
 import cn.lili.modules.order.order.entity.dto.OrderMessage;
@@ -69,7 +72,8 @@ public class MemberPointExecute
 
                 String content = "订单取消，喵币返还：" + formatPoint(point);
                 memberService.updateMemberPoint(point, PointTypeEnum.INCREASE.name(), order.getMemberId(), content,
-                        order.getSn(), java.math.BigDecimal.ZERO);
+                        "RETURN_CANCEL_" + order.getSn(), java.math.BigDecimal.ZERO);
+
 
                 break;
             }
@@ -97,7 +101,7 @@ public class MemberPointExecute
 
                 if (point > 0) {
                     memberService.updateMemberPoint(point, PointTypeEnum.INCREASE.name(), order.getMemberId(),
-                            "喵领计划：消费赠送喵币 " + formatPoint(point), order.getSn(), java.math.BigDecimal.valueOf(fundReserve));
+                            "喵领计划：消费赠送喵币 " + formatPoint(point), "REWARD_MEOW_" + order.getSn(), java.math.BigDecimal.valueOf(fundReserve));
                 }
 
                 checkSettlementReminder();
@@ -117,12 +121,13 @@ public class MemberPointExecute
             if (order == null) return;
 
             // Fetch original issuance from history to get exact count
-            QueryWrapper<MemberPointsHistory> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("member_id", afterSale.getMemberId())
-                    .eq("biz_id", order.getSn())
-                    .eq("point_type", PointTypeEnum.INCREASE.name())
-                    .like("content", "喵领计划：消费赠送喵币");
-            MemberPointsHistory originalHistory = memberPointsHistoryService.getOne(queryWrapper);
+            // Note: bizId was saved with REWARD_MEOW_ prefix in orderChange
+            MemberPointsHistory originalHistory = memberPointsHistoryService.getOne(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<MemberPointsHistory>()
+                    .eq(MemberPointsHistory::getMemberId, afterSale.getMemberId())
+                    .eq(MemberPointsHistory::getBizId, "REWARD_MEOW_" + order.getSn())
+                    .eq(MemberPointsHistory::getPointType, PointTypeEnum.INCREASE.name())
+                    .like(MemberPointsHistory::getContent, "喵领计划：消费赠送喵币"));
+
 
             long pointToReduce;
             java.math.BigDecimal fundToReduce;
@@ -141,7 +146,8 @@ public class MemberPointExecute
             }
 
             memberService.updateMemberPoint(pointToReduce, PointTypeEnum.REDUCE.name(), afterSale.getMemberId(),
-                    "售后完成，回退消费赠送喵币 " + formatPoint(pointToReduce), afterSale.getSn(), fundToReduce.negate());
+                    "售后完成，回退消费赠送喵币 " + formatPoint(pointToReduce), "RETURN_REFUND_" + afterSale.getSn(), fundToReduce.negate());
+
 
             checkSettlementReminder();
         }
