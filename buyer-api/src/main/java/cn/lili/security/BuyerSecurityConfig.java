@@ -58,8 +58,11 @@ public class BuyerSecurityConfig {
                     }
                     authorize.requestMatchers("/actuator/**").permitAll();
                     authorize.requestMatchers("/api/v1/ai/**").permitAll();
-                    authorize.requestMatchers("/buyer/api/v1/maollar/rates", "/buyer/api/v1/maollar/tier-status")
+                    authorize.requestMatchers("/buyer/api/v1/maollar/rates", "/buyer/api/v1/maollar/tier-status",
+                                    "/buyer/api/v1/maollar/merkle-root", "/buyer/api/v1/maollar/exchange-log",
+                                    "/api/v1/maollar/**")
                             .permitAll();
+
                     authorize.anyRequest().authenticated();
                 })
                 .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable()))

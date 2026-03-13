@@ -69,7 +69,8 @@ public class MemberPointExecute
 
                 String content = "订单取消，喵币返还：" + formatPoint(point);
                 memberService.updateMemberPoint(point, PointTypeEnum.INCREASE.name(), order.getMemberId(), content,
-                        0.0);
+                        order.getSn(), java.math.BigDecimal.ZERO);
+
                 break;
             }
             case COMPLETED: {
@@ -96,7 +97,7 @@ public class MemberPointExecute
 
                 if (point > 0) {
                     memberService.updateMemberPoint(point, PointTypeEnum.INCREASE.name(), order.getMemberId(),
-                            "喵领计划：消费赠送喵币 " + formatPoint(point), fundReserve);
+                            "喵领计划：消费赠送喵币 " + formatPoint(point), order.getSn(), java.math.BigDecimal.valueOf(fundReserve));
                 }
 
                 checkSettlementReminder();
@@ -110,19 +111,42 @@ public class MemberPointExecute
     @Override
     public void afterSaleStatusChange(AfterSale afterSale) {
         if (afterSale.getServiceStatus().equals(AfterSaleStatusEnum.COMPLETE.name())) {
-            double refundUSD = maollarTierService.convertToUSD(afterSale.getActualRefundPrice(), "CNY");
-            double rate = maollarTierService.getCurrentRate(refundUSD);
+            // P0 Fix: Avoid "Rate Arbitrage" by looking up the actual points issued for the original order
+            // Instead of calculating based on current rate, we calculate based on the refund ratio of the original issued points
+            Order order = orderService.getBySn(afterSale.getOrderSn());
+            if (order == null) return;
 
-            // 计算回退喵币 (6位精度)
-            long point = (long) (refundUSD * rate * MEOW_COIN_SCALE);
-            double fundReserve = -maollarTierService.calculateFund(refundUSD);
+            // Fetch original issuance from history to get exact count
+            QueryWrapper<MemberPointsHistory> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("member_id", afterSale.getMemberId())
+                    .eq("biz_id", order.getSn())
+                    .eq("point_type", PointTypeEnum.INCREASE.name())
+                    .like("content", "喵领计划：消费赠送喵币");
+            MemberPointsHistory originalHistory = memberPointsHistoryService.getOne(queryWrapper);
 
-            memberService.updateMemberPoint(point, PointTypeEnum.REDUCE.name(), afterSale.getMemberId(),
-                    "售后完成，回退消费赠送喵币 " + formatPoint(point), fundReserve);
+            long pointToReduce;
+            java.math.BigDecimal fundToReduce;
+
+            if (originalHistory != null && originalHistory.getVariablePoint() > 0) {
+                // 按退款金额比例扣回
+                double refundRatio = afterSale.getActualRefundPrice() / order.getFlowPrice();
+                pointToReduce = (long) (originalHistory.getVariablePoint() * refundRatio);
+                fundToReduce = originalHistory.getFundReserve().multiply(java.math.BigDecimal.valueOf(refundRatio));
+            } else {
+                // Fallback (should not happen if system is consistent)
+                double refundUSD = maollarTierService.convertToUSD(afterSale.getActualRefundPrice(), "CNY");
+                double rate = maollarTierService.getCurrentRate(refundUSD);
+                pointToReduce = (long) (refundUSD * rate * MEOW_COIN_SCALE);
+                fundToReduce = java.math.BigDecimal.valueOf(maollarTierService.calculateFund(refundUSD));
+            }
+
+            memberService.updateMemberPoint(pointToReduce, PointTypeEnum.REDUCE.name(), afterSale.getMemberId(),
+                    "售后完成，回退消费赠送喵币 " + formatPoint(pointToReduce), afterSale.getSn(), fundToReduce.negate());
 
             checkSettlementReminder();
         }
     }
+
 
     private void checkSettlementReminder() {
         double unsettledLiability = memberPointsHistoryService.getUnsettledLiability();

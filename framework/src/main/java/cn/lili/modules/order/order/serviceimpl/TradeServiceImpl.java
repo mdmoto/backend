@@ -217,7 +217,8 @@ public class TradeServiceImpl extends ServiceImpl<TradeMapper, Trade> implements
             boolean result = memberService.updateMemberPoint(tradeDTO.getPriceDetailDTO().getPayPoint(),
                     PointTypeEnum.REDUCE.name(),
                     tradeDTO.getMemberId(),
-                    "订单【" + orderSns + "】创建，喵币扣减", 0.0);
+                    "订单【" + orderSns + "】创建，喵币扣减", tradeDTO.getSn(), java.math.BigDecimal.ZERO);
+
 
             if (!result) {
                 throw new ServiceException(ResultCode.PAY_POINT_ENOUGH);

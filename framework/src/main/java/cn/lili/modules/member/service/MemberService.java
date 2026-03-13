@@ -221,11 +221,18 @@ public interface MemberService extends IService<Member> {
     Token refreshStoreToken(String refreshToken);
 
     /**
-     * @param content     变动日志
-     * @param fundReserve 基金会应拨备金 (Foundation Liability) (USD)
-     * @return 操作结果
+     * 修改会员积分
+     *
+     * @param point       积分
+     * @param type        类型
+     * @param memberId    会员id
+     * @param content     内容
+     * @param bizId       业务关联ID (订单号/售后单号/兑换申请ID)
+     * @param fundReserve 基金会应拨备金 (USD)
+     * @return 修改是否成功
      */
-    Boolean updateMemberPoint(Long point, String type, String memberId, String content, Double fundReserve);
+    Boolean updateMemberPoint(Long point, String type, String memberId, String content, String bizId, java.math.BigDecimal fundReserve);
+
 
     /**
      * 修改会员状态

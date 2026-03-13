@@ -1,5 +1,8 @@
 package cn.lili.controller.other;
 
+import lombok.extern.slf4j.Slf4j;
+
+
 import cn.lili.common.enums.ResultCode;
 import cn.lili.common.enums.ResultUtil;
 import cn.lili.common.vo.ResultMessage;
@@ -28,10 +31,15 @@ import java.util.Map;
 /**
  * Maollar DApp 集成接口
  */
+@Slf4j
 @RestController
 @Api(tags = "Maollar DApp 集成接口")
 @RequestMapping({ "/api/v1/maollar", "/buyer/api/v1/maollar" })
 public class MaollarController {
+
+    @org.springframework.beans.factory.annotation.Value("${lili.maollar.solana.gateway-secret:}")
+    private String gatewaySecret;
+
 
     @Autowired
     private MaollarTierService maollarTierService;
@@ -68,13 +76,33 @@ public class MaollarController {
             @ApiImplicitParam(name = "points", value = "兑换扣除积分", required = true, paramType = "query")
     })
     @PostMapping("/exchange-log")
-    public ResultMessage<Object> exchangeLog(String memberId, Long points) {
+    public ResultMessage<Object> exchangeLog(
+            @RequestHeader(value = "X-MAO-Timestamp", required = false) String timestamp,
+            @RequestHeader(value = "X-MAO-Signature", required = false) String signature,
+            String memberId, Long points) {
+
+        // P0 Fix: Verify HMAC signature to ensure request comes from trusted Cloudflare Worker
+        if (cn.hutool.core.util.StrUtil.isBlank(signature) || cn.hutool.core.util.StrUtil.isBlank(timestamp)) {
+            return ResultUtil.error(ResultCode.USER_AUTHORITY_ERROR);
+        }
+
+        // Validate signature: timestamp + memberId + points
+        String bodyText = memberId + points;
+        String calcSignature = cn.hutool.crypto.SecureUtil.hmacSha256(gatewaySecret).digestHex(timestamp + bodyText);
+
+
+        if (!calcSignature.equalsIgnoreCase(signature)) {
+            log.error("【安全预警】DApp 回调签名校验失败! memberId={}, points={}", memberId, points);
+            return ResultUtil.error(ResultCode.USER_AUTHORITY_ERROR);
+        }
+
         if (memberPointsHistoryService.pointExchangeCallback(memberId, points)) {
             return ResultUtil.success();
         } else {
             return ResultUtil.error(ResultCode.POINT_NOT_ENOUGH);
         }
     }
+
 
     @ApiOperation(value = "获取当前汇率列表")
     @GetMapping("/rates")

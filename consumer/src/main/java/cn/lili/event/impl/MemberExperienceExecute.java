@@ -55,7 +55,7 @@ public class MemberExperienceExecute implements MemberRegisterEvent, GoodsCommen
         ExperienceSetting experienceSetting = getExperienceSetting();
         // 赠送会员经验值
         memberService.updateMemberPoint(Long.valueOf(experienceSetting.getRegister().longValue()),
-                PointTypeEnum.INCREASE.name(), member.getId(), "会员注册，赠送经验值" + experienceSetting.getRegister(), 0.0);
+                PointTypeEnum.INCREASE.name(), member.getId(), "会员注册，赠送经验值" + experienceSetting.getRegister(), member.getId(), java.math.BigDecimal.ZERO);
     }
 
     /**
@@ -70,7 +70,8 @@ public class MemberExperienceExecute implements MemberRegisterEvent, GoodsCommen
         // 赠送会员经验值
         memberService.updateMemberPoint(Long.valueOf(experienceSetting.getComment().longValue()),
                 PointTypeEnum.INCREASE.name(), memberEvaluation.getMemberId(),
-                "会员评价，赠送经验值" + experienceSetting.getComment(), 0.0);
+                "会员评价，赠送经验值" + experienceSetting.getComment(), memberEvaluation.getId(), java.math.BigDecimal.ZERO);
+
     }
 
     /**
@@ -89,7 +90,8 @@ public class MemberExperienceExecute implements MemberRegisterEvent, GoodsCommen
             Double point = CurrencyUtil.mul(experienceSetting.getMoney(), order.getFlowPrice(), 0);
             // 赠送会员经验值
             memberService.updateMemberPoint(point.longValue(), PointTypeEnum.INCREASE.name(), order.getMemberId(),
-                    "会员下单，赠送经验值" + point + "分", 0.0);
+                    "会员下单，赠送经验值" + point + "分", order.getSn(), java.math.BigDecimal.ZERO);
+
         }
     }
 

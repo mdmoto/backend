@@ -69,16 +69,19 @@ public class MemberPointsHistoryServiceImpl extends ServiceImpl<MemberPointsHist
         queryWrapper.select("IFNULL(sum(fund_reserve), 0) as totalLiability");
         Map<String, Object> result = this.getMap(queryWrapper);
         if (result != null && result.get("totalLiability") != null) {
-            return Double.parseDouble(result.get("totalLiability").toString());
+            return new java.math.BigDecimal(result.get("totalLiability").toString()).doubleValue();
         }
         return 0.0;
     }
 
     @Override
     public boolean save(MemberPointsHistory entity) {
+        // P3 Fix: Store timestamp in DB to make Merkle Hash reproducible by external auditors
+        if (entity.getMerkleTimestamp() == null) {
+            entity.setMerkleTimestamp(System.currentTimeMillis());
+        }
         // userId + points + fundReserve + timestamp
-        String timestamp = String.valueOf(System.currentTimeMillis());
-        String rawData = entity.getMemberId() + entity.getVariablePoint() + entity.getFundReserve() + timestamp;
+        String rawData = entity.getMemberId() + entity.getVariablePoint() + entity.getFundReserve() + entity.getMerkleTimestamp();
         entity.setMerkleHash(cn.hutool.crypto.digest.DigestUtil.sha256Hex(rawData));
         return super.save(entity);
     }
@@ -122,9 +125,11 @@ public class MemberPointsHistoryServiceImpl extends ServiceImpl<MemberPointsHist
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean pointExchangeCallback(String memberId, Long points) {
-        // 同步扣除积分
+        // P0 Fix: Pass bizId for callback idempotency
+        String bizId = "CALLBACK_" + memberId + "_" + System.currentTimeMillis() / 60000; // 1-minute window idempotency if no better ID
         boolean result = memberService.updateMemberPoint(points, PointTypeEnum.REDUCE.name(), memberId, "DApp 链上兑换扣减",
-                0.0);
+                bizId, java.math.BigDecimal.ZERO);
+
         if (result) {
             // 标记刚才生成的历史记录为“已确权”
             QueryWrapper<MemberPointsHistory> queryWrapper = new QueryWrapper<>();

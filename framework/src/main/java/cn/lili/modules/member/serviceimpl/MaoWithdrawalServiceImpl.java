@@ -91,7 +91,7 @@ public class MaoWithdrawalServiceImpl extends ServiceImpl<MaoWithdrawalLogMapper
 
         // 开启积分扣除
         boolean deductResult = memberService.updateMemberPoint(withdrawalLog.getPoints(), PointTypeEnum.REDUCE.name(),
-                withdrawalLog.getMemberId(), "$MAO 兑换扣除积分", 0.0);
+                withdrawalLog.getMemberId(), "$MAO 兑换扣除积分", withdrawalLog.getId(), java.math.BigDecimal.ZERO);
 
         if (!deductResult) {
             withdrawalLog.setMaoIssueStatus(MaoIssueStatusEnum.FAILED.name());
@@ -139,7 +139,7 @@ public class MaoWithdrawalServiceImpl extends ServiceImpl<MaoWithdrawalLogMapper
             // 1. 尝试退回积分
             try {
                 memberService.updateMemberPoint(withdrawalLog.getPoints(), PointTypeEnum.INCREASE.name(),
-                        withdrawalLog.getMemberId(), "$MAO 兑换失败退回积分", 0.0);
+                        withdrawalLog.getMemberId(), "$MAO 兑换失败退回积分", withdrawalLog.getId() + "_REFUND", java.math.BigDecimal.ZERO);
             } catch (Exception re) {
                 log.error("【严重异常】积分退回失败，用户 ID: {}, 积分量: {}", withdrawalLog.getMemberId(), withdrawalLog.getPoints());
             }

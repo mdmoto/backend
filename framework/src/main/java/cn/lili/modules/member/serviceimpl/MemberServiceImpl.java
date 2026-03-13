@@ -525,7 +525,19 @@ public class MemberServiceImpl extends ServiceImpl<MemberMapper, Member> impleme
     @Override
     @PointLogPoint
     @Transactional(rollbackFor = Exception.class)
-    public Boolean updateMemberPoint(Long point, String type, String memberId, String content, Double fundReserve) {
+    public Boolean updateMemberPoint(Long point, String type, String memberId, String content, String bizId, java.math.BigDecimal fundReserve) {
+        // P0 Fix: Idempotency check using bizId
+        if (cn.hutool.core.util.StrUtil.isNotEmpty(bizId)) {
+            long count = memberPointsHistoryService.count(new LambdaQueryWrapper<MemberPointsHistory>()
+                    .eq(MemberPointsHistory::getMemberId, memberId)
+                    .eq(MemberPointsHistory::getBizId, bizId)
+                    .eq(MemberPointsHistory::getPointType, type));
+            if (count > 0) {
+                log.warn("【幂等拦截】检测到重复变动请求: memberId={}, bizId={}, type={}", memberId, bizId, type);
+                return true; // 已处理过，直接返回成功
+            }
+        }
+
         // 获取当前会员信息
         Member member = this.getById(memberId);
         if (member != null) {
@@ -552,6 +564,7 @@ public class MemberServiceImpl extends ServiceImpl<MemberMapper, Member> impleme
                 memberPointMessage.setPoint(point);
                 memberPointMessage.setType(type);
                 memberPointMessage.setMemberId(memberId);
+                memberPointMessage.setBizId(bizId);
                 memberPointMessage.setFundReserve(fundReserve);
                 applicationEventPublisher.publishEvent(new TransactionCommitSendMQEvent("update member point",
                         rocketmqCustomProperties.getMemberTopic(), MemberTagsEnum.MEMBER_POINT_CHANGE.name(),
@@ -563,6 +576,7 @@ public class MemberServiceImpl extends ServiceImpl<MemberMapper, Member> impleme
         }
         throw new ServiceException(ResultCode.USER_NOT_EXIST);
     }
+
 
     @Override
     public Boolean updateMemberStatus(List<String> memberIds, Boolean status) {

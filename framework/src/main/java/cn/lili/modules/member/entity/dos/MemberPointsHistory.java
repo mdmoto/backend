@@ -67,7 +67,14 @@ public class MemberPointsHistory extends BaseIdEntity {
     private String pointType;
 
     @ApiModelProperty(value = "基金会应拨备金 (Foundation Liability) (USD)")
-    private Double fundReserve;
+    private java.math.BigDecimal fundReserve;
+
+    @ApiModelProperty(value = "业务关联ID (订单ID/售后单ID)")
+    private String bizId;
+
+    @ApiModelProperty(value = "默克尔树计算时间戳")
+    private Long merkleTimestamp;
+
 
     @ApiModelProperty(value = "默克尔树叶子哈希")
     private String merkleHash;

@@ -59,4 +59,14 @@ public class SpringContextUtil implements ApplicationContextAware {
         return getApplicationContext().getBean(name, clazz);
     }
 
+    /**
+     * 获取配置信息
+     * @param key 键
+     * @return 值
+     */
+    public static String getProperty(String key) {
+        return getApplicationContext().getEnvironment().getProperty(key);
+    }
+
+
 }

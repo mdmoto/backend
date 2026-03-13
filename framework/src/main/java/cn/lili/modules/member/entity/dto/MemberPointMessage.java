@@ -22,5 +22,9 @@ public class MemberPointMessage {
     private String memberId;
 
     @ApiModelProperty(value = "基金会应拨备金 (Foundation Liability) (USD)")
-    private Double fundReserve;
+    private java.math.BigDecimal fundReserve;
+
+    @ApiModelProperty(value = "业务关联ID (订单ID/售后单ID/申请ID)")
+    private String bizId;
 }
+
