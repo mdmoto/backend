@@ -76,13 +76,8 @@ public class MemberPointsHistoryServiceImpl extends ServiceImpl<MemberPointsHist
 
     @Override
     public boolean save(MemberPointsHistory entity) {
-        // P3 Fix: Store timestamp in DB to make Merkle Hash reproducible by external auditors
-        if (entity.getMerkleTimestamp() == null) {
-            entity.setMerkleTimestamp(System.currentTimeMillis());
-        }
-        // userId + points + fundReserve + timestamp
-        String rawData = entity.getMemberId() + entity.getVariablePoint() + entity.getFundReserve() + entity.getMerkleTimestamp();
-        entity.setMerkleHash(cn.hutool.crypto.digest.DigestUtil.sha256Hex(rawData));
+        // P3 Fix: Use unified Merkle leaf utility for audit reproducibility
+        entity.setMerkleHash(cn.lili.modules.member.audit.MaocoinMerkleLeaf.computeLeafHash(entity));
         return super.save(entity);
     }
 

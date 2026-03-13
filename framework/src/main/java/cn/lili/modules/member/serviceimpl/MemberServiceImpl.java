@@ -21,7 +21,6 @@ import cn.lili.common.vo.PageVO;
 import cn.lili.modules.connect.entity.Connect;
 import cn.lili.modules.connect.entity.dto.ConnectAuthUser;
 import cn.lili.modules.connect.service.ConnectService;
-import cn.lili.modules.member.aop.annotation.PointLogPoint;
 import cn.lili.modules.member.entity.dos.Member;
 import cn.lili.modules.member.entity.dto.*;
 import cn.lili.modules.member.entity.enums.PointTypeEnum;
@@ -41,12 +40,17 @@ import cn.lili.modules.store.service.StoreService;
 import cn.lili.mybatis.util.PageUtil;
 import cn.lili.rocketmq.RocketmqSendCallbackBuilder;
 import cn.lili.rocketmq.tags.MemberTagsEnum;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import cn.lili.modules.member.entity.dos.MemberPointsHistory;
+import cn.lili.modules.member.mapper.MemberPointsHistoryMapper;
+import org.springframework.dao.DuplicateKeyException;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -67,6 +71,7 @@ import java.util.concurrent.TimeUnit;
  * @author Chopper
  * @since 2021-03-29 14:10:16
  */
+@Slf4j
 @Service
 public class MemberServiceImpl extends ServiceImpl<MemberMapper, Member> implements MemberService {
 
@@ -106,6 +111,8 @@ public class MemberServiceImpl extends ServiceImpl<MemberMapper, Member> impleme
      */
     @Autowired
     private Cache cache;
+    @Autowired
+    private MemberPointsHistoryMapper memberPointsHistoryMapper;
 
     @Override
     public Member findByUsername(String userName) {
@@ -523,59 +530,75 @@ public class MemberServiceImpl extends ServiceImpl<MemberMapper, Member> impleme
     }
 
     @Override
-    @PointLogPoint
     @Transactional(rollbackFor = Exception.class)
     public Boolean updateMemberPoint(Long point, String type, String memberId, String content, String bizId, java.math.BigDecimal fundReserve) {
-        // P0 Fix: Idempotency check using bizId
-        if (cn.hutool.core.util.StrUtil.isNotEmpty(bizId)) {
-            long count = memberPointsHistoryService.count(new LambdaQueryWrapper<MemberPointsHistory>()
-                    .eq(MemberPointsHistory::getMemberId, memberId)
-                    .eq(MemberPointsHistory::getBizId, bizId)
-                    .eq(MemberPointsHistory::getPointType, type));
-            if (count > 0) {
-                log.warn("【幂等拦截】检测到重复变动请求: memberId={}, bizId={}, type={}", memberId, bizId, type);
-                return true; // 已处理过，直接返回成功
-            }
-        }
-
         // 获取当前会员信息
         Member member = this.getById(memberId);
-        if (member != null) {
-            // 积分变动后的会员喵币
-            long currentPoint;
-            // 会员总获得喵币
-            long totalPoint = member.getTotalPoint();
-            // 如果增加喵币
-            if (type.equals(PointTypeEnum.INCREASE.name())) {
-                currentPoint = member.getPoint() + point;
-                // 如果是增加积分 需要增加总获得喵币
-                totalPoint = totalPoint + point;
-            }
-            // 否则扣除喵币
-            else {
-                currentPoint = member.getPoint() - point < 0 ? 0 : member.getPoint() - point;
-            }
-            member.setPoint(currentPoint);
-            member.setTotalPoint(totalPoint);
-            boolean result = this.updateById(member);
-            if (result) {
-                // 发送会员消息
-                MemberPointMessage memberPointMessage = new MemberPointMessage();
-                memberPointMessage.setPoint(point);
-                memberPointMessage.setType(type);
-                memberPointMessage.setMemberId(memberId);
-                memberPointMessage.setBizId(bizId);
-                memberPointMessage.setFundReserve(fundReserve);
-                applicationEventPublisher.publishEvent(new TransactionCommitSendMQEvent("update member point",
-                        rocketmqCustomProperties.getMemberTopic(), MemberTagsEnum.MEMBER_POINT_CHANGE.name(),
-                        memberPointMessage));
-                return true;
-            }
+        if (member == null) {
             return false;
-
         }
-        throw new ServiceException(ResultCode.USER_NOT_EXIST);
+
+        // 1. 积分变动计算
+        long beforePoint = member.getPoint();
+        long currentPoint;
+        long totalPoint = member.getTotalPoint();
+        
+        if (type.equals(PointTypeEnum.INCREASE.name())) {
+            currentPoint = beforePoint + point;
+            totalPoint = totalPoint + point;
+        } else {
+            currentPoint = beforePoint - point < 0 ? 0 : beforePoint - point;
+        }
+
+        // 2. 构造账本记录 (先占坑，实现强幂等)
+        MemberPointsHistory history = new MemberPointsHistory();
+        history.setMemberId(memberId);
+        history.setMemberName(member.getUsername());
+        history.setPointType(type);
+        history.setVariablePoint(point);
+        history.setBeforePoint(beforePoint);
+        history.setPoint(currentPoint);
+        history.setContent(content);
+        history.setBizId(bizId);
+        history.setFundReserve(fundReserve);
+        history.setCreateBy("系统");
+        history.setCreateTime(new java.util.Date());
+        
+        // P3 Fix: 保证 Merkle Hash 可复算性 (使用统一工具类)
+        history.setMerkleHash(cn.lili.modules.member.audit.MaocoinMerkleLeaf.computeLeafHash(history));
+
+        try {
+            // UK 索引保证了 bizId 的唯一性，冲突时抛出 DuplicateKeyException 实现强幂等
+            memberPointsHistoryMapper.insert(history);
+        } catch (DuplicateKeyException e) {
+            log.warn("【幂等拦截】并发执行/重复请求: memberId={}, bizId={}, type={}", memberId, bizId, type);
+            return true; // 幂等返回成功
+        }
+
+        // 3. 更新账户余额
+        member.setPoint(currentPoint);
+        member.setTotalPoint(totalPoint);
+        boolean result = this.updateById(member);
+
+        if (!result) {
+            // P0 Fix: 失败时抛出异常以触发事务回滚，防止账实不符
+            throw new ServiceException(ResultCode.ERROR, "会员积分更新失败，账户状态异常");
+        }
+
+        // 4. 发送异步消息
+        MemberPointMessage memberPointMessage = new MemberPointMessage();
+        memberPointMessage.setPoint(point);
+        memberPointMessage.setType(type);
+        memberPointMessage.setMemberId(memberId);
+        memberPointMessage.setBizId(bizId);
+        memberPointMessage.setFundReserve(fundReserve);
+        applicationEventPublisher.publishEvent(new TransactionCommitSendMQEvent("update member point",
+                rocketmqCustomProperties.getMemberTopic(), MemberTagsEnum.MEMBER_POINT_CHANGE.name(),
+                memberPointMessage));
+        
+        return true;
     }
+
 
 
     @Override

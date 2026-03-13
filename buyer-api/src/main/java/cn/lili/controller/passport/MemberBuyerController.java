@@ -17,6 +17,7 @@ import cn.lili.modules.email.EmailUtil;
 import cn.lili.modules.verification.entity.enums.VerificationEnums;
 import cn.lili.modules.verification.service.VerificationService;
 import cn.lili.common.utils.RegularUtil;
+import cn.lili.common.utils.StringUtils;
 import cn.hutool.core.text.CharSequenceUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;

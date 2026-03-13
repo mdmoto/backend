@@ -205,7 +205,9 @@ public class StringUtils extends StrUtil {
         return str.substring(0, 4) + "****" + str.substring(str.length() - 4);
     }
 
-
+    public static String getUUID() {
+        return java.util.UUID.randomUUID().toString().replace("-", "");
+    }
 }
 
 
