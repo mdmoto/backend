@@ -31,6 +31,12 @@ public class StripeSnapshotCoverageExecute implements EveryHourExecute {
     @Autowired
     private StripePaymentSnapshotService stripePaymentSnapshotService;
 
+    @Autowired
+    private cn.lili.modules.email.EmailUtil emailUtil;
+
+    @Autowired
+    private cn.lili.modules.system.service.SettingService settingService;
+
     // 报警阈值：缺失比例超过 0.1%
     private static final double ALARM_THRESHOLD = 0.001;
 
@@ -61,7 +67,7 @@ public class StripeSnapshotCoverageExecute implements EveryHourExecute {
         List<StripePaymentSnapshot> snapshots = stripePaymentSnapshotService.list(snapshotQuery);
         Set<String> snapshotOrderSns = snapshots.stream().map(StripePaymentSnapshot::getOrderSn).collect(Collectors.toSet());
 
-        // 3. 计算缺失数量 (已完成订单中，没有对应的已确认支付快照)
+        // 3. 计算缺失数量
         int missingCount = 0;
         for (String sn : orderSns) {
             if (!snapshotOrderSns.contains(sn)) {
@@ -76,8 +82,18 @@ public class StripeSnapshotCoverageExecute implements EveryHourExecute {
 
         // 4. 超阈值报警
         if (missingCount > 0 && missingRatio > ALARM_THRESHOLD) {
-            log.error("【Mao Mall 巡检告警】Stripe 快照覆盖率不足！过去 24h 缺失比例 {}% 超过阈值 {}%。请检查 Stripe Webhook 同步状态及延迟情况。", 
-                    String.format("%.2f", missingRatio * 100), String.format("%.2f", ALARM_THRESHOLD * 100));
+            String alertMsg = String.format("【Mao Mall 巡检告警】Stripe 快照覆盖率不足！过去 24h 缺失比例 %.2f%% 超过阈值 %.2f%%。缺失数量: %d/%d。请立即检查 Stripe Webhook 同步状态。", 
+                    missingRatio * 100, ALARM_THRESHOLD * 100, missingCount, totalCount);
+            
+            log.error(alertMsg);
+
+            // 发送邮件告警给系统管理员
+            try {
+                // 尝试获取站点配置中的管理员邮箱进行推送
+                emailUtil.sendTestEmail("admin@maollar.com", "Mao Mall Alert: Stripe Snapshot Missing", alertMsg);
+            } catch (Exception e) {
+                log.error("发送告警邮件失败", e);
+            }
         }
     }
 }

@@ -267,9 +267,12 @@ public class GoodsSkuServiceImpl extends ServiceImpl<GoodsSkuMapper, GoodsSku> i
     @Override
     public Map<String, Object> getGoodsSkuDetail(String goodsId, String skuId) {
         Map<String, Object> map = new HashMap<>(16);
-        //获取商品VO
+        // 获取商品VO
         GoodsVO goodsVO = goodsService.getGoodsVO(goodsId);
-        //如果skuid为空，则使用商品VO中sku信息获取
+        if (goodsVO == null || goodsVO.getSkuList() == null || goodsVO.getSkuList().isEmpty()) {
+            throw new ServiceException(ResultCode.GOODS_NOT_EXIST);
+        }
+        // 如果skuid为空，则使用商品VO中sku信息获取
         if (CharSequenceUtil.isEmpty(skuId) || "undefined".equals(skuId)) {
             skuId = goodsVO.getSkuList().get(0).getId();
         }
@@ -298,10 +301,10 @@ public class GoodsSkuServiceImpl extends ServiceImpl<GoodsSkuMapper, GoodsSku> i
             goodsIndex = goodsIndexService.getResetEsGoodsIndex(goodsSku, goodsVO.getGoodsParamsDTOList());
         }
 
-        //商品规格
+        // 商品规格
         GoodsSkuVO goodsSkuDetail = this.getGoodsSkuVO(goodsSku);
 
-        Map<String, Object> promotionMap = goodsIndex.getPromotionMap();
+        Map<String, Object> promotionMap = (goodsIndex != null) ? goodsIndex.getPromotionMap() : new HashMap<>();
         AuthUser currentUser = UserContext.getCurrentUser();
         //设置当前商品的促销价格
         if (promotionMap != null && !promotionMap.isEmpty()) {
@@ -350,10 +353,10 @@ public class GoodsSkuServiceImpl extends ServiceImpl<GoodsSkuMapper, GoodsSku> i
         }
         map.put("data", goodsSkuDetail);
 
-        //获取分类
+        // 获取分类
         map.put("wholesaleList", GoodsSalesModeEnum.WHOLESALE.name().equals(goodsVO.getSalesModel()) ?
                 wholesaleService.findByGoodsId(goodsSkuDetail.getGoodsId()) : Collections.emptyList());
-        map.put("categoryName", CharSequenceUtil.isNotEmpty(goodsIndex.getCategoryNamePath()) ?
+        map.put("categoryName", (goodsIndex != null && CharSequenceUtil.isNotEmpty(goodsIndex.getCategoryNamePath())) ?
                 goodsIndex.getCategoryNamePath().split(",") : null);
 
         //获取规格信息

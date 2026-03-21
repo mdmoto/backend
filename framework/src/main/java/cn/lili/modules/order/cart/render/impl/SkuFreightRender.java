@@ -34,6 +34,9 @@ public class SkuFreightRender implements CartRenderStep {
     @Autowired
     private FreightTemplateService freightTemplateService;
 
+    @Autowired
+    private cn.lili.modules.logistics.calculation.LogisticsCalculationService logisticsCalculationService;
+
     @Override
     public RenderStepEnums step() {
         return RenderStepEnums.SKU_FREIGHT;
@@ -49,6 +52,13 @@ public class SkuFreightRender implements CartRenderStep {
         if (memberAddress == null && storeAddress == null) {
             return;
         }
+
+        // 国际地址逻辑：优先使用 LogisticsCalculationService (4PX 等)
+        if (memberAddress != null && !"CN".equals(memberAddress.getCountryCode())) {
+            calculateInternationalFreight(tradeDTO);
+            return;
+        }
+
         //选择物流的时候计算价格
         if (DeliveryMethodEnum.LOGISTICS.name().equals(tradeDTO.getCartList().get(0).getDeliveryMethod())) {
             if (memberAddress != null) {
@@ -213,8 +223,50 @@ public class SkuFreightRender implements CartRenderStep {
         } catch (Exception e) {
             return 0D;
         }
+    }
 
+    /**
+     * 计算国际运费（通过外部 API 如 4PX）
+     */
+    private void calculateInternationalFreight(TradeDTO tradeDTO) {
+        MemberAddress address = tradeDTO.getMemberAddress();
+        List<CartSkuVO> checkedSkus = tradeDTO.getCheckedSkuList();
+        if (checkedSkus.isEmpty()) {
+            return;
+        }
 
+        cn.lili.modules.logistics.calculation.LogisticsEstimateRequest request = new cn.lili.modules.logistics.calculation.LogisticsEstimateRequest();
+        request.setCountryCode(address.getCountryCode());
+        request.setPostalCode(address.getPostalCode());
+
+        List<cn.lili.modules.logistics.calculation.LogisticsEstimateSkuLine> lines = new ArrayList<>();
+        double totalWeight = 0;
+        for (CartSkuVO sku : checkedSkus) {
+            cn.lili.modules.logistics.calculation.LogisticsEstimateSkuLine line = new cn.lili.modules.logistics.calculation.LogisticsEstimateSkuLine();
+            line.setSkuId(sku.getGoodsSku().getId());
+            line.setName(sku.getGoodsSku().getGoodsName());
+            line.setQuantity(sku.getNum());
+            line.setWeightKg(sku.getGoodsSku().getWeight());
+            lines.add(line);
+            totalWeight = CurrencyUtil.add(totalWeight, CurrencyUtil.mul(sku.getGoodsSku().getWeight(), sku.getNum()));
+        }
+        request.setSkuLines(lines);
+        request.setTotalWeightKg(totalWeight);
+
+        try {
+            List<cn.lili.modules.logistics.calculation.LogisticsQuote> quotes = logisticsCalculationService.estimate(request);
+            tradeDTO.setLogisticsQuotes(quotes);
+
+            if (quotes != null && !quotes.isEmpty()) {
+                // 默认选择第一个渠道的报价作为预估运费
+                Double estimatesFreight = quotes.get(0).getAmount();
+                // 将总运费分摊到各个 SKU 上，保证 TradeDTO.priceDetailDTO 计算准确
+                resetFreightPrice(FreightTemplateEnum.NUM, (double) checkedSkus.size(), estimatesFreight, checkedSkus);
+            }
+        } catch (Exception e) {
+            // 如果试算失败，可以记录日志或抛出异常，这里选择记录日志并跳过运费计算（或者设为不支持配送）
+            tradeDTO.setNotSupportFreight(checkedSkus);
+        }
     }
 
 

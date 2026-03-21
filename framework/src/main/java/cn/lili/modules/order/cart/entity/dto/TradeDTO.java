@@ -61,6 +61,9 @@ public class TradeDTO implements Serializable {
     @ApiModelProperty(value = "不支持配送方式")
     private List<CartSkuVO> notSupportFreight;
 
+    @ApiModelProperty(value = "物流渠道报价列表（国际地址试算结果）")
+    private List<cn.lili.modules.logistics.calculation.LogisticsQuote> logisticsQuotes;
+
     /**
      * 购物车类型
      */

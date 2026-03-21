@@ -309,6 +309,13 @@ data:
 
 
     lili:
+      # 物流配置
+      logistics:
+        fourpx:
+          app-key: ${LILI_FOURPX_APP_KEY:f23788b2-272a-4ef8-b87f-6aa12db55f83}
+          app-secret: ${LILI_FOURPX_APP_SECRET:55ac5b9d-eb5e-4b0e-b5b1-95b785f13b31}
+          customer-code: ${LILI_FOURPX_CUSTOMER_CODE:1000000}
+          base-url: https://open.4px.com
       #验证码设置
       verification-code:
         #图形验证码有效时间 秒 包含滑块验证码有效时间， 以及验证通过之后，缓存中存储的验证结果有效时间

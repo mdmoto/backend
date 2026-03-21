@@ -39,6 +39,8 @@ import cn.lili.modules.system.entity.dos.Setting;
 import cn.lili.modules.system.entity.dto.GoodsSetting;
 import cn.lili.modules.system.entity.enums.SettingEnum;
 import cn.lili.modules.system.service.SettingService;
+import cn.lili.modules.system.service.MaollarTierService;
+import cn.lili.modules.goods.entity.dos.ProductTranslation;
 import cn.lili.mybatis.util.PageUtil;
 import cn.lili.rocketmq.RocketmqSendCallbackBuilder;
 import cn.lili.rocketmq.tags.GoodsTagsEnum;
@@ -246,19 +248,28 @@ public class GoodsServiceImpl extends ServiceImpl<GoodsMapper, Goods> implements
         
         // 确保 priceUsd 有值 (兜底转换)
         if (goodsVO.getPriceUsd() == null || goodsVO.getPriceUsd() <= 0) {
-            goodsVO.setPriceUsd(maollarTierService.convertToUSD(goods.getPrice(), "CNY"));
+            Double price = (goods.getPrice() != null) ? goods.getPrice() : 0.0;
+            goodsVO.setPriceUsd(maollarTierService.convertToUSD(price, "CNY"));
         }
 
         // 多语言支持：根据当前上下文语言替换名称和描述
         String lang = cn.lili.common.context.LanguageContextHolder.get();
         if (!"zh".equals(lang)) {
-            ProductTranslation translation = productTranslationService.getOne(
-                    new LambdaQueryWrapper<ProductTranslation>()
-                            .eq(ProductTranslation::getSpuId, goodsId)
-                            .eq(ProductTranslation::getLanguageCode, lang));
-            if (translation != null) {
-                goodsVO.setGoodsName(translation.getTitle());
-                goodsVO.setIntro(translation.getDescription());
+            try {
+                ProductTranslation translation = productTranslationService.getOne(
+                        new LambdaQueryWrapper<ProductTranslation>()
+                                .eq(ProductTranslation::getSpuId, goodsId)
+                                .eq(ProductTranslation::getLanguageCode, lang));
+                if (translation != null) {
+                    if (CharSequenceUtil.isNotEmpty(translation.getTitle())) {
+                        goodsVO.setGoodsName(translation.getTitle());
+                    }
+                    if (CharSequenceUtil.isNotEmpty(translation.getDescription())) {
+                        goodsVO.setIntro(translation.getDescription());
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to fetch product translation for goodsId: " + goodsId + ", lang: " + lang);
             }
         }
 

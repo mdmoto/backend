@@ -21,6 +21,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -37,6 +40,9 @@ public class MaoWithdrawalServiceImpl extends ServiceImpl<MaoWithdrawalLogMapper
 
     @Autowired
     private MemberService memberService;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     @Value("${lili.maollar.solana.gateway-url:}")
     private String gatewayUrl;
@@ -133,24 +139,25 @@ public class MaoWithdrawalServiceImpl extends ServiceImpl<MaoWithdrawalLogMapper
                 // 如果网关返回失败，抛出异常触发退分逻辑
                 throw new Exception("链上执行失败: " + json.getStr("message"));
             }
-        } catch (Exception e) {
+            } catch (Exception e) {
             log.error("【后悔药】$MAO 兑换失败，正在执行积分退回: {}", e.getMessage());
-
-            // 1. 尝试退回积分
-            try {
-                memberService.updateMemberPoint(withdrawalLog.getPoints(), PointTypeEnum.INCREASE.name(),
-                        withdrawalLog.getMemberId(), "$MAO 兑换失败退回积分", "RETURN_WITHDRAW_" + withdrawalLog.getId(), java.math.BigDecimal.ZERO);
-            } catch (Exception re) {
-                log.error("【严重异常】积分退回失败，用户 ID: {}, 积分量: {}", withdrawalLog.getMemberId(), withdrawalLog.getPoints());
-            }
-
-            // 2. 更新日志为失败状态
-            withdrawalLog.setMaoIssueStatus(MaoIssueStatusEnum.FAILED.name());
-            withdrawalLog.setErrorLog(e.getMessage());
-            this.updateById(withdrawalLog);
-
+            // 注意：本方法处于事务中，链上失败时积分扣减会自动回滚，无需“加回积分”。
+            // 但提现日志属于 applyWithdrawal 已提交记录，需要在新事务中持久化失败状态，避免被当前事务回滚吞掉。
+            persistWithdrawalFailure(withdrawalLog.getId(), e.getMessage());
             throw new ServiceException(ResultCode.ERROR, "兑换失败：" + e.getMessage());
         }
+    }
+
+    private void persistWithdrawalFailure(String withdrawalLogId, String errorMessage) {
+        TransactionTemplate template = new TransactionTemplate(transactionManager);
+        template.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        template.executeWithoutResult(status -> {
+            MaoWithdrawalLog toUpdate = new MaoWithdrawalLog();
+            toUpdate.setId(withdrawalLogId);
+            toUpdate.setMaoIssueStatus(MaoIssueStatusEnum.FAILED.name());
+            toUpdate.setErrorLog(errorMessage);
+            this.updateById(toUpdate);
+        });
     }
 
     @Override

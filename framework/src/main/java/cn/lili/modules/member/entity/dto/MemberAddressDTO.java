@@ -21,14 +21,20 @@ public class MemberAddressDTO {
     private String consigneeName;
 
     @Phone
+    @NotBlank(message = "手机号码不能为空")
     @ApiModelProperty(value = "手机号码")
     private String consigneeMobile;
+
+    @ApiModelProperty(value = "国家/地区(ISO 3166-1 alpha-2)，如 CN/US/JP")
+    private String countryCode;
+
+    @ApiModelProperty(value = "邮编/邮政编码")
+    private String postalCode;
 
     @NotBlank(message = "地址不能为空")
     @ApiModelProperty(value = "地址名称， '，'分割")
     private String consigneeAddressPath;
 
-    @NotBlank(message = "地址不能为空")
     @ApiModelProperty(value = "地址id，'，'分割 ")
     private String consigneeAddressIdPath;
 

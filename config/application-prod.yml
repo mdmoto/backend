@@ -219,6 +219,15 @@ lili:
     manager: https://api.maollar.com
     seller: https://api.maollar.com
 
+  # 物流配置
+  logistics:
+    fourpx:
+      app-key: ${LILI_FOURPX_APP_KEY:f23788b2-272a-4ef8-b87f-6aa12db55f83}
+      app-secret: ${LILI_FOURPX_APP_SECRET:55ac5b9d-eb5e-4b0e-b5b1-95b785f13b31}
+      customer-code: ${LILI_FOURPX_CUSTOMER_CODE:1000000}
+      base-url: https://open.4px.com
+      default-warehouse-code: SZ
+
   jwt-setting:
     # token过期时间（分钟）
     # 30分钟 = 0.5小时

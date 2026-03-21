@@ -15,12 +15,30 @@ import java.util.regex.Pattern;
  */
 public class PhoneValidator implements ConstraintValidator<Phone, String> {
 
-    private static final Pattern pattern = Pattern.compile("^0?(13[0-9]|14[0-9]|15[0-9]|16[0-9]|17[0-9]|18[0-9]|19[0-9])[0-9]{8}$");
+    /**
+     * 兼容国内手机号与国际 E.164（允许 + 前缀），并允许输入中包含空格/短横线/括号。
+     * - 国内：0? + 1[3-9] + 9位
+     * - 国际：+?[1-9]\d{6,14}
+     */
+    private static final Pattern cnPattern = Pattern.compile("^0?(13[0-9]|14[0-9]|15[0-9]|16[0-9]|17[0-9]|18[0-9]|19[0-9])[0-9]{8}$");
+    private static final Pattern e164Pattern = Pattern.compile("^\\+?[1-9]\\d{6,14}$");
 
     @Override
     public boolean isValid(String value, ConstraintValidatorContext constraintValidatorContext) {
-        Matcher m = pattern.matcher(value);
-        return m.matches();
+        if (value == null) {
+            return true;
+        }
+        String normalized = value.trim();
+        if (normalized.isEmpty()) {
+            return true;
+        }
+        normalized = normalized.replaceAll("[\\s\\-()]", "");
+        Matcher cn = cnPattern.matcher(normalized);
+        if (cn.matches()) {
+            return true;
+        }
+        Matcher e164 = e164Pattern.matcher(normalized);
+        return e164.matches();
     }
 
     @Override

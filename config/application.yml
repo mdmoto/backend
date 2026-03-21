@@ -271,6 +271,15 @@ lili:
     manager: http://127.0.0.1:8888
     seller: http://127.0.0.1:8888
 
+  # 物流配置
+  logistics:
+    fourpx:
+      app-key: ${LILI_FOURPX_APP_KEY:f23788b2-272a-4ef8-b87f-6aa12db55f83}
+      app-secret: ${LILI_FOURPX_APP_SECRET:55ac5b9d-eb5e-4b0e-b5b1-95b785f13b31}
+      customer-code: ${LILI_FOURPX_CUSTOMER_CODE:1000000} # 暂时填入默认客户代码，如有特定代码请告知
+      base-url: https://open.4px.com
+      default-warehouse-code: SZ # 默认深圳仓
+
   # JWT 细节设定
   jwt-setting:
     # token过期时间（分钟）
