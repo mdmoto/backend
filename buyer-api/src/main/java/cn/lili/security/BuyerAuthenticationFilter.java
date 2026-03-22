@@ -60,8 +60,8 @@ public class BuyerAuthenticationFilter extends BasicAuthenticationFilter {
         this.cache = cache;
     }
 
-    @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException {
+        // DEBUG: LOG ALL REQUESTS TO IDENTIFY 403 SOURCE
+        log.info("【DEBUG】Buyer Filter Processing URI: {}", request.getRequestURI());
 
         //从header中获取jwt
         String jwt = request.getHeader(SecurityEnum.HEADER_TOKEN.getValue());
