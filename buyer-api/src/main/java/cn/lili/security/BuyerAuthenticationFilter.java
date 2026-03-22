@@ -63,6 +63,13 @@ public class BuyerAuthenticationFilter extends BasicAuthenticationFilter {
         // DEBUG: LOG ALL REQUESTS TO IDENTIFY 403 SOURCE
         log.info("【DEBUG】Buyer Filter Processing URI: {}", request.getRequestURI());
 
+        String uri = request.getRequestURI();
+        // 如果是标准的 v1 公共路径，直接放行，不校验 Token
+        if (uri.startsWith("/api/v1/other") || uri.startsWith("/api/v1/maollar/rates") || uri.startsWith("/api/v1/goods")) {
+            chain.doFilter(request, response);
+            return;
+        }
+
         //从header中获取jwt
         String jwt = request.getHeader(SecurityEnum.HEADER_TOKEN.getValue());
         try {
