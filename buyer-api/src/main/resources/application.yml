@@ -109,18 +109,18 @@ ignored:
     - /buyer/members/**
     - /buyer/passport/member/**
     - /buyer/passport/member/refresh/**
-    - /api/v1/ai/**
-    - /buyer/api/v1/maollar/rates
-    - /buyer/api/v1/maollar/tier-status
-    - /buyer/promotion/pintuan/**
-    - /buyer/promotion/seckill/**
-    - /buyer/promotion/pointsGoods/**
-    - /buyer/promotion/coupon
-    - /buyer/member/evaluation/**/goodsEvaluation
-    - /buyer/member/evaluation/**/evaluationNumber
     - /buyer/other/appVersion/**
     - /buyer/broadcast/studio/**
     - /buyer/statistics/realtime/**
+    - /api/v1/other/pageData/**
+    - /api/v1/other/article/**
+    - /api/v1/goods/**
+    - /api/v1/store/**
+    - /api/v1/maollar/rates
+    - /api/v1/maollar/tier-status
+    - /api/v1/maollar/merkle-root
+    - /api/v1/maollar/exchange-log
+    - /api/v1/ai/**
     - /webjars/**
     - /configuration/ui
     - /boot-admin
