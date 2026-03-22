@@ -39,17 +39,14 @@ public class FxRateSnapshotServiceImpl extends ServiceImpl<FxRateSnapshotMapper,
 
     @Override
     public void refreshRates() {
-        if (StrUtil.isEmpty(appId)) {
-            log.error("【FX 汇率更新失败】OER App ID 未配置");
-            throw new ServiceException(ResultCode.ERROR, "OER App ID is missing");
-        }
-
+        // Fallback to Free API if App ID is empty
+        String url = StrUtil.isNotEmpty(appId) ? API_URL + appId : "https://open.er-api.com/v6/latest/USD";
         try {
-            log.info("【FX 汇率更新】开始从 Open Exchange Rates 拉取汇率...");
-            String result = HttpUtil.get(API_URL + appId);
+            log.info("【FX 汇率更新】开始从外部API拉取实时汇率...");
+            String result = HttpUtil.get(url);
             JSONObject json = JSONUtil.parseObj(result);
             JSONObject rates = json.getJSONObject("rates");
-            Long timestamp = json.getLong("timestamp");
+            Long timestamp = json.getLong("timestamp") != null ? json.getLong("timestamp") : json.getLong("time_last_update_unix");
 
             if (rates != null && timestamp != null) {
                 List<FxRateSnapshot> snapshots = new ArrayList<>();

@@ -58,13 +58,9 @@ public class OpenExchangeRatesProvider implements ExchangeRateProvider {
             return;
         }
 
-        if (appId == null || appId.isEmpty()) {
-            log.error("OpenExchangeRates AppID is missing! Please configure lili.maollar.oer.app-id");
-            return;
-        }
-
+        String url = (appId != null && !appId.isEmpty()) ? API_URL + appId : "https://open.er-api.com/v6/latest/USD";
         try {
-            String result = HttpUtil.get(API_URL + appId);
+            String result = HttpUtil.get(url);
             JSONObject json = JSONUtil.parseObj(result);
             JSONObject rates = json.getJSONObject("rates");
 
