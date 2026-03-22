@@ -21,7 +21,7 @@ import java.util.List;
  */
 @RestController
 @Api(tags = "买家端,物流公司接口")
-@RequestMapping("/buyer/other/logistics")
+@RequestMapping({ "/api/v1/other/logistics", "/buyer/other/logistics" })
 public class LogisticsBuyerController {
 
     @Autowired

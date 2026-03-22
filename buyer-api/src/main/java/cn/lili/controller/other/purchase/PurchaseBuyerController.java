@@ -30,7 +30,7 @@ import jakarta.validation.constraints.NotNull;
  */
 @Api(tags = "买家端,采购接口")
 @RestController
-@RequestMapping("/buyer/other/purchase/purchase")
+@RequestMapping({ "/api/v1/other/purchase/purchaseQuoted", "/buyer/other/purchase/purchaseQuoted" })
 public class PurchaseBuyerController {
 
     /**

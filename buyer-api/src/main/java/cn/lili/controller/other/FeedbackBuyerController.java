@@ -23,7 +23,7 @@ import jakarta.validation.Valid;
  */
 @RestController
 @Api(tags = "买家端,意见反馈接口")
-@RequestMapping("/buyer/other/feedback")
+@RequestMapping({ "/api/v1/other/feedback", "/buyer/other/feedback" })
 public class FeedbackBuyerController {
 
     /**
