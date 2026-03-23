@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-
 /**
  * 认证结果过滤器
  *
@@ -40,7 +39,6 @@ import java.util.List;
  */
 @Slf4j
 public class BuyerAuthenticationFilter extends BasicAuthenticationFilter {
-
 
     /**
      * 缓存
@@ -55,37 +53,42 @@ public class BuyerAuthenticationFilter extends BasicAuthenticationFilter {
      * @param cache
      */
     public BuyerAuthenticationFilter(AuthenticationManager authenticationManager,
-                                     Cache cache) {
+            Cache cache) {
         super(authenticationManager);
         this.cache = cache;
     }
 
-        // DEBUG: LOG ALL REQUESTS TO IDENTIFY 403 SOURCE
-        log.info("【DEBUG】Buyer Filter Processing URI: {}", request.getRequestURI());
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException {
+    // DEBUG: LOG ALL REQUESTS TO IDENTIFY 403 SOURCE
+    log.info("【DEBUG】Buyer Filter Processing URI: {}",request.getRequestURI());
 
-        String uri = request.getRequestURI();
-        // 如果是标准的 v1 或 legacy /buyer 公共路径，直接放行，不校验 Token
-        if (uri.startsWith("/api/v1/other") || uri.startsWith("/api/v1/mao-api") || uri.startsWith("/api/v1/goods")
-            || uri.startsWith("/buyer/other") || uri.startsWith("/buyer/mao-api") || uri.startsWith("/buyer/goods")) {
+    String uri = request.getRequestURI();
+    // 如果是标准的 v1 或 legacy /buyer 公共路径，直接放行，不校验 Token
+    if(uri.startsWith("/api/v1/other")||uri.startsWith("/api/v1/maollar/rates")||uri.startsWith("/api/v1/goods")
+            ||uri.startsWith("/buyer/other")||uri.startsWith("/buyer/maollar")||uri.startsWith("/buyer/goods")
+            || uri.startsWith("/api/v1/mao-proxy") || uri.startsWith("/buyer/mao-proxy"))
+    {
+        chain.doFilter(request, response);
+        return;
+    }
+
+    // 从header中获取jwt
+    String jwt = request.getHeader(SecurityEnum.HEADER_TOKEN.getValue());try
+    {
+        // 如果没有token 则return
+        if (StrUtil.isBlank(jwt)) {
             chain.doFilter(request, response);
             return;
         }
-
-        //从header中获取jwt
-        String jwt = request.getHeader(SecurityEnum.HEADER_TOKEN.getValue());
-        try {
-            //如果没有token 则return
-            if (StrUtil.isBlank(jwt)) {
-                chain.doFilter(request, response);
-                return;
-            }
-            //获取用户信息，存入context
-            UsernamePasswordAuthenticationToken authentication = getAuthentication(jwt, response);
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-        } catch (Exception e) {
-            log.error("BuyerAuthenticationFilter-> member authentication exception:", e);
-        }
-        chain.doFilter(request, response);
+        // 获取用户信息，存入context
+        UsernamePasswordAuthenticationToken authentication = getAuthentication(jwt, response);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+    }catch(
+    Exception e)
+    {
+        log.error("BuyerAuthenticationFilter-> member authentication exception:", e);
+    }chain.doFilter(request,response);
     }
 
     /**
@@ -127,4 +130,3 @@ public class BuyerAuthenticationFilter extends BasicAuthenticationFilter {
     }
 
 }
-

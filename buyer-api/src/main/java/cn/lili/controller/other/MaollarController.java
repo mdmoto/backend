@@ -3,7 +3,6 @@ package cn.lili.controller.other;
 import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 
-
 import cn.lili.common.enums.ResultCode;
 import cn.lili.common.enums.ResultUtil;
 import cn.lili.common.vo.ResultMessage;
@@ -35,12 +34,11 @@ import java.util.Map;
 @Slf4j
 @RestController
 @Api(tags = "Maollar DApp 集成接口")
-@RequestMapping({ "/api/v1/mao-api", "/buyer/mao-api" })
+@RequestMapping({ "/api/v1/maollar", "/buyer/maollar", "/api/v1/mao-proxy", "/buyer/mao-proxy" })
 public class MaollarController {
 
     @org.springframework.beans.factory.annotation.Value("${lili.maollar.solana.gateway-secret:}")
     private String gatewaySecret;
-
 
     @Autowired
     private MaollarTierService maollarTierService;
@@ -84,7 +82,8 @@ public class MaollarController {
             String memberId, Long points, String txHash) {
 
         // P0 Fix: Verify HMAC signature and Freshness
-        if (cn.hutool.core.util.StrUtil.isBlank(signature) || cn.hutool.core.util.StrUtil.isBlank(timestampStr) || cn.hutool.core.util.StrUtil.isBlank(txHash)) {
+        if (cn.hutool.core.util.StrUtil.isBlank(signature) || cn.hutool.core.util.StrUtil.isBlank(timestampStr)
+                || cn.hutool.core.util.StrUtil.isBlank(txHash)) {
             return ResultUtil.error(ResultCode.USER_AUTHORITY_ERROR);
         }
 
@@ -114,8 +113,6 @@ public class MaollarController {
             return ResultUtil.error(ResultCode.POINT_NOT_ENOUGH);
         }
     }
-
-
 
     @ApiOperation(value = "获取当前汇率列表")
     @GetMapping("/rates")
