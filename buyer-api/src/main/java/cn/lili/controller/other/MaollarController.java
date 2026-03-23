@@ -34,7 +34,7 @@ import java.util.Map;
 @Slf4j
 @RestController
 @Api(tags = "Maollar DApp 集成接口")
-@RequestMapping({ "/api/v1/maollar", "/buyer/maollar", "/api/v1/maomall", "/buyer/maomall", "/api/v1/mao-proxy", "/buyer/mao-proxy" })
+@RequestMapping({ "/api/v1/maomall", "/buyer/maomall", "/api/v1/maollar", "/buyer/maollar", "/api/v1/mao-proxy", "/buyer/mao-proxy" })
 public class MaollarController {
 
     @org.springframework.beans.factory.annotation.Value("${lili.maollar.solana.gateway-secret:}")
