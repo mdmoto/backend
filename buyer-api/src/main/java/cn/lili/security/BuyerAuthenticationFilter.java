@@ -64,8 +64,9 @@ public class BuyerAuthenticationFilter extends BasicAuthenticationFilter {
         log.info("【DEBUG】Buyer Filter Processing URI: {}", request.getRequestURI());
 
         String uri = request.getRequestURI();
-        // 如果是标准的 v1 公共路径，直接放行，不校验 Token
-        if (uri.startsWith("/api/v1/other") || uri.startsWith("/api/v1/maollar/rates") || uri.startsWith("/api/v1/goods")) {
+        // 如果是标准的 v1 或 legacy /buyer 公共路径，直接放行，不校验 Token
+        if (uri.startsWith("/api/v1/other") || uri.startsWith("/api/v1/maollar/rates") || uri.startsWith("/api/v1/goods")
+            || uri.startsWith("/buyer/other") || uri.startsWith("/buyer/maollar/rates") || uri.startsWith("/buyer/goods")) {
             chain.doFilter(request, response);
             return;
         }
