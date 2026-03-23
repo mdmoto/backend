@@ -65,10 +65,10 @@ public class BuyerAuthenticationFilter extends BasicAuthenticationFilter {
 
     String uri = request.getRequestURI();
     // 如果是标准的 v1 或 legacy /buyer 公共路径，直接放行，不校验 Token
-    if(uri.startsWith("/api/v1/maomall") || uri.startsWith("/buyer/maomall")
-            || uri.startsWith("/api/v1/other")||uri.startsWith("/api/v1/maollar/rates")||uri.startsWith("/api/v1/goods")
-            ||uri.startsWith("/buyer/other")||uri.startsWith("/buyer/maollar")||uri.startsWith("/buyer/goods")
-            || uri.startsWith("/api/v1/mao-proxy") || uri.startsWith("/buyer/mao-proxy"))
+        if(uri.contains("/maomall") || uri.contains("/maollar")
+                || uri.startsWith("/api/v1/other")||uri.startsWith("/api/v1/goods")
+                ||uri.startsWith("/buyer/other")||uri.startsWith("/buyer/goods")
+                || uri.startsWith("/api/v1/mao-proxy") || uri.startsWith("/buyer/mao-proxy"))
     {
         chain.doFilter(request, response);
         return;
