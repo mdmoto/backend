@@ -63,6 +63,7 @@ public class BuyerSecurityConfig {
                                             "/api/v1/other/**", "/api/v1/goods/**",
                                             "/buyer/maollar/**", "/buyer/other/**", "/buyer/goods/**",
                                             "/api/v1/maollar/check-status", "/buyer/maollar/check-status",
+                                            "/api/v1/maomall/**", "/buyer/maomall/**",
                                             "/api/v1/mao-proxy/**", "/buyer/mao-proxy/**")
                                     .permitAll();
 
