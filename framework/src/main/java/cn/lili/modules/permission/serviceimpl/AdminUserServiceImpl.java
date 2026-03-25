@@ -125,7 +125,7 @@ public class AdminUserServiceImpl extends ServiceImpl<AdminUserMapper, AdminUser
         try {
             return managerTokenGenerate.createToken(adminUser, false);
         } catch (Exception e) {
-            log.error("管理员登录错误", e);
+            log.error("管理员登录错误: username={}, error={}", username, e.getMessage(), e);
         }
         return null;
 
