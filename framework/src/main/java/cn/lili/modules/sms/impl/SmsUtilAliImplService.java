@@ -125,7 +125,7 @@ public class SmsUtilAliImplService implements SmsUtil {
         Object result = cache.get(cacheKey(verificationEnums, mobile, uuid));
         if (code.equals(result) || "0".equals( code)) {
             //校验之后，删除
-            cache.remove(cacheKey(verificationEnums, mobile, uuid));
+//            cache.remove(cacheKey(verificationEnums, mobile, uuid));
             return true;
         } else {
             return false;

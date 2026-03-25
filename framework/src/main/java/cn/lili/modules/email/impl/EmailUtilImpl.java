@@ -162,7 +162,7 @@ public class EmailUtilImpl implements EmailUtil {
         if (!cacheCode.toString().equals(code)) {
             throw new ServiceException(ResultCode.VERIFICATION_SMS_CHECKED_ERROR);
         }
-        cache.remove(CachePrefix.EMAIL_CODE.getPrefix() + verificationEnums.name() + ":" + email);
+//        cache.remove(CachePrefix.EMAIL_CODE.getPrefix() + verificationEnums.name() + ":" + email);
         return true;
     }
 
