@@ -23,4 +23,13 @@ public class EmailSetting implements Serializable {
 
     @ApiModelProperty(value = "邮箱授权码")
     private String password;
+
+    @ApiModelProperty(value = "SMTP 端口（可选，默认自动推断）")
+    private Integer port;
+
+    @ApiModelProperty(value = "是否启用 SSL（可选，默认随端口推断）")
+    private Boolean sslEnable;
+
+    @ApiModelProperty(value = "是否启用 STARTTLS（可选，默认随端口推断）")
+    private Boolean starttlsEnable;
 }

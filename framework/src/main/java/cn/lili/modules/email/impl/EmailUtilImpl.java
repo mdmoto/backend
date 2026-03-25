@@ -61,24 +61,53 @@ public class EmailUtilImpl implements EmailUtil {
             throw new ServiceException(ResultCode.EMAIL_SETTING_ERROR);
         }
 
+        // 兼容历史配置：未配置 port / SSL / STARTTLS 时按常见规则推断
+        // - 465：SSL（SMTPS）
+        // - 587：STARTTLS（SMTP）
+        int port = emailSetting.getPort() != null ? emailSetting.getPort() : inferPort(emailSetting.getHost());
+        boolean sslEnable = emailSetting.getSslEnable() != null ? emailSetting.getSslEnable() : (port == 465);
+        boolean starttlsEnable = emailSetting.getStarttlsEnable() != null ? emailSetting.getStarttlsEnable() : (port == 587);
+
         // 创建JavaMailSender实例
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
         mailSender.setHost(emailSetting.getHost());
-        mailSender.setPort(465); // QQ邮箱使用465端口
+        mailSender.setPort(port);
         mailSender.setUsername(emailSetting.getUsername());
         mailSender.setPassword(emailSetting.getPassword());
 
         // 配置SMTP属性
         Properties props = mailSender.getJavaMailProperties();
-        props.put("mail.transport.protocol", "smtps");
         props.put("mail.smtp.auth", "true");
-        props.put("mail.smtp.ssl.enable", "true");
-        props.put("mail.smtp.ssl.trust", emailSetting.getHost());
-        props.put("mail.smtp.starttls.enable", "true");
-        props.put("mail.smtp.starttls.required", "true");
         props.put("mail.debug", "false");
 
+        // 注意：SSL（465）与 STARTTLS（587）不要同时强制开启，否则部分服务器会握手失败
+        if (sslEnable) {
+            props.put("mail.transport.protocol", "smtps");
+            props.put("mail.smtp.ssl.enable", "true");
+            props.put("mail.smtp.ssl.trust", emailSetting.getHost());
+            props.put("mail.smtp.starttls.enable", "false");
+            props.put("mail.smtp.starttls.required", "false");
+        } else {
+            props.put("mail.transport.protocol", "smtp");
+            props.put("mail.smtp.ssl.enable", "false");
+            props.put("mail.smtp.starttls.enable", Boolean.toString(starttlsEnable));
+            props.put("mail.smtp.starttls.required", Boolean.toString(starttlsEnable));
+        }
+
         return mailSender;
+    }
+
+    private int inferPort(String host) {
+        String normalized = host == null ? "" : host.toLowerCase();
+        // 常见 SMTP Host：QQ/163 常用 465；Gmail/Outlook 常用 587
+        if (normalized.contains("gmail") || normalized.contains("outlook") || normalized.contains("office365") || normalized.contains("hotmail")) {
+            return 587;
+        }
+        if (normalized.contains("qq.com") || normalized.contains("163.com") || normalized.contains("126.com")) {
+            return 465;
+        }
+        // 默认优先兼容 SSL 方式（多数国内 SMTP 支持 465）
+        return 465;
     }
 
     @Override
@@ -165,4 +194,3 @@ public class EmailUtilImpl implements EmailUtil {
         }
     }
 }
-
