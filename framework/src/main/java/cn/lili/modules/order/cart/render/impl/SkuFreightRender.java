@@ -53,51 +53,55 @@ public class SkuFreightRender implements CartRenderStep {
             return;
         }
 
-        // 国际地址逻辑：优先使用 LogisticsCalculationService (4PX 等)
-        if (memberAddress != null && !"CN".equals(memberAddress.getCountryCode())) {
-            calculateInternationalFreight(tradeDTO);
-            return;
-        }
-
-        //选择物流的时候计算价格
+        // 选择物流时候计算价格
         if (DeliveryMethodEnum.LOGISTICS.name().equals(tradeDTO.getCartList().get(0).getDeliveryMethod())) {
             if (memberAddress != null) {
-                //运费分组信息
+                // 如果是非中国地址，尝试优先通过 4PX 接口获取运费预估
+                if (!"CN".equals(memberAddress.getCountryCode())) {
+                    calculateInternationalFreight(tradeDTO);
+                    // 如果 4PX 成功获取到了报价信息，则认为已处理完成（业务上优先以 4PX 为准）
+                    if (tradeDTO.getLogisticsQuotes() != null && !tradeDTO.getLogisticsQuotes().isEmpty()) {
+                        return;
+                    }
+                }
+
+                // 运费分组信息 (按运费模板分组)
                 Map<String, List<String>> freightGroups = freightTemplateGrouping(cartSkuVOS);
 
-                //循环运费模版
+                // 循环各个运费模板组
                 for (Map.Entry<String, List<String>> freightTemplateGroup : freightGroups.entrySet()) {
-
-                    //商品id列表
                     List<String> skuIds = freightTemplateGroup.getValue();
+                    List<CartSkuVO> currentCartSkus = cartSkuVOS.stream()
+                            .filter(item -> skuIds.contains(item.getGoodsSku().getId()))
+                            .collect(Collectors.toList());
 
-                    //当前购物车商品列表
-                    List<CartSkuVO> currentCartSkus = cartSkuVOS.stream().filter(item -> skuIds.contains(item.getGoodsSku().getId())).collect(Collectors.toList());
-
-                    //寻找对应对商品运费计算模版
+                    // 寻找对应对商品运费计算模版
                     FreightTemplateVO freightTemplate = freightTemplateService.getFreightTemplate(freightTemplateGroup.getKey());
-                    if (freightTemplate != null
-                            && freightTemplate.getFreightTemplateChildList() != null
-                            && !freightTemplate.getFreightTemplateChildList().isEmpty()) {
-                        //店铺模版免运费则跳过
-                        if (freightTemplate.getPricingMethod().equals(FreightTemplateEnum.FREE.name())) {
+
+                    if (freightTemplate != null && freightTemplate.getFreightTemplateChildList() != null && !freightTemplate.getFreightTemplateChildList().isEmpty()) {
+                        // 店铺模版免运费则跳过
+                        if (FreightTemplateEnum.FREE.name().equals(freightTemplate.getPricingMethod())) {
                             continue;
                         }
 
-                        //运费模版
+                        // 运费模版匹配：尝试匹配地址路径中的任何一个 ID (国家、省、市均可)
                         FreightTemplateChild freightTemplateChild = null;
-
-                        //获取市级别id匹配运费模版
-                        String addressId = memberAddress.getConsigneeAddressIdPath().split(",")[1];
+                        String[] addressIds = memberAddress.getConsigneeAddressIdPath().split(",");
                         for (FreightTemplateChild templateChild : freightTemplate.getFreightTemplateChildList()) {
-                            //模版匹配判定
-                            if (templateChild.getAreaId().contains(addressId)) {
-                                freightTemplateChild = templateChild;
+                            for (String addressId : addressIds) {
+                                if (templateChild.getAreaId().contains(addressId)) {
+                                    freightTemplateChild = templateChild;
+                                    break;
+                                }
+                            }
+                            if (freightTemplateChild != null) {
                                 break;
                             }
                         }
-                        //如果没有匹配到物流规则，则说明不支持配送
+
+                        // 处理匹配结果
                         if (freightTemplateChild == null) {
+                            // 如果是国内地址或者没有任何补偿，则标记不支持配送
                             if (tradeDTO.getNotSupportFreight() == null) {
                                 tradeDTO.setNotSupportFreight(new ArrayList<>());
                             }
@@ -105,23 +109,21 @@ public class SkuFreightRender implements CartRenderStep {
                             continue;
                         }
 
-                        //物流规则模型创立
+                        // 匹配成功，开始计算
                         FreightTemplateChildDTO freightTemplateChildDTO = new FreightTemplateChildDTO(freightTemplateChild);
-                        //模型写入运费模版设置的计费方式
                         freightTemplateChildDTO.setPricingMethod(freightTemplate.getPricingMethod());
 
-                        //计算运费总数
+                        // 计算计费用基数 (重量或件数)
                         Double count = currentCartSkus.stream().mapToDouble(item ->
-                                // 根据计费规则 累加计费基数
-                                freightTemplateChildDTO.getPricingMethod().equals(FreightTemplateEnum.NUM.name()) ?
+                                FreightTemplateEnum.NUM.name().equals(freightTemplateChildDTO.getPricingMethod()) ?
                                         item.getNum().doubleValue() :
                                         CurrencyUtil.mul(item.getNum(), item.getGoodsSku().getWeight())
                         ).sum();
 
-                        //计算运费
+                        // 计算运费
                         Double countFreight = countFreight(count, freightTemplateChildDTO);
 
-                        //写入SKU运费
+                        // 写入 SKU 运费分摊
                         resetFreightPrice(FreightTemplateEnum.valueOf(freightTemplateChildDTO.getPricingMethod()), count, countFreight, currentCartSkus);
                     }
                 }
@@ -238,9 +240,15 @@ public class SkuFreightRender implements CartRenderStep {
         cn.lili.modules.logistics.calculation.LogisticsEstimateRequest request = new cn.lili.modules.logistics.calculation.LogisticsEstimateRequest();
         request.setCountryCode(address.getCountryCode());
         request.setPostalCode(address.getPostalCode());
+        request.setCity(address.getCity());
+        request.setState(address.getProvince());
 
         List<cn.lili.modules.logistics.calculation.LogisticsEstimateSkuLine> lines = new ArrayList<>();
         double totalWeight = 0;
+        double maxLength = 0;
+        double maxWidth = 0;
+        double totalHeight = 0;
+
         for (CartSkuVO sku : checkedSkus) {
             cn.lili.modules.logistics.calculation.LogisticsEstimateSkuLine line = new cn.lili.modules.logistics.calculation.LogisticsEstimateSkuLine();
             line.setSkuId(sku.getGoodsSku().getId());
@@ -248,10 +256,25 @@ public class SkuFreightRender implements CartRenderStep {
             line.setQuantity(sku.getNum());
             line.setWeightKg(sku.getGoodsSku().getWeight());
             lines.add(line);
+
+            // 累加总重量
             totalWeight = CurrencyUtil.add(totalWeight, CurrencyUtil.mul(sku.getGoodsSku().getWeight(), sku.getNum()));
+
+            // 聚合尺寸 (简易算法：长宽取最大，高度根据件数累加)
+            Double l = sku.getGoodsSku().getGoodsLength() != null ? sku.getGoodsSku().getGoodsLength() : 10D;
+            Double w = sku.getGoodsSku().getGoodsWidth() != null ? sku.getGoodsSku().getGoodsWidth() : 10D;
+            Double h = sku.getGoodsSku().getGoodsHeight() != null ? sku.getGoodsSku().getGoodsHeight() : 10D;
+
+            maxLength = Math.max(maxLength, l);
+            maxWidth = Math.max(maxWidth, w);
+            totalHeight = CurrencyUtil.add(totalHeight, CurrencyUtil.mul(h, sku.getNum()));
         }
+
         request.setSkuLines(lines);
         request.setTotalWeightKg(totalWeight);
+        request.setLengthCm(maxLength);
+        request.setWidthCm(maxWidth);
+        request.setHeightCm(totalHeight);
 
         try {
             List<cn.lili.modules.logistics.calculation.LogisticsQuote> quotes = logisticsCalculationService.estimate(request);

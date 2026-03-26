@@ -65,6 +65,15 @@ public class Goods extends BaseEntity {
     @ApiModelProperty(value = "USD 基准价")
     private Double priceUsd;
 
+    @ApiModelProperty(value = "长度 (cm)")
+    private Double goodsLength;
+
+    @ApiModelProperty(value = "宽度 (cm)")
+    private Double goodsWidth;
+
+    @ApiModelProperty(value = "高度 (cm)")
+    private Double goodsHeight;
+
 
     @Length(max = 60, message = "商品卖点太长，不能超过60个字符")
     @ApiModelProperty(value = "卖点")
@@ -173,7 +182,10 @@ public class Goods extends BaseEntity {
         this.goodsVideo = goodsOperationDTO.getGoodsVideo();
         this.price = goodsOperationDTO.getPrice();
         this.priceUsd = goodsOperationDTO.getPriceUsd();
-        if (goodsOperationDTO.getGoodsParamsDTOList() != null && goodsOperationDTO.getGoodsParamsDTOList().isEmpty()) {
+        this.goodsLength = goodsOperationDTO.getGoodsLength();
+        this.goodsWidth = goodsOperationDTO.getGoodsWidth();
+        this.goodsHeight = goodsOperationDTO.getGoodsHeight();
+        if (goodsOperationDTO.getGoodsParamsDTOList() != null && !goodsOperationDTO.getGoodsParamsDTOList().isEmpty()) {
             this.params = JSONUtil.toJsonStr(goodsOperationDTO.getGoodsParamsDTOList());
         }
         //如果立即上架则
@@ -194,8 +206,10 @@ public class Goods extends BaseEntity {
                 throw new ServiceException(ResultCode.GOODS_SKU_COST_ERROR);
             }
             //虚拟商品没有重量字段
-            if (this.goodsType.equals(GoodsTypeEnum.PHYSICAL_GOODS.name()) && (!sku.containsKey("weight") || sku.containsKey("weight") && (StringUtil.isEmpty(sku.get("weight").toString()) || Convert.toDouble(sku.get("weight").toString()) < 0))) {
-                throw new ServiceException(ResultCode.GOODS_SKU_WEIGHT_ERROR);
+            if (this.goodsType.equals(GoodsTypeEnum.PHYSICAL_GOODS.name())) {
+                if (!sku.containsKey("weight") || (sku.get("weight") != null && Convert.toDouble(sku.get("weight").toString()) < 0)) {
+                    throw new ServiceException(ResultCode.GOODS_SKU_WEIGHT_ERROR);
+                }
             }
             if (!sku.containsKey("quantity") || StringUtil.isEmpty(sku.get("quantity").toString()) || Convert.toInt(sku.get("quantity").toString()) < 0) {
                 throw new ServiceException(ResultCode.GOODS_SKU_QUANTITY_ERROR);

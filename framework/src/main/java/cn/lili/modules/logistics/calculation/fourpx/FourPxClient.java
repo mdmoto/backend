@@ -46,8 +46,19 @@ public class FourPxClient {
             java.util.LinkedHashMap<String, Object> bizParams = new java.util.LinkedHashMap<>();
             bizParams.put("request_no", ""); // 试算时传空字符串
             bizParams.put("country_code", request.getCountryCode());
-            // 4PX 此接口通常使用克(g)为单位，数值建议转为字符串以保证签名一致
+            // 4PX 此接口通常使用克(g)为单位
             bizParams.put("weight", String.valueOf((int) (request.getTotalWeightKg() * 1000)));
+            // 补充邮编和城市参数，提高全球算费准确性
+            if (request.getPostalCode() != null && !request.getPostalCode().isBlank()) {
+                bizParams.put("post_code", request.getPostalCode());
+            }
+            if (request.getCity() != null && !request.getCity().isBlank()) {
+                bizParams.put("city", request.getCity());
+            }
+            if (request.getState() != null && !request.getState().isBlank()) {
+                bizParams.put("state_or_province", request.getState());
+            }
+
             // 如果请求中没有尺寸，传默认值
             bizParams.put("length", String.valueOf(request.getLengthCm() != null ? request.getLengthCm().intValue() : 10));
             bizParams.put("width", String.valueOf(request.getWidthCm() != null ? request.getWidthCm().intValue() : 10));
@@ -78,15 +89,11 @@ public class FourPxClient {
             String url = String.format("%s/router/api/service?method=%s&app_key=%s&v=%s&timestamp=%s&format=json&sign=%s",
                     fourPxProperties.getBaseUrl(), METHOD_DS, fourPxProperties.getAppKey(), VERSION, timestamp, sign);
 
-            log.debug("4PX estimate request country={}, weight_g={}, size_cm={}x{}x{}",
-                    request.getCountryCode(),
-                    bizParams.get("weight"),
-                    bizParams.get("length"),
-                    bizParams.get("width"),
-                    bizParams.get("height"));
+            log.info("4PX estimate request url: {}", url);
+            log.info("4PX estimate request body: {}", body);
 
             String response = HttpUtil.post(url, body);
-            log.debug("4PX estimate response: {}", response);
+            log.info("4PX estimate response: {}", response);
 
             JSONObject respJson = JSONUtil.parseObj(response);
             // 4PX 的结果码：result为1表示成功

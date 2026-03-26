@@ -31,6 +31,12 @@ public class MemberAddressDTO {
     @ApiModelProperty(value = "邮编/邮政编码")
     private String postalCode;
 
+    @ApiModelProperty(value = "州/省 (国际地址使用)")
+    private String province;
+
+    @ApiModelProperty(value = "城市 (国际地址使用)")
+    private String city;
+
     @NotBlank(message = "地址不能为空")
     @ApiModelProperty(value = "地址名称， '，'分割")
     private String consigneeAddressPath;

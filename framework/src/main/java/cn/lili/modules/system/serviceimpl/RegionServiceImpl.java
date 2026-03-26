@@ -147,21 +147,55 @@ public class RegionServiceImpl extends ServiceImpl<RegionMapper, Region> impleme
     @Override
     public List<RegionVO> getAllCity() {
         LambdaQueryWrapper<Region> lambdaQueryWrapper = new LambdaQueryWrapper<>();
-        //查询所有省市
-        lambdaQueryWrapper.in(Region::getLevel, "city", "province");
+        //查询所有省市及国家
+        lambdaQueryWrapper.in(Region::getLevel, "country", "city", "province");
         return regionTree(this.list(lambdaQueryWrapper));
     }
 
     private List<RegionVO> regionTree(List<Region> regions) {
         List<RegionVO> regionVOS = new ArrayList<>();
-        regions.stream().filter(region -> ("province").equals(region.getLevel())).forEach(item -> regionVOS.add(new RegionVO(item)));
-        regions.stream().filter(region -> ("city").equals(region.getLevel())).forEach(item -> {
-            for (RegionVO region : regionVOS) {
-                if (region.getId().equals(item.getParentId())) {
-                    region.getChildren().add(new RegionVO(item));
-                }
-            }
-        });
+        // 1. 提取国家级别（或者没有父节点的省份作为顶层）
+        regions.stream()
+                .filter(region -> "country".equals(region.getLevel()))
+                .forEach(item -> regionVOS.add(new RegionVO(item)));
+
+        // 2. 提取省份级别
+        regions.stream()
+                .filter(region -> "province".equals(region.getLevel()))
+                .forEach(item -> {
+                    boolean added = false;
+                    for (RegionVO country : regionVOS) {
+                        if (country.getId().equals(item.getParentId())) {
+                            country.getChildren().add(new RegionVO(item));
+                            added = true;
+                            break;
+                        }
+                    }
+                    if (!added) {
+                        // 如果没找到国家父节点（比如旧的中国数据国内省份父节点是0），则省份作为顶层
+                        regionVOS.add(new RegionVO(item));
+                    }
+                });
+
+        // 3. 提取城市级别
+        regions.stream()
+                .filter(region -> "city".equals(region.getLevel()))
+                .forEach(item -> {
+                    for (RegionVO root : regionVOS) {
+                        // 如果顶层是省份，直接挂载
+                        if (root.getId().equals(item.getParentId())) {
+                            root.getChildren().add(new RegionVO(item));
+                            break;
+                        }
+                        // 如果顶层是国家，遍历国家的子节点（省份）挂载
+                        for (RegionVO province : root.getChildren()) {
+                            if (province.getId().equals(item.getParentId())) {
+                                province.getChildren().add(new RegionVO(item));
+                                break;
+                            }
+                        }
+                    }
+                });
         return regionVOS;
     }
 

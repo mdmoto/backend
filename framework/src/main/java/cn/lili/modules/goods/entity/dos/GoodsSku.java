@@ -75,6 +75,15 @@ public class GoodsSku extends BaseEntity {
     @ApiModelProperty(value = "重量")
     @Max(value = 99999999, message = "重量不能超过99999999")
     private Double weight;
+
+    @ApiModelProperty(value = "长度 (cm)")
+    private Double goodsLength;
+
+    @ApiModelProperty(value = "宽度 (cm)")
+    private Double goodsWidth;
+
+    @ApiModelProperty(value = "高度 (cm)")
+    private Double goodsHeight;
     /**
      * @see GoodsStatusEnum
      */
@@ -243,6 +252,9 @@ public class GoodsSku extends BaseEntity {
         this.storeCategoryPath = goods.getStoreCategoryPath();
         this.freightTemplateId = goods.getTemplateId();
         this.recommend = goods.getRecommend();
+        this.goodsLength = goods.getGoodsLength();
+        this.goodsWidth = goods.getGoodsWidth();
+        this.goodsHeight = goods.getGoodsHeight();
     }
 
 }

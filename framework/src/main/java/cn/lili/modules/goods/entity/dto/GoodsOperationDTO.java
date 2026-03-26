@@ -42,6 +42,15 @@ public class GoodsOperationDTO implements Serializable {
     @ApiModelProperty(value = "USD 基准价")
     private Double priceUsd;
 
+    @ApiModelProperty(value = "长度 (cm)")
+    private Double goodsLength;
+
+    @ApiModelProperty(value = "宽度 (cm)")
+    private Double goodsWidth;
+
+    @ApiModelProperty(value = "高度 (cm)")
+    private Double goodsHeight;
+
     @ApiModelProperty(value = "分类path")
     private String categoryPath;
 
