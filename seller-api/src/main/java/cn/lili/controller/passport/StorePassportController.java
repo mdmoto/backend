@@ -1,6 +1,8 @@
 package cn.lili.controller.passport;
 
 
+import cn.lili.cache.limit.annotation.LimitPoint;
+import cn.lili.cache.limit.service.RateLimitService;
 import cn.lili.common.aop.annotation.DemoSite;
 import cn.lili.common.enums.ResultCode;
 import cn.lili.common.enums.ResultUtil;
@@ -48,14 +50,24 @@ public class StorePassportController {
     @Autowired
     private VerificationService verificationService;
 
+    @Autowired
+    private RateLimitService rateLimitService;
+
     @ApiOperation(value = "登录接口")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "username", value = "用户名", required = true, paramType = "query"),
             @ApiImplicitParam(name = "password", value = "密码", required = true, paramType = "query")
     })
+    @LimitPoint(name = "store_login_ip", prefix = "limit:", key = "store:login:", period = 60, limit = 30)
     @PostMapping("/userLogin")
     public ResultMessage<Object> userLogin(@NotNull(message = "用户名不能为空") @RequestParam String username,
-                                           @NotNull(message = "密码不能为空") @RequestParam String password, @RequestHeader String uuid) {
+                                           @NotNull(message = "密码不能为空") @RequestParam String password,
+                                           @RequestHeader(value = "uuid", required = false) String uuid) {
+        rateLimitService.check(
+                "store:login:username:" + RateLimitService.sha256Hex(username.toLowerCase()),
+                10,
+                300
+        );
         if (verificationService.check(uuid, VerificationEnums.LOGIN)) {
             return ResultUtil.data(this.memberService.usernameStoreLogin(username, password));
         } else {

@@ -153,6 +153,30 @@ public class GoodsOperationDTO implements Serializable {
     @ApiModelProperty(value = "浏览权限")
     private String browsePermissions;
 
+    public Double getGoodsLength() {
+        return goodsLength;
+    }
+
+    public void setGoodsLength(Double goodsLength) {
+        this.goodsLength = goodsLength;
+    }
+
+    public Double getGoodsWidth() {
+        return goodsWidth;
+    }
+
+    public void setGoodsWidth(Double goodsWidth) {
+        this.goodsWidth = goodsWidth;
+    }
+
+    public Double getGoodsHeight() {
+        return goodsHeight;
+    }
+
+    public void setGoodsHeight(Double goodsHeight) {
+        this.goodsHeight = goodsHeight;
+    }
+
     public String getGoodsName() {
         //对商品对名称做一个极限处理。这里没有用xss过滤是因为xss过滤为全局过滤，影响很大。
         // 业务中，全局代码中只有商品名称不能拥有英文逗号，是由于商品名称存在一个数据库联合查询，结果要根据逗号分组

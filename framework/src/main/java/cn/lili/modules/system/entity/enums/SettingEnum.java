@@ -33,6 +33,8 @@ public enum SettingEnum {
     SECKILL_SETTING,
     //IM 配置
     IM_SETTING,
+    //Maollar 里程碑增发配置
+    MAOLLAR_MILESTONE_SETTING,
 
     //登录设置
     CONNECT_SUPPORT,

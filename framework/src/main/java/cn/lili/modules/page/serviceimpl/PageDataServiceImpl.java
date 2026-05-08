@@ -18,17 +18,29 @@ import cn.lili.modules.page.entity.vos.PageDataVO;
 import cn.lili.modules.page.mapper.PageDataMapper;
 import cn.lili.modules.page.service.PageDataService;
 import cn.lili.mybatis.util.PageUtil;
+import lombok.extern.slf4j.Slf4j;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import cn.hutool.json.JSONArray;
+import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONUtil;
+import cn.lili.modules.goods.entity.dos.GoodsSku;
+import cn.lili.modules.goods.entity.enums.GoodsAuthEnum;
+import cn.lili.modules.goods.entity.enums.GoodsStatusEnum;
+import cn.lili.modules.goods.service.GoodsSkuService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * 楼层装修管理业务层实现
@@ -37,11 +49,15 @@ import java.util.Objects;
  * @since 2020/12/11 9:15
  */
 @Service
+@Slf4j
 public class PageDataServiceImpl extends ServiceImpl<PageDataMapper, PageData> implements PageDataService {
 
 
     @Autowired
     private SystemSettingProperties systemSettingProperties;
+
+    @Autowired
+    private GoodsSkuService goodsSkuService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -201,7 +217,146 @@ public class PageDataServiceImpl extends ServiceImpl<PageDataMapper, PageData> i
 
         queryWrapper.eq("page_client_type", pageDataDTO.getPageClientType());
 
-        return this.baseMapper.getPageData(queryWrapper);
+        PageDataVO pageDataVO = this.baseMapper.getPageData(queryWrapper);
+        if (pageDataVO != null && CharSequenceUtil.isNotEmpty(pageDataVO.getPageData())) {
+            pageDataVO.setPageData(filterPageData(pageDataVO.getPageData()));
+        }
+        return pageDataVO;
+    }
+
+    /**
+     * 过滤页面数据，移除已下架或异常商品
+     *
+     * @param pageDataJson 页面JSON数据
+     * @return 过滤后的JSON
+     */
+    private String filterPageData(String pageDataJson) {
+        try {
+            JSONArray components = JSONUtil.parseArray(pageDataJson);
+            List<String> skuIds = new ArrayList<>();
+
+            // 1. 递归收集所有包含商品链接的 skuId
+            collectSkuIds(components, skuIds);
+
+            if (skuIds.isEmpty()) {
+                return pageDataJson;
+            }
+
+            // 2. 批量获取商品状态
+            List<GoodsSku> skus = goodsSkuService.getGoodsSkuByIdFromCache(skuIds);
+            Map<String, GoodsSku> skuMap = skus.stream()
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toMap(GoodsSku::getId, s -> s));
+
+            // 3. 递归过滤
+            filterComponents(components, skuMap);
+
+            return components.toString();
+        } catch (Exception e) {
+            log.error("过滤首页装修数据异常", e);
+            return pageDataJson;
+        }
+    }
+
+    private void collectSkuIds(Object obj, List<String> skuIds) {
+        if (obj instanceof JSONArray) {
+            JSONArray array = (JSONArray) obj;
+            for (Object item : array) {
+                collectSkuIds(item, skuIds);
+            }
+        } else if (obj instanceof JSONObject) {
+            JSONObject json = (JSONObject) obj;
+            // 尝试从 url 中提取 id
+            String url = json.getStr("url");
+            if (CharSequenceUtil.isNotEmpty(url)) {
+                String skuId = extractSkuId(url);
+                if (skuId != null && !skuIds.contains(skuId)) {
+                    skuIds.add(skuId);
+                }
+            }
+            // 尝试直接获取 skuId 字段
+            String skuIdField = json.getStr("skuId");
+            if (CharSequenceUtil.isNotEmpty(skuIdField) && !skuIds.contains(skuIdField)) {
+                skuIds.add(skuIdField);
+            }
+            // 递归遍历所有值
+            for (Object value : json.values()) {
+                collectSkuIds(value, skuIds);
+            }
+        }
+    }
+
+    private void filterComponents(Object obj, Map<String, GoodsSku> skuMap) {
+        if (obj instanceof JSONArray) {
+            JSONArray array = (JSONArray) obj;
+            for (int i = 0; i < array.size(); i++) {
+                Object item = array.get(i);
+                if (item instanceof JSONObject) {
+                    JSONObject json = (JSONObject) item;
+                    if (shouldRemove(json, skuMap)) {
+                        array.remove(i);
+                        i--;
+                    } else {
+                        filterComponents(item, skuMap);
+                    }
+                } else {
+                    filterComponents(item, skuMap);
+                }
+            }
+        } else if (obj instanceof JSONObject) {
+            JSONObject json = (JSONObject) obj;
+            for (String key : json.keySet()) {
+                Object value = json.get(key);
+                if (value instanceof JSONArray) {
+                    JSONArray subArray = (JSONArray) value;
+                    for (int i = 0; i < subArray.size(); i++) {
+                        Object subItem = subArray.get(i);
+                        if (subItem instanceof JSONObject && shouldRemove((JSONObject) subItem, skuMap)) {
+                            subArray.remove(i);
+                            i--;
+                        } else {
+                            filterComponents(subItem, skuMap);
+                        }
+                    }
+                } else {
+                    filterComponents(value, skuMap);
+                }
+            }
+        }
+    }
+
+    private boolean shouldRemove(JSONObject json, Map<String, GoodsSku> skuMap) {
+        String url = json.getStr("url");
+        String skuId = json.getStr("skuId");
+        if (CharSequenceUtil.isEmpty(skuId) && CharSequenceUtil.isNotEmpty(url)) {
+            skuId = extractSkuId(url);
+        }
+
+        if (CharSequenceUtil.isNotEmpty(skuId)) {
+            GoodsSku sku = skuMap.get(skuId);
+            if (sku == null) return true; // 缓存找不到，可能已彻底删除
+            
+            // 过滤条件：已下架、未审核通过、已删除
+            return !GoodsStatusEnum.UPPER.name().equals(sku.getMarketEnable())
+                    || !GoodsAuthEnum.PASS.name().equals(sku.getAuthFlag())
+                    || Boolean.TRUE.equals(sku.getDeleteFlag());
+        }
+        return false;
+    }
+
+    private String extractSkuId(String url) {
+        if (url == null) return null;
+        // 匹配 ?id=... 或 &id=...
+        int index = url.indexOf("id=");
+        if (index != -1) {
+            String substring = url.substring(index + 3);
+            int nextAmp = substring.indexOf("&");
+            if (nextAmp != -1) {
+                return substring.substring(0, nextAmp);
+            }
+            return substring;
+        }
+        return null;
     }
 
     @Override

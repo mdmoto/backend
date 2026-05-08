@@ -1,6 +1,7 @@
 package cn.lili.controller.common;
 
 import cn.lili.cache.limit.annotation.LimitPoint;
+import cn.lili.cache.limit.service.RateLimitService;
 import cn.lili.common.enums.ResultCode;
 import cn.lili.common.enums.ResultUtil;
 import cn.lili.common.vo.ResultMessage;
@@ -30,7 +31,10 @@ public class SmsController {
     @Autowired
     private VerificationService verificationService;
 
-    @LimitPoint(name = "sms_send", key = "sms")
+    @Autowired
+    private RateLimitService rateLimitService;
+
+    @LimitPoint(name = "sms_send", key = "sms", period = 60, limit = 1)
     @ApiImplicitParams({
             @ApiImplicitParam(paramType = "path", dataType = "String", name = "mobile", value = "手机号"),
             @ApiImplicitParam(paramType = "header", dataType = "String", name = "uuid", value = "uuid"),
@@ -41,6 +45,11 @@ public class SmsController {
             @RequestHeader String uuid,
             @PathVariable String mobile,
             @PathVariable VerificationEnums verificationEnums) {
+        rateLimitService.check(
+                "sms:send:mobile:" + RateLimitService.sha256Hex(mobile),
+                3,
+                3600
+        );
         verificationService.check(uuid, verificationEnums);
         smsUtil.sendSmsCode(mobile, verificationEnums, uuid);
         return ResultUtil.success(ResultCode.VERIFICATION_SEND_SUCCESS);

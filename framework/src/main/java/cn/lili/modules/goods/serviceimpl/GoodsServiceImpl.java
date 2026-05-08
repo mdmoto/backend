@@ -388,6 +388,42 @@ public class GoodsServiceImpl extends ServiceImpl<GoodsMapper, Goods> implements
     }
 
     @Override
+    @SystemLogPoint(description = "根据条件批量审核商品")
+    @Transactional(rollbackFor = Exception.class)
+    public boolean auditAllByParams(GoodsSearchParams searchParams, GoodsAuthEnum goodsAuthEnum) {
+        // 根据条件查询符合条件的商品ID列表
+        QueryWrapper<Goods> queryWrapper = searchParams.queryWrapper();
+        List<Goods> goodsList = this.baseMapper.selectList(queryWrapper.select("id"));
+        if (CollUtil.isEmpty(goodsList)) {
+            return true;
+        }
+        List<String> goodsIds = goodsList.stream().map(Goods::getId).collect(Collectors.toList());
+
+        // 批量更新商品状态
+        LambdaUpdateWrapper<Goods> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.in(Goods::getId, goodsIds);
+        updateWrapper.set(Goods::getAuthFlag, goodsAuthEnum.name());
+        this.update(updateWrapper);
+
+        // 批量更新规格商品状态
+        goodsSkuService.updateBatchAuth(goodsIds, goodsAuthEnum.name());
+
+        // 清除缓存
+        List<String> goodsCacheKeys = new ArrayList<>();
+        for (String goodsId : goodsIds) {
+            goodsCacheKeys.add(CachePrefix.GOODS.getPrefix() + goodsId);
+        }
+        cache.multiDel(goodsCacheKeys);
+
+        // 发送异步 re-index 消息
+        String destination = rocketmqCustomProperties.getGoodsTopic() + ":" + GoodsTagsEnum.UPDATE_GOODS_INDEX.name();
+        rocketMQTemplate.asyncSend(destination, JSONUtil.toJsonStr(goodsIds),
+                RocketmqSendCallbackBuilder.commonCallback());
+
+        return true;
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     @SystemLogPoint(description = "商品状态操作", customerLog = "'操作类型:['+#goodsStatusEnum+']，操作对象:['+#goodsIds+']，操作原因:['+#underReason+']'")
     public Boolean updateGoodsMarketAble(List<String> goodsIds, GoodsStatusEnum goodsStatusEnum, String underReason) {

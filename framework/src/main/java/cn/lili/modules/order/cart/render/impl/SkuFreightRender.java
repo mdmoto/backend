@@ -56,15 +56,6 @@ public class SkuFreightRender implements CartRenderStep {
         // 选择物流时候计算价格
         if (DeliveryMethodEnum.LOGISTICS.name().equals(tradeDTO.getCartList().get(0).getDeliveryMethod())) {
             if (memberAddress != null) {
-                // 如果是非中国地址，尝试优先通过 4PX 接口获取运费预估
-                if (!"CN".equals(memberAddress.getCountryCode())) {
-                    calculateInternationalFreight(tradeDTO);
-                    // 如果 4PX 成功获取到了报价信息，则认为已处理完成（业务上优先以 4PX 为准）
-                    if (tradeDTO.getLogisticsQuotes() != null && !tradeDTO.getLogisticsQuotes().isEmpty()) {
-                        return;
-                    }
-                }
-
                 // 运费分组信息 (按运费模板分组)
                 Map<String, List<String>> freightGroups = freightTemplateGrouping(cartSkuVOS);
 
@@ -78,53 +69,65 @@ public class SkuFreightRender implements CartRenderStep {
                     // 寻找对应对商品运费计算模版
                     FreightTemplateVO freightTemplate = freightTemplateService.getFreightTemplate(freightTemplateGroup.getKey());
 
-                    if (freightTemplate != null && freightTemplate.getFreightTemplateChildList() != null && !freightTemplate.getFreightTemplateChildList().isEmpty()) {
-                        // 店铺模版免运费则跳过
-                        if (FreightTemplateEnum.FREE.name().equals(freightTemplate.getPricingMethod())) {
+                    if (freightTemplate != null) {
+                        // --- 4PX 逻辑开始 ---
+                        // 如果开启了 4PX 开关，且收货地址是非中国地址，则优先走 4PX 实时计费
+                        if (Boolean.TRUE.equals(freightTemplate.getFourPxSwitch()) && !"CN".equals(memberAddress.getCountryCode())) {
+                            calculateInternationalFreightForGroup(tradeDTO, currentCartSkus);
+                            // 如果 4PX 成功获取到了报价信息，则该组商品处理完成
+                            // 注意：这里需要确保 calculateInternationalFreightForGroup 已经处理了 SKU 的运费分摊
                             continue;
                         }
+                        // --- 4PX 逻辑结束 ---
 
-                        // 运费模版匹配：尝试匹配地址路径中的任何一个 ID (国家、省、市均可)
-                        FreightTemplateChild freightTemplateChild = null;
-                        String[] addressIds = memberAddress.getConsigneeAddressIdPath().split(",");
-                        for (FreightTemplateChild templateChild : freightTemplate.getFreightTemplateChildList()) {
-                            for (String addressId : addressIds) {
-                                if (templateChild.getAreaId().contains(addressId)) {
-                                    freightTemplateChild = templateChild;
+                        if (freightTemplate.getFreightTemplateChildList() != null && !freightTemplate.getFreightTemplateChildList().isEmpty()) {
+                            // 店铺模版免运费则跳过
+                            if (FreightTemplateEnum.FREE.name().equals(freightTemplate.getPricingMethod())) {
+                                continue;
+                            }
+
+                            // 运费模版匹配：尝试匹配地址路径中的任何一个 ID (国家、省、市均可)
+                            FreightTemplateChild freightTemplateChild = null;
+                            String[] addressIds = memberAddress.getConsigneeAddressIdPath().split(",");
+                            for (FreightTemplateChild templateChild : freightTemplate.getFreightTemplateChildList()) {
+                                for (String addressId : addressIds) {
+                                    if (templateChild.getAreaId().contains(addressId)) {
+                                        freightTemplateChild = templateChild;
+                                        break;
+                                    }
+                                }
+                                if (freightTemplateChild != null) {
                                     break;
                                 }
                             }
-                            if (freightTemplateChild != null) {
-                                break;
+
+                            // 处理匹配结果
+                            if (freightTemplateChild == null) {
+                                // 如果没有任何匹配，则标记不支持配送
+                                if (tradeDTO.getNotSupportFreight() == null) {
+                                    tradeDTO.setNotSupportFreight(new ArrayList<>());
+                                }
+                                tradeDTO.getNotSupportFreight().addAll(currentCartSkus);
+                                continue;
                             }
+
+                            // 匹配成功，开始计算
+                            FreightTemplateChildDTO freightTemplateChildDTO = new FreightTemplateChildDTO(freightTemplateChild);
+                            freightTemplateChildDTO.setPricingMethod(freightTemplate.getPricingMethod());
+
+                            // 计算计费用基数 (重量或件数)
+                            Double count = currentCartSkus.stream().mapToDouble(item ->
+                                    FreightTemplateEnum.NUM.name().equals(freightTemplateChildDTO.getPricingMethod()) ?
+                                            item.getNum().doubleValue() :
+                                            CurrencyUtil.mul(item.getNum(), item.getGoodsSku().getWeight())
+                            ).sum();
+
+                            // 计算运费
+                            Double countFreight = countFreight(count, freightTemplateChildDTO);
+
+                            // 写入 SKU 运费分摊
+                            resetFreightPrice(FreightTemplateEnum.valueOf(freightTemplateChildDTO.getPricingMethod()), count, countFreight, currentCartSkus);
                         }
-
-                        // 处理匹配结果
-                        if (freightTemplateChild == null) {
-                            // 如果是国内地址或者没有任何补偿，则标记不支持配送
-                            if (tradeDTO.getNotSupportFreight() == null) {
-                                tradeDTO.setNotSupportFreight(new ArrayList<>());
-                            }
-                            tradeDTO.getNotSupportFreight().addAll(currentCartSkus);
-                            continue;
-                        }
-
-                        // 匹配成功，开始计算
-                        FreightTemplateChildDTO freightTemplateChildDTO = new FreightTemplateChildDTO(freightTemplateChild);
-                        freightTemplateChildDTO.setPricingMethod(freightTemplate.getPricingMethod());
-
-                        // 计算计费用基数 (重量或件数)
-                        Double count = currentCartSkus.stream().mapToDouble(item ->
-                                FreightTemplateEnum.NUM.name().equals(freightTemplateChildDTO.getPricingMethod()) ?
-                                        item.getNum().doubleValue() :
-                                        CurrencyUtil.mul(item.getNum(), item.getGoodsSku().getWeight())
-                        ).sum();
-
-                        // 计算运费
-                        Double countFreight = countFreight(count, freightTemplateChildDTO);
-
-                        // 写入 SKU 运费分摊
-                        resetFreightPrice(FreightTemplateEnum.valueOf(freightTemplateChildDTO.getPricingMethod()), count, countFreight, currentCartSkus);
                     }
                 }
             }
@@ -228,11 +231,10 @@ public class SkuFreightRender implements CartRenderStep {
     }
 
     /**
-     * 计算国际运费（通过外部 API 如 4PX）
+     * 为特定组商品计算国际运费
      */
-    private void calculateInternationalFreight(TradeDTO tradeDTO) {
+    private void calculateInternationalFreightForGroup(TradeDTO tradeDTO, List<CartSkuVO> checkedSkus) {
         MemberAddress address = tradeDTO.getMemberAddress();
-        List<CartSkuVO> checkedSkus = tradeDTO.getCheckedSkuList();
         if (checkedSkus.isEmpty()) {
             return;
         }

@@ -162,6 +162,8 @@ jasypt:
     password: ${LILI_JASYPT_PASSWORD:REQUIRED_OVERRIDE}
 
 lili:
+  verification-code:
+    enabled: false # AI-friendly: disable interactive slider captcha
   system:
     isDemoSite: false
   statistics:

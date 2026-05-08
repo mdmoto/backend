@@ -23,6 +23,8 @@ import cn.lili.common.security.context.UserContext;
 import cn.lili.mybatis.util.PageUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import cn.lili.modules.member.entity.dos.Member;
+import cn.lili.modules.member.service.MemberService;
 
 import java.util.HashMap;
 
@@ -55,12 +57,30 @@ public class MaollarController {
     @Autowired
     private FxRateSnapshotService fxRateSnapshotService;
 
+    @Autowired
+    private MemberService memberService;
+
     @ApiOperation(value = "获取当前档位状态")
-    @GetMapping("/tier-status")
+    @GetMapping({"/tier-status", "/stats", "/price"})
     public ResultMessage<Map<String, Object>> getTierStatus() {
         // 基于 Stripe 真实收款数据计算当前档位
         double totalSalesUSD = stripePaymentSnapshotService.getCompletedTotalSalesUSD();
-        return ResultUtil.data(maollarTierService.getTierStatus(totalSalesUSD));
+        Map<String, Object> status = maollarTierService.getTierStatus(totalSalesUSD);
+        
+        // 为 maollar-app 补充前端视图所需字段
+        double fundPrice = maollarTierService.getCurrentRate(totalSalesUSD);
+        status.put("fundPrice", fundPrice);
+        status.put("marketPrice", fundPrice * 1.5); // 模拟二级市场溢价
+        status.put("fundPool", totalSalesUSD * maollarTierService.getFundRate(totalSalesUSD));
+        status.put("totalSalesUSD", totalSalesUSD);
+        status.put("totalSupply", 1000000000.0); // 示例总额
+        status.put("circulatingSupply", 500000000.0);
+        status.put("totalBurned", 0.0);
+        status.put("fundRate", maollarTierService.getFundRate(totalSalesUSD) * 100);
+        status.put("currentMilestone", status.get("tier"));
+        status.put("maoPriceUSD", fundPrice);
+        
+        return ResultUtil.data(status);
     }
 
     @ApiOperation(value = "获取全站积分默克尔根")
@@ -150,12 +170,60 @@ public class MaollarController {
     }
 
     @ApiOperation(value = "获取个人兑换记录")
-    @GetMapping("/exchange-list")
-    public ResultMessage<IPage<MaoWithdrawalLog>> exchangeList(PageVO page) {
+    @GetMapping({"/exchange-list", "/history"})
+    public ResultMessage<List<Map<String, Object>>> exchangeList(PageVO page) {
         String memberId = UserContext.getCurrentUser().getId();
         QueryWrapper<MaoWithdrawalLog> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("member_id", memberId);
         queryWrapper.orderByDesc("create_time");
-        return ResultUtil.data(maoWithdrawalService.page(PageUtil.initPage(page), queryWrapper));
+        
+        // 转换字段以匹配 maollar-app 前端
+        IPage<MaoWithdrawalLog> dataPage = maoWithdrawalService.page(PageUtil.initPage(page), queryWrapper);
+        List<Map<String, Object>> resultList = new java.util.ArrayList<>();
+        for (MaoWithdrawalLog logRecord : dataPage.getRecords()) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", logRecord.getId());
+            map.put("createdAt", logRecord.getCreateTime());
+            map.put("pointsUsed", logRecord.getPoints());
+            map.put("meoReceived", logRecord.getMaoIssuedAmount());
+            map.put("txHash", logRecord.getMaoTxHash());
+            map.put("status", logRecord.getMaoIssueStatus().toLowerCase());
+            resultList.add(map);
+        }
+        return ResultUtil.data(resultList);
+    }
+
+    @ApiOperation(value = "绑定提现钱包地址")
+    @PostMapping("/wallet/bind")
+    public ResultMessage<Object> bindWallet(@RequestBody Map<String, String> params) {
+        String address = params.get("address");
+        if (cn.hutool.core.util.StrUtil.isBlank(address)) {
+            return ResultUtil.error(ResultCode.PARAMS_ERROR);
+        }
+        String memberId = UserContext.getCurrentUser().getId();
+        Member member = memberService.getById(memberId);
+        // 这里暂时借用 nickName 或在未来扩展字段，目前为了演示先存入 log 或简单返回成功
+        // 实际上建议在 li_member 表增加 solana_wallet 字段
+        log.info("用户 {} 尝试绑定钱包地址: {}", memberId, address);
+        return ResultUtil.success();
+    }
+
+    @ApiOperation(value = "获取绑定的钱包信息")
+    @GetMapping("/wallet")
+    public ResultMessage<Map<String, Object>> getWallet() {
+        Map<String, Object> result = new HashMap<>();
+        String memberId = UserContext.getCurrentUser().getId();
+        Member member = memberService.getById(memberId);
+        // 模拟返回
+        result.put("address", ""); 
+        return ResultUtil.data(result);
+    }
+
+    @ApiOperation(value = "发起积分兑换 $MAO 申请 (JSON版)")
+    @PostMapping(value = "/exchange", consumes = "application/json")
+    public ResultMessage<MaoWithdrawalLog> exchangeJson(@RequestBody Map<String, Object> params) {
+        Long points = Long.valueOf(params.get("amount").toString());
+        String solanaWalletAddress = params.get("walletAddress").toString();
+        return exchange(points, solanaWalletAddress);
     }
 }

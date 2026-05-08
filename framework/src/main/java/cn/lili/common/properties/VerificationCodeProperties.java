@@ -14,6 +14,14 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "lili.verification-code")
 public class VerificationCodeProperties {
 
+    /**
+     * 是否启用滑块验证码。
+     * <p>
+     * 关闭后：不再要求通过滑块校验（VerificationService#check 直接放行），
+     * 但建议配合接口限流/风控来防止爆破与垃圾请求。
+     */
+    private boolean enabled = true;
+
 
     /**
      * 过期时间

@@ -74,6 +74,30 @@ public class Goods extends BaseEntity {
     @ApiModelProperty(value = "高度 (cm)")
     private Double goodsHeight;
 
+    public Double getGoodsLength() {
+        return goodsLength;
+    }
+
+    public void setGoodsLength(Double goodsLength) {
+        this.goodsLength = goodsLength;
+    }
+
+    public Double getGoodsWidth() {
+        return goodsWidth;
+    }
+
+    public void setGoodsWidth(Double goodsWidth) {
+        this.goodsWidth = goodsWidth;
+    }
+
+    public Double getGoodsHeight() {
+        return goodsHeight;
+    }
+
+    public void setGoodsHeight(Double goodsHeight) {
+        this.goodsHeight = goodsHeight;
+    }
+
 
     @Length(max = 60, message = "商品卖点太长，不能超过60个字符")
     @ApiModelProperty(value = "卖点")

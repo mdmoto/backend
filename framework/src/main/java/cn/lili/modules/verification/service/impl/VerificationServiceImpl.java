@@ -54,6 +54,33 @@ public class VerificationServiceImpl implements VerificationService {
     @Override
     public Map<String, Object> createVerification(VerificationEnums verificationEnums, String uuid) {
 
+        if (!verificationCodeProperties.isEnabled()) {
+            // AI-friendly mode: no interactive slider required.
+            //
+            // IMPORTANT: We still return a full "slider" payload shape for backward compatibility
+            // with older clients that always render the modal and may crash/hang if fields are missing.
+            // New clients can short-circuit via `disabled=true`.
+            String safeUuid = uuid == null ? "" : uuid;
+            String key = cacheKey(verificationEnums, safeUuid);
+            java.util.Map<String, Object> result = new java.util.HashMap<>(16);
+            // Minimal 1x1 transparent PNG to satisfy image bindings
+            String transparentPng = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/6Xf1n0AAAAASUVORK5CYII=";
+
+            result.put("disabled", true);
+            result.put("key", key);
+            result.put("effectiveTime", 0);
+
+            // Legacy fields expected by H5/uniapp slider components
+            result.put("backImage", transparentPng);
+            result.put("slidingImage", transparentPng);
+            result.put("originalWidth", 300);
+            result.put("originalHeight", 150);
+            result.put("sliderWidth", 60);
+            result.put("sliderHeight", 60);
+            result.put("randomY", 0);
+            return result;
+        }
+
         if (uuid == null) {
             throw new ServiceException(ResultCode.ILLEGAL_REQUEST_ERROR);
         }
@@ -135,6 +162,9 @@ public class VerificationServiceImpl implements VerificationService {
      */
     @Override
     public boolean preCheck(Integer xPos, String uuid, VerificationEnums verificationEnums) {
+        if (!verificationCodeProperties.isEnabled()) {
+            return true;
+        }
         Integer randomX = (Integer) cache.get(cacheKey(verificationEnums, uuid));
         if (randomX == null) {
             throw new ServiceException(ResultCode.VERIFICATION_CODE_INVALID);
@@ -158,6 +188,9 @@ public class VerificationServiceImpl implements VerificationService {
      */
     @Override
     public boolean check(String uuid, VerificationEnums verificationEnums) {
+        if (!verificationCodeProperties.isEnabled()) {
+            return true;
+        }
         //如果有校验标记，则返回校验结果
         if (Boolean.TRUE.equals(cache.remove(cacheResult(verificationEnums, uuid)))) {
             return true;
@@ -230,4 +263,3 @@ public class VerificationServiceImpl implements VerificationService {
     }
 
 }
-

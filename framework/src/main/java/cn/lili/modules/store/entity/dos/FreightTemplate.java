@@ -34,5 +34,7 @@ public class FreightTemplate extends BaseEntity {
     @ApiModelProperty(value = "计价方式：按件、按重量", allowableValues = "WEIGHT,NUM,FREE")
     private String pricingMethod;
 
+    @ApiModelProperty(value = "是否启用4PX API国际计费")
+    private Boolean fourPxSwitch;
 
 }

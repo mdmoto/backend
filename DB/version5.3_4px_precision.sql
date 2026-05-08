@@ -13,3 +13,7 @@ ALTER TABLE `li_goods_sku`
     ADD COLUMN `goods_length` double(10,2) DEFAULT NULL COMMENT '长度 (cm)',
     ADD COLUMN `goods_width` double(10,2) DEFAULT NULL COMMENT '宽度 (cm)',
     ADD COLUMN `goods_height` double(10,2) DEFAULT NULL COMMENT '高度 (cm)';
+
+-- Add 4PX switch to freight templates
+ALTER TABLE `li_freight_template` 
+    ADD COLUMN `four_px_switch` bit(1) DEFAULT b'0' COMMENT '是否启用4PX API国际计费';

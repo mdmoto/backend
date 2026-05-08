@@ -1,5 +1,7 @@
 package cn.lili.controller.passport;
 
+import cn.lili.cache.limit.annotation.LimitPoint;
+import cn.lili.cache.limit.service.RateLimitService;
 import cn.lili.common.aop.annotation.DemoSite;
 import cn.lili.common.enums.ResultCode;
 import cn.lili.common.enums.ResultUtil;
@@ -57,11 +59,20 @@ public class AdminUserManagerController {
     @Autowired
     private VerificationService verificationService;
 
+    @Autowired
+    private RateLimitService rateLimitService;
+
+    @LimitPoint(name = "manager_login_ip", prefix = "limit:", key = "manager:login:", period = 60, limit = 30)
     @PostMapping(value = "/login")
     @ApiOperation(value = "登录管理员")
     public ResultMessage<Token> login(@NotNull(message = "用户名不能为空") @RequestParam String username,
                                       @NotNull(message = "密码不能为空") @RequestParam String password,
-                                      @RequestHeader String uuid) {
+                                      @RequestHeader(value = "uuid", required = false) String uuid) {
+        rateLimitService.check(
+                "manager:login:username:" + RateLimitService.sha256Hex(username.toLowerCase()),
+                10,
+                300
+        );
         if (verificationService.check(uuid, VerificationEnums.LOGIN)) {
             return ResultUtil.data(adminUserService.login(username, password));
         } else {

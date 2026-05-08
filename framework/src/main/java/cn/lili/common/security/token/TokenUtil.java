@@ -131,7 +131,7 @@ public class TokenUtil {
                 //失效时间 当前时间+过期分钟
                 .setExpiration(new Date(System.currentTimeMillis() + expirationTime * 60 * 1000))
                 //签名算法和密钥
-                .signWith(SecretKeyUtil.generalKey())
+                .signWith(SecretKeyUtil.generalKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 }

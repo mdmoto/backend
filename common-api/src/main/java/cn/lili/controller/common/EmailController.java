@@ -1,6 +1,7 @@
 package cn.lili.controller.common;
 
 import cn.lili.cache.limit.annotation.LimitPoint;
+import cn.lili.cache.limit.service.RateLimitService;
 import cn.lili.common.enums.ResultCode;
 import cn.lili.common.enums.ResultUtil;
 import cn.lili.common.vo.ResultMessage;
@@ -30,7 +31,10 @@ public class EmailController {
     @Autowired
     private VerificationService verificationService;
 
-    @LimitPoint(name = "email_send", key = "email")
+    @Autowired
+    private RateLimitService rateLimitService;
+
+    @LimitPoint(name = "email_send", key = "email", period = 60, limit = 1)
     @ApiImplicitParams({
             @ApiImplicitParam(paramType = "path", dataType = "String", name = "email", value = "邮箱地址"),
             @ApiImplicitParam(paramType = "header", dataType = "String", name = "uuid", value = "uuid"),
@@ -41,6 +45,12 @@ public class EmailController {
             @RequestHeader String uuid,
             @PathVariable String email,
             @PathVariable VerificationEnums verificationEnums) {
+        // 同一邮箱地址额外限流：防止对某个邮箱的轰炸
+        rateLimitService.check(
+                "email:send:addr:" + RateLimitService.sha256Hex(email.toLowerCase()),
+                3,
+                3600
+        );
         verificationService.check(uuid, verificationEnums);
         emailUtil.sendEmailCode(email, verificationEnums, uuid);
         return ResultUtil.success(ResultCode.VERIFICATION_SEND_SUCCESS);
@@ -67,4 +77,3 @@ public class EmailController {
     }
 
 }
-

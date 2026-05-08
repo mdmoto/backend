@@ -84,6 +84,31 @@ public class GoodsSku extends BaseEntity {
 
     @ApiModelProperty(value = "高度 (cm)")
     private Double goodsHeight;
+
+    public Double getGoodsLength() {
+        return goodsLength;
+    }
+
+    public void setGoodsLength(Double goodsLength) {
+        this.goodsLength = goodsLength;
+    }
+
+    public Double getGoodsWidth() {
+        return goodsWidth;
+    }
+
+    public void setGoodsWidth(Double goodsWidth) {
+        this.goodsWidth = goodsWidth;
+    }
+
+    public Double getGoodsHeight() {
+        return goodsHeight;
+    }
+
+    public void setGoodsHeight(Double goodsHeight) {
+        this.goodsHeight = goodsHeight;
+    }
+
     /**
      * @see GoodsStatusEnum
      */

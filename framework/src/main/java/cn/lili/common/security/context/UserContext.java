@@ -33,6 +33,12 @@ public class UserContext {
     public static AuthUser getCurrentUser() {
         if (RequestContextHolder.getRequestAttributes() != null) {
             HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+            
+            AuthUser openApiUser = (AuthUser) request.getAttribute("OpenApiUser");
+            if (openApiUser != null) {
+                return openApiUser;
+            }
+            
             String accessToken = request.getHeader(SecurityEnum.HEADER_TOKEN.getValue());
             return getAuthUser(accessToken);
         }

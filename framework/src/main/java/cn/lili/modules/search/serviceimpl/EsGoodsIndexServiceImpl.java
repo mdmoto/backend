@@ -9,7 +9,14 @@ import cn.lili.modules.promotion.entity.dos.PromotionGoods;
 import cn.lili.elasticsearch.BaseElasticsearchService;
 import cn.lili.modules.search.entity.dos.EsGoodsIndex;
 import cn.lili.modules.search.service.EsGoodsIndexService;
+import cn.lili.cache.Cache;
+import cn.lili.cache.CachePrefix;
+import cn.lili.modules.goods.entity.enums.GoodsAuthEnum;
+import cn.lili.modules.goods.entity.enums.GoodsStatusEnum;
+import cn.lili.modules.goods.mapper.GoodsSkuMapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -23,6 +30,12 @@ import java.util.*;
 @Slf4j
 @Service
 public class EsGoodsIndexServiceImpl extends BaseElasticsearchService implements EsGoodsIndexService {
+
+    @Autowired
+    private GoodsSkuMapper goodsSkuMapper;
+
+    @Autowired
+    private Cache<Object> cache;
 
     @Override
     public Boolean deleteGoodsDown() {
@@ -42,11 +55,70 @@ public class EsGoodsIndexServiceImpl extends BaseElasticsearchService implements
 
     @Override
     public void init() {
+        // Run in a new thread to avoid blocking
+        new Thread(() -> {
+            try {
+                // Remove complete flag
+                cache.remove(CachePrefix.INIT_INDEX_FLAG.getPrefix());
+
+                // Get all PASS and UPPER goods
+                List<GoodsSku> goodsSkus = goodsSkuMapper.selectList(new LambdaQueryWrapper<GoodsSku>()
+                        .eq(GoodsSku::getMarketEnable, GoodsStatusEnum.UPPER.name())
+                        .eq(GoodsSku::getAuthFlag, GoodsAuthEnum.PASS.name())
+                        .eq(GoodsSku::getDeleteFlag, false));
+
+                long total = goodsSkus.size();
+                long current = 0;
+
+                // Clear previous progress
+                cache.remove(CachePrefix.INIT_INDEX_PROCESS.getPrefix());
+
+                List<EsGoodsIndex> esGoodsIndices = new ArrayList<>();
+                for (GoodsSku sku : goodsSkus) {
+                    esGoodsIndices.add(new EsGoodsIndex(sku));
+                    current++;
+                    
+                    // Update progress every 10 items to reduce cache load
+                    if (current % 10 == 0 || current == total) {
+                        cache.put(CachePrefix.INIT_INDEX_PROCESS.getPrefix(), current + "/" + total);
+                    }
+                }
+
+                // Batch save to ES
+                if (!esGoodsIndices.isEmpty()) {
+                    elasticsearchOperations.save(esGoodsIndices);
+                }
+
+                // Set complete flag
+                cache.put(CachePrefix.INIT_INDEX_FLAG.getPrefix(), "COMPLETE");
+                log.info("ES Indexing complete: {} items indexed", total);
+            } catch (Exception e) {
+                log.error("ES Indexing failed", e);
+                cache.put(CachePrefix.INIT_INDEX_FLAG.getPrefix(), "FAILED");
+            }
+        }).start();
     }
 
     @Override
     public Map<String, Long> getProgress() {
-        return new HashMap<>();
+        Map<String, Long> map = new HashMap<>();
+        Object progress = cache.get(CachePrefix.INIT_INDEX_PROCESS.getPrefix());
+        if (progress != null && progress.toString().contains("/")) {
+            String[] parts = progress.toString().split("/");
+            map.put("total", Long.parseLong(parts[1]));
+            map.put("current", Long.parseLong(parts[0]));
+        } else {
+            // If no progress found, check if it's already complete
+            Object flag = cache.get(CachePrefix.INIT_INDEX_FLAG.getPrefix());
+            if ("COMPLETE".equals(flag)) {
+                map.put("total", 100L);
+                map.put("current", 100L);
+            } else {
+                map.put("total", 0L);
+                map.put("current", 0L);
+            }
+        }
+        return map;
     }
 
     @Override

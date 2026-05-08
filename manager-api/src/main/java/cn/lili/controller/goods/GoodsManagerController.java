@@ -88,6 +88,16 @@ public class GoodsManagerController {
         throw new ServiceException(ResultCode.GOODS_AUTH_ERROR);
     }
 
+    @PreventDuplicateSubmissions
+    @ApiOperation(value = "管理员审核所有符合条件的商品", notes = "管理员审核所有符合条件的商品")
+    @PutMapping(value = "auth/all")
+    public ResultMessage<Object> authAll(GoodsSearchParams goodsSearchParams, @RequestParam String auditStatus) {
+        if (goodsService.auditAllByParams(goodsSearchParams, GoodsAuthEnum.valueOf(auditStatus))) {
+            return ResultUtil.success();
+        }
+        throw new ServiceException(ResultCode.GOODS_AUTH_ERROR);
+    }
+
 
     @PreventDuplicateSubmissions
     @ApiOperation(value = "管理员上架商品", notes = "管理员上架商品时使用")

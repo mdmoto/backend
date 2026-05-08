@@ -1121,4 +1121,13 @@ public class GoodsSkuServiceImpl extends ServiceImpl<GoodsSkuMapper, GoodsSku> i
         skuListSheet.setColumnWidth(4, 30 * 256);
     }
 
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateBatchAuth(List<String> goodsIds, String authFlag) {
+        LambdaUpdateWrapper<GoodsSku> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.in(GoodsSku::getGoodsId, goodsIds);
+        updateWrapper.set(GoodsSku::getAuthFlag, authFlag);
+        this.update(updateWrapper);
+    }
 }

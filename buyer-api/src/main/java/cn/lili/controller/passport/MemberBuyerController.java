@@ -1,5 +1,7 @@
 package cn.lili.controller.passport;
 
+import cn.lili.cache.limit.annotation.LimitPoint;
+import cn.lili.cache.limit.service.RateLimitService;
 import cn.lili.common.enums.ResultCode;
 import cn.lili.common.enums.ResultUtil;
 import cn.lili.common.exception.ServiceException;
@@ -55,6 +57,9 @@ public class MemberBuyerController {
     private EmailUtil emailUtil;
     @Autowired
     private VerificationService verificationService;
+
+    @Autowired
+    private RateLimitService rateLimitService;
 
 
     @ApiOperation(value = "web-获取登录二维码")
@@ -141,10 +146,17 @@ public class MemberBuyerController {
             @ApiImplicitParam(name = "username", value = "用户名", required = true, paramType = "query"),
             @ApiImplicitParam(name = "password", value = "密码", required = true, paramType = "query")
     })
+    @LimitPoint(name = "buyer_user_login_ip", prefix = "limit:", key = "buyer:userLogin:", period = 60, limit = 30)
     @PostMapping("/userLogin")
     public ResultMessage<Object> userLogin(@NotNull(message = "用户名不能为空") @RequestParam String username,
                                            @NotNull(message = "密码不能为空") @RequestParam String password,
-                                           @RequestHeader String uuid) {
+                                           @RequestHeader(value = "uuid", required = false) String uuid) {
+        // 按账号维度限流：防止撞库/爆破（不依赖滑块）
+        rateLimitService.check(
+                "buyer:userLogin:username:" + RateLimitService.sha256Hex(username.toLowerCase()),
+                10,
+                300
+        );
         verificationService.check(uuid, VerificationEnums.LOGIN);
         return ResultUtil.data(this.memberService.usernameLogin(username, password));
     }
@@ -204,12 +216,26 @@ public class MemberBuyerController {
             @ApiImplicitParam(name = "email", value = "邮箱", required = true, paramType = "query"),
             @ApiImplicitParam(name = "code", value = "邮箱验证码", required = true, paramType = "query")
     })
+    @LimitPoint(name = "buyer_register_ip", prefix = "limit:", key = "buyer:register:", period = 3600, limit = 10)
     @PostMapping("/register")
     public ResultMessage<Object> register(@RequestParam(required = false) String username,
                                           @NotNull(message = "密码不能为空") @RequestParam String password,
                                           @NotNull(message = "邮箱不能为空") @RequestParam String email,
                                           @RequestHeader String uuid,
-                                          @NotNull(message = "验证码不能为空") @RequestParam String code) {
+                                          @NotNull(message = "验证码不能为空") @RequestParam String code,
+                                          @RequestParam(required = false, name = "sys_verify_token") String sysVerifyToken) {
+
+        // Honeypot：人类用户通常不会填写；命中直接拒绝
+        if (CharSequenceUtil.isNotBlank(sysVerifyToken)) {
+            throw new ServiceException(ResultCode.ILLEGAL_REQUEST_ERROR);
+        }
+
+        // 按邮箱维度限流：控制单邮箱轰炸注册
+        rateLimitService.check(
+                "buyer:register:email:" + RateLimitService.sha256Hex(email.toLowerCase()),
+                3,
+                3600
+        );
 
         // 验证邮箱格式
         if (!RegularUtil.email(email)) {

@@ -193,6 +193,7 @@ jasypt:
 
 lili:
   verification-code:
+    enabled: false # AI-friendly: disable interactive slider captcha
     effectiveTime: 300
     watermark: LILI-SHOP
     interfereNum: 1

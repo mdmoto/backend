@@ -109,7 +109,9 @@ public class MemberPointExecute
                     return;
                 }
                 
-                BigDecimal fundReserve = amountNetUsd.multiply(new BigDecimal("0.1")).setScale(8, RoundingMode.HALF_UP);
+                // 3. 计算拨备金 (基于动态比例：每达到一个里程碑降低 0.2%)
+                double fundRate = maollarTierService.getFundRate(totalSalesUSD);
+                BigDecimal fundReserve = amountNetUsd.multiply(BigDecimal.valueOf(fundRate)).setScale(8, RoundingMode.HALF_UP);
 
                 // 4. 计算赠送喵币 (真实 USD * 汇率 * 精度)
                 // 采用 HALF_UP 舍入，确保财务逻辑一致性
@@ -124,6 +126,7 @@ public class MemberPointExecute
                 }
 
                 checkSettlementReminder();
+                maollarTierService.checkAndTriggerMilestone(totalSalesUSD);
                 break;
             }
             default:

@@ -15,6 +15,7 @@ import cn.lili.modules.member.mapper.MaoWithdrawalLogMapper;
 import cn.lili.modules.member.service.MaoWithdrawalService;
 import cn.lili.modules.member.service.MemberService;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -84,8 +85,20 @@ public class MaoWithdrawalServiceImpl extends ServiceImpl<MaoWithdrawalLogMapper
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void executeWithdrawal(String withdrawalLogId) {
+        // 1. 原子性状态更新 (CAS 锁)，防止并发重复执行
+        // 只有当状态为 NONE 时，才将其更新为 PENDING，成功更新的线程才拥有执行权
+        boolean claimed = this.update(new LambdaUpdateWrapper<MaoWithdrawalLog>()
+                .set(MaoWithdrawalLog::getMaoIssueStatus, MaoIssueStatusEnum.PENDING.name())
+                .eq(MaoWithdrawalLog::getId, withdrawalLogId)
+                .eq(MaoWithdrawalLog::getMaoIssueStatus, MaoIssueStatusEnum.NONE.name()));
+
+        if (!claimed) {
+            log.warn("提现任务 {} 正在处理中或已被处理，跳过重复执行", withdrawalLogId);
+            return;
+        }
+
         MaoWithdrawalLog withdrawalLog = this.getById(withdrawalLogId);
-        if (withdrawalLog == null || !withdrawalLog.getMaoIssueStatus().equals(MaoIssueStatusEnum.NONE.name())) {
+        if (withdrawalLog == null) {
             return;
         }
 

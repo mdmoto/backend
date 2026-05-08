@@ -109,6 +109,15 @@ public interface GoodsService extends IService<Goods> {
      * @return 审核结果
      */
     boolean auditGoods(List<String> goodsIds, GoodsAuthEnum goodsAuthEnum);
+    
+    /**
+     * 审核所有符合条件的商品
+     *
+     * @param searchParams  查询参数
+     * @param goodsAuthEnum 审核操作
+     * @return 审核结果
+     */
+    boolean auditAllByParams(GoodsSearchParams searchParams, GoodsAuthEnum goodsAuthEnum);
 
 
     /**

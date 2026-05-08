@@ -305,4 +305,12 @@ public interface GoodsSkuService extends IService<GoodsSku> {
      * @return 操作结果
      */
     Boolean freight(List<String> goodsId, String templateId);
+
+    /**
+     * 批量更新SKU审核状态
+     *
+     * @param goodsIds 商品ID集合
+     * @param authFlag 审核状态
+     */
+    void updateBatchAuth(List<String> goodsIds, String authFlag);
 }

@@ -26,12 +26,22 @@ public interface MaollarTierService {
     double convertToUSD(double amount, String currency);
 
     /**
-     * 计算基金会应拨备金 (10%)
+     * 获取当前基金拨备比例 (基于销售额里程碑逐步降低)
+     * 规则: 每达到一个斐波那契里程碑，拨备率降低 0.2%
+     * 
+     * @param totalSalesUSD 当前累计销售额 (USD)
+     * @return 拨备比例 (例如 0.10 表示 10%)
+     */
+    double getFundRate(double totalSalesUSD);
+
+    /**
+     * 计算基金会应拨备金
      * 
      * @param orderAmountUSD 订单金额 (USD)
-     * @return 10% 的金额 (Foundation Liability)
+     * @param totalSalesUSD  当前累计销售额 (USD)，用于确定动态拨备率
+     * @return 拨备金额
      */
-    double calculateFund(double orderAmountUSD);
+    double calculateFund(double orderAmountUSD, double totalSalesUSD);
 
     /**
      * 检查是否达到结算提醒阈值 ($100,000)
@@ -48,4 +58,10 @@ public interface MaollarTierService {
      * @return 包含当前销售额、所属档位、所属档位剩余额度的 Map
      */
     Map<String, Object> getTierStatus(double totalSalesUSD);
+
+    /**
+     * 检查并触发自动增发
+     * @param totalSalesUSD 当前平台总销售额
+     */
+    void checkAndTriggerMilestone(double totalSalesUSD);
 }
