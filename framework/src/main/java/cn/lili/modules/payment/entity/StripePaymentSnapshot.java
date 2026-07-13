@@ -41,6 +41,36 @@ public class StripePaymentSnapshot extends BaseIdEntity {
     @ApiModelProperty(value = "Stripe Balance Transaction ID")
     private String balanceTransactionId;
 
+    @ApiModelProperty(value = "Stripe Event ID")
+    private String stripeEventId;
+
+    @ApiModelProperty(value = "Stripe Event Type")
+    private String stripeEventType;
+
+    @ApiModelProperty(value = "收单主体: TH_COMPANY, SG_COMPANY")
+    private String merchantEntity;
+
+    @ApiModelProperty(value = "收单账户标识，如 stripe_th, stripe_sg")
+    private String acquirerAccount;
+
+    @ApiModelProperty(value = "结算主体或账户，如 TH_BANK, AIRWALLEX_SG")
+    private String settlementEntity;
+
+    @ApiModelProperty(value = "展示给客户的币种")
+    private String presentmentCurrency;
+
+    @ApiModelProperty(value = "展示给客户的金额")
+    private BigDecimal amountPresentment;
+
+    @ApiModelProperty(value = "结算币种")
+    private String settlementCurrency;
+
+    @ApiModelProperty(value = "付款钱包/方式: CARD, PROMPTPAY, ALIPAY, WECHAT, UNKNOWN")
+    private String payerWallet;
+
+    @ApiModelProperty(value = "中国供应商付款状态: PENDING, READY, PAID")
+    private String supplierPayoutStatus;
+
     @ApiModelProperty(value = "真实净收款 (USD)")
     private BigDecimal amountNetUsd;
 
@@ -58,6 +88,9 @@ public class StripePaymentSnapshot extends BaseIdEntity {
 
     @ApiModelProperty(value = "Stripe 原始数据快照 (JSON)")
     private String rawData;
+
+    @ApiModelProperty(value = "Stripe 原始数据 SHA-256")
+    private String rawDataHash;
 
     @CreatedDate
     @JsonFormat(timezone = "GMT+8", pattern = "yyyy-MM-dd HH:mm:ss")

@@ -130,6 +130,9 @@ public class GoodsServiceImpl extends ServiceImpl<GoodsMapper, Goods> implements
     @Autowired
     private ProductTranslationService productTranslationService;
 
+    @Autowired
+    private AiContextService aiContextService;
+
     @Override
     public List<Goods> getByBrandIds(List<String> brandIds) {
         LambdaQueryWrapper<Goods> lambdaQueryWrapper = new LambdaQueryWrapper<>();
@@ -198,6 +201,7 @@ public class GoodsServiceImpl extends ServiceImpl<GoodsMapper, Goods> implements
             this.goodsGalleryService.add(goodsOperationDTO.getGoodsGalleryList(), goods.getId());
         }
         this.generateEs(goods);
+        aiContextService.generateContext(goods.getId());
     }
 
     @Override
@@ -227,6 +231,7 @@ public class GoodsServiceImpl extends ServiceImpl<GoodsMapper, Goods> implements
         }
         cache.remove(CachePrefix.GOODS.getPrefix() + goodsId);
         this.generateEs(goods);
+        aiContextService.generateContext(goodsId);
     }
 
     @Override
@@ -377,11 +382,13 @@ public class GoodsServiceImpl extends ServiceImpl<GoodsMapper, Goods> implements
             goodsSkuService.updateGoodsSkuStatus(goods);
             // 删除之前的缓存
             goodsCacheKeys.add(CachePrefix.GOODS.getPrefix() + goodsId);
-            // 商品审核消息
-            String destination = rocketmqCustomProperties.getGoodsTopic() + ":" + GoodsTagsEnum.GOODS_AUDIT.name();
             // 发送mq消息
+            String destination = rocketmqCustomProperties.getGoodsTopic() + ":" + GoodsTagsEnum.GOODS_AUDIT.name();
             rocketMQTemplate.asyncSend(destination, JSONUtil.toJsonStr(goods),
                     RocketmqSendCallbackBuilder.commonCallback());
+            
+            // 生成AI上下文
+            aiContextService.generateContext(goodsId);
         }
         cache.multiDel(goodsCacheKeys);
         return result;

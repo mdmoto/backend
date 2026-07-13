@@ -55,6 +55,10 @@ public enum SettingEnum {
     WECHAT_PAYMENT,
     //银联支付设置
     UNIONPAY_PAYMENT,
+    //Stripe 支付设置
+    STRIPE_PAYMENT,
+    //泰国 Thai QR / PromptPay 支付设置
+    THAI_QR_PAYMENT,
     //热词设置
     HOT_WORDS
 }

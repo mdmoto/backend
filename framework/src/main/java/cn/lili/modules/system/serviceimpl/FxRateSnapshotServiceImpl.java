@@ -7,14 +7,17 @@ import cn.hutool.json.JSONUtil;
 import cn.lili.cache.Cache;
 import cn.lili.common.enums.ResultCode;
 import cn.lili.common.exception.ServiceException;
+import cn.lili.common.utils.SnowFlake;
 import cn.lili.modules.system.entity.dos.FxRateSnapshot;
 import cn.lili.modules.system.mapper.FxRateSnapshotMapper;
 import cn.lili.modules.system.service.FxRateSnapshotService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -67,13 +70,13 @@ public class FxRateSnapshotServiceImpl extends ServiceImpl<FxRateSnapshotMapper,
                     }
                 }
 
-                // 批量更新到数据库 (使用 UK 覆盖)
-                this.saveOrUpdateBatch(snapshots);
+                // 按唯一键幂等写入，避免重复刷新时因主键为空导致 uk_base_quote 冲突
+                int syncedCount = upsertSnapshots(snapshots);
                 
                 // 写入 Redis 缓存 (4 小时有效)
                 cache.put(CACHE_KEY, ratesMap, 14400L);
                 
-                log.info("【FX 汇率更新成功】已同步 {} 个币种汇率", snapshots.size());
+                log.info("【FX 汇率更新成功】已同步 {} 个币种汇率", syncedCount);
             } else {
                 throw new Exception("OER response invalid");
             }
@@ -81,6 +84,40 @@ public class FxRateSnapshotServiceImpl extends ServiceImpl<FxRateSnapshotMapper,
             log.error("【FX 汇率更新失败】无法从 OER 获取数据: ", e);
             // 这里不抛出异常给定时任务，仅记录日志，由 API 层决定 fallback
         }
+    }
+
+    private int upsertSnapshots(List<FxRateSnapshot> snapshots) {
+        int syncedCount = 0;
+        for (FxRateSnapshot snapshot : snapshots) {
+            if (upsertSnapshot(snapshot)) {
+                syncedCount++;
+            }
+        }
+        return syncedCount;
+    }
+
+    private boolean upsertSnapshot(FxRateSnapshot snapshot) {
+        LambdaUpdateWrapper<FxRateSnapshot> updateWrapper = buildRateUpdateWrapper(snapshot);
+        if (this.update(updateWrapper)) {
+            return true;
+        }
+
+        snapshot.setId(SnowFlake.getIdStr());
+        snapshot.setCreateTime(new Date());
+        try {
+            return this.save(snapshot);
+        } catch (DuplicateKeyException e) {
+            return this.update(buildRateUpdateWrapper(snapshot));
+        }
+    }
+
+    private LambdaUpdateWrapper<FxRateSnapshot> buildRateUpdateWrapper(FxRateSnapshot snapshot) {
+        return new LambdaUpdateWrapper<FxRateSnapshot>()
+                .eq(FxRateSnapshot::getBaseCurrency, snapshot.getBaseCurrency())
+                .eq(FxRateSnapshot::getQuoteCurrency, snapshot.getQuoteCurrency())
+                .set(FxRateSnapshot::getExchangeRate, snapshot.getExchangeRate())
+                .set(FxRateSnapshot::getAsOfTs, snapshot.getAsOfTs())
+                .set(FxRateSnapshot::getSource, snapshot.getSource());
     }
 
     @Override

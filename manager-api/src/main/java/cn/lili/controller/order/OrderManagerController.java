@@ -79,8 +79,9 @@ public class OrderManagerController {
     @ApiOperation(value = "确认收款")
     @ApiImplicitParam(name = "orderSn", value = "订单编号", required = true, dataType = "String", paramType = "path")
     @PostMapping(value = "/{orderSn}/pay")
-    public ResultMessage<Object> payOrder(@PathVariable String orderSn) {
-        orderPriceService.adminPayOrder(orderSn);
+    public ResultMessage<Object> payOrder(@PathVariable String orderSn,
+                                          @RequestParam(required = false) String paymentMethod) {
+        orderPriceService.adminPayOrder(orderSn, paymentMethod);
         return ResultUtil.success();
     }
 

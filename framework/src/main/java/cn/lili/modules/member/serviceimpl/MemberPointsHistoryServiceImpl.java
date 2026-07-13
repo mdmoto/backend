@@ -2,6 +2,7 @@ package cn.lili.modules.member.serviceimpl;
 
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.lili.common.vo.PageVO;
+import cn.lili.modules.member.audit.MaocoinMerkleTree;
 import cn.lili.modules.member.entity.dos.Member;
 import cn.lili.modules.member.entity.dos.MemberPointsHistory;
 import cn.lili.modules.member.entity.enums.PointTypeEnum;
@@ -18,7 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -88,7 +88,7 @@ public class MemberPointsHistoryServiceImpl extends ServiceImpl<MemberPointsHist
         queryWrapper.orderByAsc("create_time");
         List<MemberPointsHistory> list = this.list(queryWrapper);
         if (list == null || list.isEmpty()) {
-            return "";
+            return MaocoinMerkleTree.EMPTY_ROOT;
         }
 
         List<String> hashes = list.stream()
@@ -96,25 +96,7 @@ public class MemberPointsHistoryServiceImpl extends ServiceImpl<MemberPointsHist
                 .filter(h -> h != null && !h.isEmpty())
                 .collect(Collectors.toList());
 
-        if (hashes.isEmpty()) {
-            return "";
-        }
-
-        return buildMerkleRoot(hashes);
-    }
-
-    private String buildMerkleRoot(List<String> hashes) {
-        if (hashes.size() == 1) {
-            return hashes.get(0);
-        }
-
-        List<String> nextLevel = new ArrayList<>();
-        for (int i = 0; i < hashes.size(); i += 2) {
-            String left = hashes.get(i);
-            String right = (i + 1 < hashes.size()) ? hashes.get(i + 1) : left;
-            nextLevel.add(cn.hutool.crypto.digest.DigestUtil.sha256Hex(left + right));
-        }
-        return buildMerkleRoot(nextLevel);
+        return MaocoinMerkleTree.buildRoot(hashes);
     }
 
     @Override
@@ -131,8 +113,7 @@ public class MemberPointsHistoryServiceImpl extends ServiceImpl<MemberPointsHist
             QueryWrapper<MemberPointsHistory> queryWrapper = new QueryWrapper<>();
             queryWrapper.eq("member_id", memberId)
                     .eq("point_type", PointTypeEnum.REDUCE.name())
-                    .eq("content", "DApp 链上兑换扣减")
-                    .orderByDesc("create_time")
+                    .eq("biz_id", bizId)
                     .last("limit 1");
             MemberPointsHistory history = this.getOne(queryWrapper);
             if (history != null) {

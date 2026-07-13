@@ -13,6 +13,10 @@ public enum MaoIssueStatusEnum {
      */
     PENDING("处理中"),
     /**
+     * 链上结果未知，需人工核验
+     */
+    CHAIN_UNKNOWN("链上结果待核验"),
+    /**
      * 成功
      */
     SUCCESS("成功"),

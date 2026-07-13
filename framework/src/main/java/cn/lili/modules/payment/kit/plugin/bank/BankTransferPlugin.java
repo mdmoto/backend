@@ -51,6 +51,16 @@ public class BankTransferPlugin implements Payment {
      * @param order 订单
      */
     public void callBack(Order order) {
+        callBack(order, PaymentMethodEnum.BANK_TRANSFER);
+    }
+
+    /**
+     * 支付订单
+     *
+     * @param order 订单
+     * @param paymentMethodEnum 记录的支付方式
+     */
+    public void callBack(Order order, PaymentMethodEnum paymentMethodEnum) {
 
         //收银参数
         CashierParam cashierParam = new CashierParam();
@@ -62,7 +72,7 @@ public class BankTransferPlugin implements Payment {
         payParam.setClientType(ClientTypeEnum.PC.name());
 
         PaymentSuccessParams paymentSuccessParams = new PaymentSuccessParams(
-                PaymentMethodEnum.BANK_TRANSFER.name(),
+                paymentMethodEnum.name(),
                 "",
                 order.getFlowPrice(),
                 payParam

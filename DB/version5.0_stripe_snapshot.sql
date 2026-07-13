@@ -8,17 +8,46 @@ CREATE TABLE IF NOT EXISTS li_stripe_payment_snapshot (
     charge_id VARCHAR(64) COMMENT 'Stripe Charge ID',
     payment_intent_id VARCHAR(64) COMMENT 'Stripe Payment Intent ID',
     balance_transaction_id VARCHAR(64) COMMENT 'Stripe Balance Transaction ID',
+    stripe_event_id VARCHAR(128) COMMENT 'Stripe Event ID',
+    stripe_event_type VARCHAR(64) COMMENT 'Stripe Event Type',
     amount_net_usd DECIMAL(18, 8) NOT NULL DEFAULT 0.00000000 COMMENT '真实净收款 (USD)',
     amount_gross_usd DECIMAL(18, 8) NOT NULL DEFAULT 0.00000000 COMMENT '真实总收款 (USD)',
     fee_usd DECIMAL(18, 8) NOT NULL DEFAULT 0.00000000 COMMENT 'Stripe 手续费 (USD)',
     currency VARCHAR(10) DEFAULT 'USD' COMMENT '币种',
     payment_status VARCHAR(32) NOT NULL DEFAULT 'UNCONFIRMED' COMMENT '支付状态: UNCONFIRMED, CONFIRMED, REFUNDED',
     raw_data TEXT COMMENT 'Stripe 原始数据快照 (JSON)',
+    raw_data_hash VARCHAR(64) COMMENT 'Stripe 原始数据 SHA-256',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     UNIQUE INDEX uk_order_sn (order_sn),
+    UNIQUE INDEX uk_charge_id (charge_id),
+    UNIQUE INDEX uk_payment_intent_id (payment_intent_id),
+    UNIQUE INDEX uk_stripe_event_id (stripe_event_id),
     INDEX idx_payment_status (payment_status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Stripe 支付快照表';
+
+-- 1b. Maintenance: add audit columns for existing tables before cleanup/index creation
+DROP PROCEDURE IF EXISTS AddStripeSnapshotColumn;
+DELIMITER //
+CREATE PROCEDURE AddStripeSnapshotColumn(IN columnName VARCHAR(64), IN columnDefinition VARCHAR(255))
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+        AND table_name = 'li_stripe_payment_snapshot'
+        AND column_name = columnName
+    ) THEN
+        SET @ddl = CONCAT('ALTER TABLE li_stripe_payment_snapshot ADD COLUMN ', columnDefinition);
+        PREPARE stmt FROM @ddl;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+    END IF;
+END //
+DELIMITER ;
+CALL AddStripeSnapshotColumn('stripe_event_id', 'stripe_event_id VARCHAR(128) COMMENT ''Stripe Event ID''');
+CALL AddStripeSnapshotColumn('stripe_event_type', 'stripe_event_type VARCHAR(64) COMMENT ''Stripe Event Type''');
+CALL AddStripeSnapshotColumn('raw_data_hash', 'raw_data_hash VARCHAR(64) COMMENT ''Stripe 原始数据 SHA-256''');
+DROP PROCEDURE IF EXISTS AddStripeSnapshotColumn;
 
 -- 2. Maintenance for existing tables: Cleanup duplicates before adding index
 -- P0 Fix: Handle cases where update_time is identical by using ID as tie-break
@@ -26,6 +55,41 @@ DELETE s1
 FROM li_stripe_payment_snapshot s1
 JOIN li_stripe_payment_snapshot s2
   ON s1.order_sn = s2.order_sn
+ AND (
+	      s1.update_time < s2.update_time
+	   OR (s1.update_time = s2.update_time AND s1.id < s2.id)
+	 );
+
+-- 2b. Cleanup duplicate Stripe identifiers before adding unique indexes.
+-- Keep the latest row by update_time/id; duplicates here mean the same Stripe payment event was imported more than once.
+DELETE s1
+FROM li_stripe_payment_snapshot s1
+JOIN li_stripe_payment_snapshot s2
+  ON s1.charge_id IS NOT NULL
+ AND s1.charge_id <> ''
+ AND s1.charge_id = s2.charge_id
+ AND (
+      s1.update_time < s2.update_time
+   OR (s1.update_time = s2.update_time AND s1.id < s2.id)
+ );
+
+DELETE s1
+FROM li_stripe_payment_snapshot s1
+JOIN li_stripe_payment_snapshot s2
+  ON s1.payment_intent_id IS NOT NULL
+ AND s1.payment_intent_id <> ''
+ AND s1.payment_intent_id = s2.payment_intent_id
+ AND (
+      s1.update_time < s2.update_time
+   OR (s1.update_time = s2.update_time AND s1.id < s2.id)
+ );
+
+DELETE s1
+FROM li_stripe_payment_snapshot s1
+JOIN li_stripe_payment_snapshot s2
+  ON s1.stripe_event_id IS NOT NULL
+ AND s1.stripe_event_id <> ''
+ AND s1.stripe_event_id = s2.stripe_event_id
  AND (
       s1.update_time < s2.update_time
    OR (s1.update_time = s2.update_time AND s1.id < s2.id)
@@ -55,6 +119,28 @@ END //
 DELIMITER ;
 CALL AddUniqueIndexToStripeSnapshot();
 DROP PROCEDURE AddUniqueIndexToStripeSnapshot;
+
+DROP PROCEDURE IF EXISTS AddUniqueIndexToStripeSnapshotColumn;
+DELIMITER //
+CREATE PROCEDURE AddUniqueIndexToStripeSnapshotColumn(IN indexName VARCHAR(64), IN columnName VARCHAR(64))
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.statistics
+        WHERE table_schema = DATABASE()
+        AND table_name = 'li_stripe_payment_snapshot'
+        AND index_name = indexName
+    ) THEN
+        SET @ddl = CONCAT('ALTER TABLE li_stripe_payment_snapshot ADD UNIQUE INDEX ', indexName, ' (', columnName, ')');
+        PREPARE stmt FROM @ddl;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+    END IF;
+END //
+DELIMITER ;
+CALL AddUniqueIndexToStripeSnapshotColumn('uk_charge_id', 'charge_id');
+CALL AddUniqueIndexToStripeSnapshotColumn('uk_payment_intent_id', 'payment_intent_id');
+CALL AddUniqueIndexToStripeSnapshotColumn('uk_stripe_event_id', 'stripe_event_id');
+DROP PROCEDURE IF EXISTS AddUniqueIndexToStripeSnapshotColumn;
 
 -- 5. Maintenance: Ensure financial columns are NOT NULL and have default values
 ALTER TABLE li_stripe_payment_snapshot MODIFY amount_net_usd DECIMAL(18, 8) NOT NULL DEFAULT 0.00000000;

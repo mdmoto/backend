@@ -32,6 +32,15 @@ public class Category extends BaseEntity {
     @ApiModelProperty(value = "分类名称")
     private String name;
 
+    @ApiModelProperty(value = "英文标识符，供AI/API使用")
+    private String slug;
+
+    @ApiModelProperty(value = "英文分类名称")
+    private String nameEn;
+
+    @ApiModelProperty(value = "给AI的简短描述")
+    private String aiDescription;
+
     @NotEmpty(message = "请选择父分类")
     @ApiModelProperty(value = "父id, 根节点为0")
     private String parentId;

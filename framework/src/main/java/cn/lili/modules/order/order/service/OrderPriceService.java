@@ -26,4 +26,12 @@ public interface OrderPriceService {
      * @param orderSn 订单编号
      */
     void adminPayOrder(String orderSn);
+
+    /**
+     * 管理员订单付款
+     *
+     * @param orderSn 订单编号
+     * @param paymentMethod 支付方式
+     */
+    void adminPayOrder(String orderSn, String paymentMethod);
 }

@@ -7,6 +7,7 @@ import cn.lili.common.enums.ResultCode;
 import cn.lili.common.enums.ResultUtil;
 import cn.lili.common.vo.ResultMessage;
 import cn.lili.modules.member.service.MemberPointsHistoryService;
+import cn.lili.modules.member.service.MaoAuditAnchorService;
 import cn.lili.modules.payment.service.StripePaymentSnapshotService;
 import cn.lili.modules.system.service.FxRateSnapshotService;
 import cn.lili.modules.system.service.MaollarTierService;
@@ -15,6 +16,7 @@ import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
 import cn.lili.modules.member.service.MaoWithdrawalService;
+import cn.lili.modules.member.entity.dos.MaoAuditAnchor;
 import cn.lili.modules.member.entity.dos.MaoWithdrawalLog;
 import cn.lili.common.vo.PageVO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -47,6 +49,9 @@ public class MaollarController {
 
     @Autowired
     private MemberPointsHistoryService memberPointsHistoryService;
+
+    @Autowired
+    private MaoAuditAnchorService maoAuditAnchorService;
 
     @Autowired
     private MaoWithdrawalService maoWithdrawalService;
@@ -87,6 +92,18 @@ public class MaollarController {
     @GetMapping("/merkle-root")
     public ResultMessage<String> getMerkleRoot() {
         return ResultUtil.data(memberPointsHistoryService.getLatestMerkleRoot());
+    }
+
+    @ApiOperation(value = "获取最新公开审计锚")
+    @GetMapping("/audit-anchor/latest")
+    public ResultMessage<MaoAuditAnchor> getLatestAuditAnchor() {
+        return ResultUtil.data(maoAuditAnchorService.getLatestAnchor());
+    }
+
+    @ApiOperation(value = "获取最近公开审计锚")
+    @GetMapping("/audit-anchor/recent")
+    public ResultMessage<List<MaoAuditAnchor>> getRecentAuditAnchors(@RequestParam(defaultValue = "30") Integer limit) {
+        return ResultUtil.data(maoAuditAnchorService.getRecentAnchors(limit == null ? 30 : limit));
     }
 
     @ApiOperation(value = "DApp 兑换回调信号")

@@ -1,5 +1,6 @@
 package cn.lili.modules.member.serviceimpl;
 
+import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.crypto.SecureUtil;
 import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONObject;
@@ -54,17 +55,33 @@ public class MaoWithdrawalServiceImpl extends ServiceImpl<MaoWithdrawalLogMapper
     @Value("${lili.maollar.solana.daily-max-issuance:1000.0}")
     private Double dailyMaxIssuance;
 
+    @Value("${lili.maollar.solana.exchange-enabled:false}")
+    private Boolean exchangeEnabled;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public MaoWithdrawalLog applyWithdrawal(Long points, String solanaWalletAddress) {
+        if (!Boolean.TRUE.equals(exchangeEnabled)) {
+            throw new ServiceException(ResultCode.ERROR, "$MAO 兑换暂未开放，请等待主网合约完成部署与权限交割");
+        }
+        if (points == null || points <= 0 || CharSequenceUtil.isBlank(solanaWalletAddress)) {
+            throw new ServiceException(ResultCode.PARAMS_ERROR);
+        }
+
         String memberId = UserContext.getCurrentUser().getId();
         Member member = memberService.getById(memberId);
 
-        // 核心变动：在 $MAO 经济模型下，我们优先鼓励钱包绑定
-        // 如果需要 KYC 可以在未来作为大额兑换的要求，目前先放开
+        // 合规性校验：大额或敏感操作需要 KYC 实名认证
         if (member == null) {
             throw new ServiceException(ResultCode.USER_NOT_EXIST);
         }
+        
+        // 开启 KYC 强制校验 (Phase 4 合规化)
+        if (!Boolean.TRUE.equals(member.getIsKycVerified())) {
+            log.warn("用户 {} 尝试兑换 $MAO 但未通过 KYC 认证", memberId);
+            throw new ServiceException(ResultCode.ERROR, "请先完成实名认证 (KYC) 后再申请兑换奖励");
+        }
+
         if (member.getPoint() < points) {
             throw new ServiceException(ResultCode.USER_POINTS_ERROR);
         }
@@ -83,7 +100,6 @@ public class MaoWithdrawalServiceImpl extends ServiceImpl<MaoWithdrawalLogMapper
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public void executeWithdrawal(String withdrawalLogId) {
         // 1. 原子性状态更新 (CAS 锁)，防止并发重复执行
         // 只有当状态为 NONE 时，才将其更新为 PENDING，成功更新的线程才拥有执行权
@@ -102,27 +118,20 @@ public class MaoWithdrawalServiceImpl extends ServiceImpl<MaoWithdrawalLogMapper
             return;
         }
 
-        double dailyIssued = getDailyTotalIssued();
-        if (dailyIssued + withdrawalLog.getMaoIssuedAmount().doubleValue() > dailyMaxIssuance) {
-            log.error("【熔断告警】当日 $MAO 发放量已达上限，停止自动发放。");
-            throw new ServiceException(ResultCode.ERROR, "系统提现额度已达今日上限");
-        }
-
-        // 开启积分扣除
-        boolean deductResult = memberService.updateMemberPoint(withdrawalLog.getPoints(), PointTypeEnum.REDUCE.name(),
-                withdrawalLog.getMemberId(), "$MAO 兑换扣除积分", "DEDUCT_WITHDRAW_" + withdrawalLog.getId(), java.math.BigDecimal.ZERO);
-
-        if (!deductResult) {
-            withdrawalLog.setMaoIssueStatus(MaoIssueStatusEnum.FAILED.name());
-            withdrawalLog.setErrorLog("积分不足扣减失败");
-            this.updateById(withdrawalLog);
-            throw new ServiceException(ResultCode.USER_POINTS_ERROR);
+        try {
+            ensureDailyLimit(withdrawalLog);
+            ensureGatewayConfigured();
+            deductWithdrawalPoints(withdrawalLog);
+        } catch (ServiceException e) {
+            persistWithdrawalFailure(withdrawalLog.getId(), e.getMsg());
+            throw e;
         }
 
         // 调用 Cloudflare Worker 签名网关 (带 HMAC 校验)
         try {
             Map<String, Object> body = new HashMap<>();
-            body.put("type", "WITHDRAW"); // 显式声明提现类型
+            body.put("type", "WITHDRAW"); 
+            body.put("request_id", withdrawalLog.getId()); // 增加幂等 ID (Nonce)
             body.put("amount", withdrawalLog.getMaoIssuedAmount().toPlainString());
             body.put("user_wallet_address", withdrawalLog.getSolanaWalletAddress());
 
@@ -145,20 +154,55 @@ public class MaoWithdrawalServiceImpl extends ServiceImpl<MaoWithdrawalLogMapper
             JSONObject json = JSONUtil.parseObj(result);
 
             if (json.getBool("success")) {
-                withdrawalLog.setMaoTxHash(json.getStr("txHash"));
-                withdrawalLog.setMaoIssueStatus(MaoIssueStatusEnum.SUCCESS.name());
-                this.updateById(withdrawalLog);
+                persistWithdrawalSuccess(withdrawalLog.getId(), json.getStr("txHash"));
             } else {
-                // 如果网关返回失败，抛出异常触发退分逻辑
                 throw new Exception("链上执行失败: " + json.getStr("message"));
             }
-            } catch (Exception e) {
-            log.error("【后悔药】$MAO 兑换失败，正在执行积分退回: {}", e.getMessage());
-            // 注意：本方法处于事务中，链上失败时积分扣减会自动回滚，无需“加回积分”。
-            // 但提现日志属于 applyWithdrawal 已提交记录，需要在新事务中持久化失败状态，避免被当前事务回滚吞掉。
-            persistWithdrawalFailure(withdrawalLog.getId(), e.getMessage());
-            throw new ServiceException(ResultCode.ERROR, "兑换失败：" + e.getMessage());
+        } catch (Exception e) {
+            log.error("【链上结果待核验】$MAO 兑换已扣分，但链上返回不确定，禁止自动退分: withdrawalLogId={}, message={}",
+                    withdrawalLog.getId(), e.getMessage());
+            persistWithdrawalChainUnknown(withdrawalLog.getId(), e.getMessage());
+            throw new ServiceException(ResultCode.ERROR, "兑换已提交但链上结果待核验，请联系客服处理：" + e.getMessage());
         }
+    }
+
+    private void ensureDailyLimit(MaoWithdrawalLog withdrawalLog) {
+        double dailyReserved = getDailyReservedIssued(withdrawalLog.getId());
+        if (dailyReserved + withdrawalLog.getMaoIssuedAmount().doubleValue() > dailyMaxIssuance) {
+            log.error("【熔断告警】当日 $MAO 发放量已达上限，停止自动发放。");
+            throw new ServiceException(ResultCode.ERROR, "系统提现额度已达今日上限");
+        }
+    }
+
+    private void ensureGatewayConfigured() {
+        if (CharSequenceUtil.isBlank(gatewayUrl) || CharSequenceUtil.isBlank(gatewaySecret)) {
+            throw new ServiceException(ResultCode.ERROR, "Cloudflare Worker 网关未配置");
+        }
+    }
+
+    private void deductWithdrawalPoints(MaoWithdrawalLog withdrawalLog) {
+        TransactionTemplate template = new TransactionTemplate(transactionManager);
+        template.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        template.executeWithoutResult(status -> {
+            boolean deductResult = memberService.updateMemberPoint(withdrawalLog.getPoints(), PointTypeEnum.REDUCE.name(),
+                    withdrawalLog.getMemberId(), "兑换 $MAO 购物奖励", "DEDUCT_WITHDRAW_" + withdrawalLog.getId(), java.math.BigDecimal.ZERO);
+            if (!deductResult) {
+                throw new ServiceException(ResultCode.USER_POINTS_ERROR);
+            }
+        });
+    }
+
+    private void persistWithdrawalSuccess(String withdrawalLogId, String txHash) {
+        TransactionTemplate template = new TransactionTemplate(transactionManager);
+        template.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        template.executeWithoutResult(status -> {
+            MaoWithdrawalLog toUpdate = new MaoWithdrawalLog();
+            toUpdate.setId(withdrawalLogId);
+            toUpdate.setMaoTxHash(txHash);
+            toUpdate.setMaoIssueStatus(MaoIssueStatusEnum.SUCCESS.name());
+            toUpdate.setErrorLog(null);
+            this.updateById(toUpdate);
+        });
     }
 
     private void persistWithdrawalFailure(String withdrawalLogId, String errorMessage) {
@@ -173,11 +217,34 @@ public class MaoWithdrawalServiceImpl extends ServiceImpl<MaoWithdrawalLogMapper
         });
     }
 
+    private void persistWithdrawalChainUnknown(String withdrawalLogId, String errorMessage) {
+        TransactionTemplate template = new TransactionTemplate(transactionManager);
+        template.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        template.executeWithoutResult(status -> {
+            MaoWithdrawalLog toUpdate = new MaoWithdrawalLog();
+            toUpdate.setId(withdrawalLogId);
+            toUpdate.setMaoIssueStatus(MaoIssueStatusEnum.CHAIN_UNKNOWN.name());
+            toUpdate.setErrorLog(errorMessage);
+            this.updateById(toUpdate);
+        });
+    }
+
     @Override
     public double getDailyTotalIssued() {
         QueryWrapper<MaoWithdrawalLog> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("mao_issue_status", MaoIssueStatusEnum.SUCCESS.name());
         queryWrapper.ge("create_time", new Date(System.currentTimeMillis() - 86400000L));
+        return getIssuedSum(queryWrapper);
+    }
+
+    private double getDailyReservedIssued(String excludeWithdrawalLogId) {
+        QueryWrapper<MaoWithdrawalLog> queryWrapper = new QueryWrapper<>();
+        queryWrapper.in("mao_issue_status", MaoIssueStatusEnum.SUCCESS.name(),
+                MaoIssueStatusEnum.PENDING.name(), MaoIssueStatusEnum.CHAIN_UNKNOWN.name());
+        queryWrapper.ge("create_time", new Date(System.currentTimeMillis() - 86400000L));
+        if (CharSequenceUtil.isNotBlank(excludeWithdrawalLogId)) {
+            queryWrapper.ne("id", excludeWithdrawalLogId);
+        }
         return getIssuedSum(queryWrapper);
     }
 

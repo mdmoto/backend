@@ -1,5 +1,6 @@
 package cn.lili.modules.system.service;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 /**
@@ -15,6 +16,15 @@ public interface MaollarTierService {
      * @return 1美元对应赠送的喵币数量
      */
     double getCurrentRate(double totalSalesUSD);
+
+    /**
+     * 按订单跨档分段计算应发放喵币数量。
+     *
+     * @param orderAmountUSD       本单真实净收款 USD
+     * @param totalSalesBeforeUSD  本单前累计真实净收款 USD
+     * @return 应发放喵币最小单位，1 MAO = 1,000,000
+     */
+    long calculateRewardPoints(BigDecimal orderAmountUSD, BigDecimal totalSalesBeforeUSD);
 
     /**
      * 将不同币种金额转为美金
@@ -33,6 +43,15 @@ public interface MaollarTierService {
      * @return 拨备比例 (例如 0.10 表示 10%)
      */
     double getFundRate(double totalSalesUSD);
+
+    /**
+     * 按订单跨档分段计算基金拨备金额。
+     *
+     * @param orderAmountUSD       本单真实净收款 USD
+     * @param totalSalesBeforeUSD  本单前累计真实净收款 USD
+     * @return 应拨备金额 USD
+     */
+    BigDecimal calculateFundReserve(BigDecimal orderAmountUSD, BigDecimal totalSalesBeforeUSD);
 
     /**
      * 计算基金会应拨备金

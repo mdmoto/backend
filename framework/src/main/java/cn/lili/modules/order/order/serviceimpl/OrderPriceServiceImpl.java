@@ -16,6 +16,7 @@ import cn.lili.modules.order.order.service.OrderPriceService;
 import cn.lili.modules.order.order.service.TradeService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import cn.lili.modules.payment.kit.plugin.bank.BankTransferPlugin;
+import cn.lili.modules.payment.entity.enums.PaymentMethodEnum;
 import cn.lili.modules.system.aspect.annotation.SystemLogPoint;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,13 +71,23 @@ public class OrderPriceServiceImpl implements OrderPriceService {
     @Override
     @OrderLogPoint(description = "'管理员操作订单['+#orderSn+']付款'", orderSn = "#orderSn")
     public void adminPayOrder(String orderSn) {
+        adminPayOrder(orderSn, PaymentMethodEnum.BANK_TRANSFER.name());
+    }
+
+    @Override
+    @OrderLogPoint(description = "'管理员操作订单['+#orderSn+']付款'", orderSn = "#orderSn")
+    public void adminPayOrder(String orderSn, String paymentMethod) {
         Order order = OperationalJudgment.judgment(orderMapper.selectOne(new LambdaQueryWrapper<Order>().eq(Order::getSn, orderSn)));
         //如果订单已付款，则抛出异常
         if (order.getPayStatus().equals(PayStatusEnum.PAID.name())) {
             throw new ServiceException(ResultCode.PAY_DOUBLE_ERROR);
         }
 
-        bankTransferPlugin.callBack(order);
+        PaymentMethodEnum paymentMethodEnum = PaymentMethodEnum.paymentNameOf(paymentMethod);
+        if (paymentMethodEnum == null || !PaymentMethodEnum.THAI_QR.equals(paymentMethodEnum)) {
+            paymentMethodEnum = PaymentMethodEnum.BANK_TRANSFER;
+        }
+        bankTransferPlugin.callBack(order, paymentMethodEnum);
     }
 
 
