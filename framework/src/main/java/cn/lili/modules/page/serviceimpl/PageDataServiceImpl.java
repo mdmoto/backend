@@ -232,7 +232,7 @@ public class PageDataServiceImpl extends ServiceImpl<PageDataMapper, PageData> i
      */
     private String filterPageData(String pageDataJson) {
         try {
-            JSONArray components = JSONUtil.parseArray(pageDataJson);
+            Object components = parsePageComponents(pageDataJson);
             List<String> skuIds = new ArrayList<>();
 
             // 1. 递归收集所有包含商品链接的 skuId
@@ -256,6 +256,20 @@ public class PageDataServiceImpl extends ServiceImpl<PageDataMapper, PageData> i
             log.error("过滤首页装修数据异常", e);
             return pageDataJson;
         }
+    }
+
+    /**
+     * 页面装修历史数据的根节点既可能是对象（当前 PC/H5 数据），也可能是数组。
+     */
+    private Object parsePageComponents(String pageDataJson) {
+        String trimmed = pageDataJson == null ? "" : pageDataJson.trim();
+        if (trimmed.startsWith("{")) {
+            return JSONUtil.parseObj(trimmed);
+        }
+        if (trimmed.startsWith("[")) {
+            return JSONUtil.parseArray(trimmed);
+        }
+        throw new IllegalArgumentException("页面装修数据必须是 JSON 对象或数组");
     }
 
     private void collectSkuIds(Object obj, List<String> skuIds) {
