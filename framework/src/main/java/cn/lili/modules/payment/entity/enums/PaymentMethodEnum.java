@@ -22,6 +22,14 @@ public enum PaymentMethodEnum {
      */
     UNIONPAY("unionPayPlugin", "银联-云闪付"),
     /**
+     * Stripe 全球收单
+     */
+    STRIPE("stripePlugin", "Stripe"),
+    /**
+     * 泰国 Thai QR / PromptPay
+     */
+    THAI_QR("thaiQrPlugin", "Thai QR/PromptPay"),
+    /**
      * 余额支付
      */
     WALLET("walletPlugin", "余额支付"),

@@ -462,6 +462,8 @@ public enum ResultCode {
     SMS_SIGN_EXIST_ERROR(70008, "短信签名已存在"),
     EMAIL_SETTING_ERROR(70009, "您还未配置邮箱"),
     EMAIL_SEND_ERROR(70010, "邮件发送失败"),
+    STRIPE_PAYMENT_NOT_SETTING(70011, "Stripe支付未配置"),
+    THAI_QR_PAYMENT_NOT_SETTING(70012, "Thai QR/PromptPay支付未配置"),
 
     /**
      * 站内信
