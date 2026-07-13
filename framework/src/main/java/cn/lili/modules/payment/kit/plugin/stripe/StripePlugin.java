@@ -21,6 +21,7 @@ import cn.lili.modules.payment.kit.dto.PayParam;
 import cn.lili.modules.payment.kit.dto.PaymentSuccessParams;
 import cn.lili.modules.payment.kit.params.dto.CashierParam;
 import cn.lili.modules.payment.service.PaymentService;
+import cn.lili.modules.payment.service.StripePaymentReconciliationService;
 import cn.lili.modules.payment.service.StripePaymentSnapshotService;
 import cn.lili.modules.system.entity.dos.Setting;
 import cn.lili.modules.system.entity.dto.payment.StripePaymentSetting;
@@ -70,6 +71,9 @@ public class StripePlugin implements Payment {
 
     @Autowired
     private StripePaymentSnapshotService stripePaymentSnapshotService;
+
+    @Autowired
+    private StripePaymentReconciliationService stripePaymentReconciliationService;
 
     @Override
     public ResultMessage<Object> h5pay(HttpServletRequest request, HttpServletResponse response, PayParam payParam) {
@@ -221,26 +225,25 @@ public class StripePlugin implements Payment {
         BigDecimal amountPresentment = paymentCurrencyConverter.fromMinorUnits(amountTotal, currency);
         String receivableNo = defaultString(object.getStr("payment_intent"), object.getStr("id"));
 
-        if (alreadyProcessed(event.getStr("id"), receivableNo)) {
-            log.info("Stripe Webhook重复事件已忽略：事件：{}，流水：{}", event.getStr("id"), receivableNo);
-            return;
-        }
-
-        saveSnapshot(setting, event, object, metadata, currency, amountPresentment, receivableNo);
+        StripePaymentSnapshot snapshot = saveSnapshot(
+                setting, event, object, metadata, currency, amountPresentment, receivableNo);
+        snapshot = stripePaymentReconciliationService.reconcile(snapshot, setting);
+        String chargeId = snapshot.getChargeId();
 
         PaymentSuccessParams paymentSuccessParams = new PaymentSuccessParams(
                 PaymentMethodEnum.STRIPE.name(),
-                receivableNo,
+                chargeId,
                 amountPresentment.doubleValue(),
                 payParam
         );
         paymentService.success(paymentSuccessParams);
         log.info("Stripe支付成功通知完成：订单：{}，流水：{}，金额：{} {}",
-                payParam.getSn(), receivableNo, amountPresentment, currency);
+                payParam.getSn(), chargeId, amountPresentment, currency);
     }
 
-    private void saveSnapshot(StripePaymentSetting setting, JSONObject event, JSONObject object, JSONObject metadata,
-                              String currency, BigDecimal amountPresentment, String receivableNo) {
+    private StripePaymentSnapshot saveSnapshot(StripePaymentSetting setting, JSONObject event, JSONObject object,
+                                               JSONObject metadata, String currency,
+                                               BigDecimal amountPresentment, String paymentIntentId) {
         String orderSn = metadata.getStr("order_sn");
         StripePaymentSnapshot snapshot = stripePaymentSnapshotService.getOne(
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<StripePaymentSnapshot>()
@@ -253,10 +256,19 @@ public class StripePlugin implements Payment {
             snapshot.setOrderSn(orderSn);
         }
 
+        if (CharSequenceUtil.isNotBlank(snapshot.getPaymentIntentId())
+                && !snapshot.getPaymentIntentId().equals(paymentIntentId)) {
+            log.error("Stripe订单对应了不同PaymentIntent：订单={}，已有={}，新={}",
+                    orderSn, snapshot.getPaymentIntentId(), paymentIntentId);
+            throw new ServiceException(ResultCode.PAY_ERROR);
+        }
+
+        boolean reconciled = "CONFIRMED".equals(snapshot.getPaymentStatus())
+                && CharSequenceUtil.isNotBlank(snapshot.getBalanceTransactionId());
+
         snapshot.setStripeEventId(event.getStr("id"));
         snapshot.setStripeEventType(event.getStr("type"));
-        snapshot.setPaymentIntentId(defaultString(object.getStr("payment_intent"), object.getStr("id")));
-        snapshot.setChargeId(receivableNo);
+        snapshot.setPaymentIntentId(paymentIntentId);
         snapshot.setMerchantEntity(defaultString(metadata.getStr("merchant_entity"), setting.getMerchantEntity()));
         snapshot.setAcquirerAccount(defaultString(metadata.getStr("acquirer_account"), setting.getAcquirerAccount()));
         snapshot.setSettlementEntity(defaultString(metadata.getStr("settlement_entity"), setting.getSettlementEntity()));
@@ -266,15 +278,18 @@ public class StripePlugin implements Payment {
         snapshot.setPayerWallet(resolvePayerWallet(object));
         snapshot.setSupplierPayoutStatus("PENDING");
         snapshot.setCurrency(currency);
-        // Checkout Session does not contain the balance transaction's exact fee/net values.
-        // Keep rewards closed until a reconciliation job records real Stripe net settlement.
-        snapshot.setPaymentStatus("PAID_PENDING_RECONCILIATION");
-        snapshot.setAmountGrossUsd(BigDecimal.ZERO);
-        snapshot.setAmountNetUsd(BigDecimal.ZERO);
-        snapshot.setFeeUsd(BigDecimal.ZERO);
-        snapshot.setRawData(financialAuditData(event, object, metadata));
-        snapshot.setRawDataHash(SecureUtil.sha256(snapshot.getRawData()));
+        if (!reconciled) {
+            // Checkout Session does not contain the balance transaction's exact fee/net values.
+            // Keep order completion and rewards closed until Stripe reconciliation succeeds.
+            snapshot.setPaymentStatus("PAID_PENDING_RECONCILIATION");
+            snapshot.setAmountGrossUsd(BigDecimal.ZERO);
+            snapshot.setAmountNetUsd(BigDecimal.ZERO);
+            snapshot.setFeeUsd(BigDecimal.ZERO);
+            snapshot.setRawData(financialAuditData(event, object, metadata));
+            snapshot.setRawDataHash(SecureUtil.sha256(snapshot.getRawData()));
+        }
         stripePaymentSnapshotService.saveOrUpdate(snapshot);
+        return snapshot;
     }
 
     private StripePaymentSetting stripePaymentSetting() {
@@ -440,16 +455,6 @@ public class StripePlugin implements Payment {
                     amountTotal, currency, expectedAmount, expectedCurrency);
             throw new ServiceException(ResultCode.PAY_ERROR);
         }
-    }
-
-    private boolean alreadyProcessed(String eventId, String paymentIntentId) {
-        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<StripePaymentSnapshot> query =
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
-        query.and(wrapper -> wrapper
-                .eq(StripePaymentSnapshot::getStripeEventId, eventId)
-                .or()
-                .eq(StripePaymentSnapshot::getPaymentIntentId, paymentIntentId));
-        return stripePaymentSnapshotService.count(query) > 0;
     }
 
     private String financialAuditData(JSONObject event, JSONObject object, JSONObject metadata) {

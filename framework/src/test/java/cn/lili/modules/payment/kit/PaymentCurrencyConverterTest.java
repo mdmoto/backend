@@ -43,4 +43,11 @@ class PaymentCurrencyConverterTest {
         assertEquals(500L, converter.toMinorUnits(new BigDecimal("500"), "JPY"));
         assertEquals(new BigDecimal("500"), converter.fromMinorUnits(500L, "JPY"));
     }
+
+    @Test
+    void convertsSettlementAmountToEightDecimalUsdAccountingValue() {
+        assertEquals(new BigDecimal("2.77777778"),
+                converter.toUsdForAccounting(new BigDecimal("100.00"), "THB"));
+        assertEquals(new BigDecimal("0.027777777778"), converter.rateToUsdForAccounting("THB"));
+    }
 }

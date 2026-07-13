@@ -72,6 +72,31 @@ public class PaymentCurrencyConverter {
         return BigDecimal.valueOf(amount, decimalPlaces(normalize(currency)));
     }
 
+    /**
+     * Returns the persisted accounting rate expressed as USD per one unit of currency.
+     */
+    public BigDecimal rateToUsdForAccounting(String currency) {
+        String normalized = normalize(currency);
+        if ("USD".equals(normalized)) {
+            return BigDecimal.ONE;
+        }
+        BigDecimal unitsPerUsd = rate(fxRateSnapshotService.getRates("USD"), normalized);
+        if (unitsPerUsd == null || unitsPerUsd.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ServiceException(ResultCode.PAY_ERROR);
+        }
+        return BigDecimal.ONE.divide(unitsPerUsd, 12, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Converts provider settlement amounts to an eight-decimal USD accounting value.
+     */
+    public BigDecimal toUsdForAccounting(BigDecimal amount, String currency) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new ServiceException(ResultCode.PAY_ERROR);
+        }
+        return amount.multiply(rateToUsdForAccounting(currency)).setScale(8, RoundingMode.HALF_UP);
+    }
+
     private BigDecimal rate(Map<String, Double> rates, String currency) {
         if ("USD".equals(currency)) {
             return BigDecimal.ONE;

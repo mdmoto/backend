@@ -65,6 +65,27 @@ public class StripePaymentSnapshot extends BaseIdEntity {
     @ApiModelProperty(value = "结算币种")
     private String settlementCurrency;
 
+    @ApiModelProperty(value = "结算币种总额")
+    private BigDecimal amountGrossSettlement;
+
+    @ApiModelProperty(value = "结算币种手续费")
+    private BigDecimal feeSettlement;
+
+    @ApiModelProperty(value = "结算币种净额")
+    private BigDecimal amountNetSettlement;
+
+    @ApiModelProperty(value = "结算币种折算为 USD 的会计汇率")
+    private BigDecimal usdConversionRate;
+
+    @ApiModelProperty(value = "Stripe Balance Transaction 状态")
+    private String balanceTransactionStatus;
+
+    @ApiModelProperty(value = "Stripe 预计资金可用时间")
+    private Date fundsAvailableAt;
+
+    @ApiModelProperty(value = "完成 Stripe 财务对账时间")
+    private Date reconciledAt;
+
     @ApiModelProperty(value = "付款钱包/方式: CARD, PROMPTPAY, ALIPAY, WECHAT, UNKNOWN")
     private String payerWallet;
 
