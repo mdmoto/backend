@@ -3,28 +3,61 @@
 -- Purpose: Support for Merkle Tree audit reproducibility, strict fiscal idempotency, and high-precision reserve fund tracking.
 --
 -- [DEPLOYMENT SOP - READ CAREFULLY]
--- 1. This script is NOT idempotent (IF NOT EXISTS is not supported for ALTER ADD/CREATE INDEX in standard MySQL 8.0).
--- 2. DO NOT run this script more than once on the same database.
--- 3. BEFORE RUNNING: Verify if columns (biz_id, merkle_timestamp, etc.) already exist via:
---    SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = 'li_member_points_history';
--- 4. BEFORE RUNNING: Verify if index (uk_member_biz_type) already exists via:
---    SHOW INDEX FROM li_member_points_history;
+-- 1. Columns and indexes are created through stored procedures for MySQL 8 compatibility.
+-- 2. Safe to run more than once on the same database.
 
--- 1. Precision Upgrade for Reserve Fund (USD)
+-- 1. Audit & Idempotency Columns
+DROP PROCEDURE IF EXISTS AddMaocoinColumn;
+DELIMITER //
+CREATE PROCEDURE AddMaocoinColumn(IN columnName VARCHAR(64), IN columnDefinition VARCHAR(255))
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+        AND table_name = 'li_member_points_history'
+        AND column_name = columnName
+    ) THEN
+        SET @ddl = CONCAT('ALTER TABLE li_member_points_history ADD COLUMN ', columnDefinition);
+        PREPARE stmt FROM @ddl;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+    END IF;
+END //
+DELIMITER ;
+
+CALL AddMaocoinColumn('fund_reserve', 'fund_reserve DECIMAL(18, 8) DEFAULT 0.00000000 COMMENT ''基金会应拨备金 (USD)''');
+CALL AddMaocoinColumn('biz_id', 'biz_id VARCHAR(128) DEFAULT NULL COMMENT ''业务关联ID (前缀_订单ID/售后单ID/申请ID)''');
+CALL AddMaocoinColumn('merkle_timestamp', 'merkle_timestamp BIGINT DEFAULT NULL COMMENT ''默克尔树计算时间戳 (用于复算哈希)''');
+CALL AddMaocoinColumn('merkle_hash', 'merkle_hash VARCHAR(64) DEFAULT NULL COMMENT ''默克尔树叶子哈希''');
+CALL AddMaocoinColumn('is_settled', 'is_settled TINYINT(1) DEFAULT 0 COMMENT ''是否已结算拨付''');
+CALL AddMaocoinColumn('is_confirmed', 'is_confirmed TINYINT(1) DEFAULT 0 COMMENT ''是否已确权 (DApp 兑换)''');
+DROP PROCEDURE IF EXISTS AddMaocoinColumn;
+
+-- 2. Precision Upgrade for Reserve Fund (USD)
 ALTER TABLE li_member_points_history MODIFY COLUMN fund_reserve DECIMAL(18, 8) DEFAULT 0.00000000 COMMENT '基金会应拨备金 (USD)';
-
--- 2. Audit & Idempotency Columns
--- Standard MySQL (8.0+) does not support IF NOT EXISTS in ALTER TABLE ADD COLUMN.
--- This script assumes a one-time execution against the target database.
-ALTER TABLE li_member_points_history 
-  ADD COLUMN biz_id VARCHAR(128) DEFAULT NULL COMMENT '业务关联ID (前缀_订单ID/售后单ID/申请ID)',
-  ADD COLUMN merkle_timestamp BIGINT DEFAULT NULL COMMENT '默克尔树计算时间戳 (用于复算哈希)',
-  ADD COLUMN is_settled TINYINT(1) DEFAULT 0 COMMENT '是否已结算拨付',
-  ADD COLUMN is_confirmed TINYINT(1) DEFAULT 0 COMMENT '是否已确权 (DApp 兑换)';
 
 -- 3. Fiscal Idempotency Index
 -- This index prevents double-issuance at the database level.
-CREATE UNIQUE INDEX uk_member_biz_type ON li_member_points_history (member_id, biz_id, point_type);
+DROP PROCEDURE IF EXISTS AddMaocoinIndex;
+DELIMITER //
+CREATE PROCEDURE AddMaocoinIndex(IN indexName VARCHAR(64), IN indexColumns VARCHAR(255), IN uniquePrefix VARCHAR(16))
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.statistics
+        WHERE table_schema = DATABASE()
+        AND table_name = 'li_member_points_history'
+        AND index_name = indexName
+    ) THEN
+        SET @ddl = CONCAT('CREATE ', uniquePrefix, ' INDEX ', indexName, ' ON li_member_points_history (', indexColumns, ')');
+        PREPARE stmt FROM @ddl;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+    END IF;
+END //
+DELIMITER ;
+
+CALL AddMaocoinIndex('uk_member_biz_type', 'member_id, biz_id, point_type', 'UNIQUE');
 
 -- 4. Audit Search Index
-CREATE INDEX idx_merkle_hash ON li_member_points_history (merkle_hash);
+CALL AddMaocoinIndex('idx_merkle_hash', 'merkle_hash', '');
+DROP PROCEDURE IF EXISTS AddMaocoinIndex;

@@ -56,8 +56,10 @@ class MaocoinEconomicModelTest {
         order.setFlowPrice(100.0);
         
         when(orderService.getBySn(orderSn)).thenReturn(order);
-        when(stripePaymentSnapshotService.getCompletedTotalSalesUSD()).thenReturn(1000.0);
-        when(maollarTierService.getCurrentRate(anyDouble())).thenReturn(10.0);
+        when(stripePaymentSnapshotService.getCompletedTotalSalesAmountUSDUpTo(any(StripePaymentSnapshot.class)))
+                .thenReturn(new BigDecimal("1000.00000000"));
+        when(maollarTierService.calculateRewardPoints(any(BigDecimal.class), any(BigDecimal.class))).thenReturn(140000000L);
+        when(maollarTierService.calculateFundReserve(any(BigDecimal.class), any(BigDecimal.class))).thenReturn(new BigDecimal("1.40000000"));
         
         StripePaymentSnapshot snapshot = new StripePaymentSnapshot();
         snapshot.setAmountNetUsd(new BigDecimal("14.0"));

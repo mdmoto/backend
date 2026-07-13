@@ -24,7 +24,7 @@ public class MaocoinMerkleLeaf {
 
     /**
      * Computes the leaf hash based on the standard Maocoin audit formula:
-     * memberId + variablePoint + fundReserve + merkleTimestamp
+     * version + memberId + pointType + variablePoint + beforePoint + point + fundReserve + bizId + merkleTimestamp
      * 
      * @param history The ledger entry
      * @return The SHA-256 hex hash
@@ -34,11 +34,19 @@ public class MaocoinMerkleLeaf {
         java.math.BigDecimal fund = history.getFundReserve() != null ? 
                                    history.getFundReserve() : java.math.BigDecimal.ZERO;
                                    
-        // memberId | variablePoint | fundReserve | merkleTimestamp
-        String rawData = history.getMemberId() + "|" + 
-                         history.getVariablePoint() + "|" + 
-                         fund.toPlainString() + "|" + 
+        String rawData = "MAOCOIN_LEAF_V2|" +
+                         value(history.getMemberId()) + "|" +
+                         value(history.getPointType()) + "|" +
+                         value(history.getVariablePoint()) + "|" +
+                         value(history.getBeforePoint()) + "|" +
+                         value(history.getPoint()) + "|" +
+                         fund.toPlainString() + "|" +
+                         value(history.getBizId()) + "|" +
                          history.getMerkleTimestamp();
         return DigestUtil.sha256Hex(rawData);
+    }
+
+    private static String value(Object value) {
+        return value == null ? "" : String.valueOf(value);
     }
 }

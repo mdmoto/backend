@@ -532,22 +532,47 @@ public class MemberServiceImpl extends ServiceImpl<MemberMapper, Member> impleme
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Boolean updateMemberPoint(Long point, String type, String memberId, String content, String bizId, java.math.BigDecimal fundReserve) {
+        if (point == null || point <= 0 || CharSequenceUtil.isBlank(memberId) || CharSequenceUtil.isBlank(type)) {
+            return false;
+        }
+        if (!PointTypeEnum.INCREASE.name().equals(type) && !PointTypeEnum.REDUCE.name().equals(type)) {
+            return false;
+        }
+
+        if (CharSequenceUtil.isNotBlank(bizId)) {
+            Long existingCount = memberPointsHistoryMapper.selectCount(new LambdaQueryWrapper<MemberPointsHistory>()
+                    .eq(MemberPointsHistory::getMemberId, memberId)
+                    .eq(MemberPointsHistory::getBizId, bizId)
+                    .eq(MemberPointsHistory::getPointType, type));
+            if (existingCount != null && existingCount > 0) {
+                log.warn("【幂等拦截】重复积分请求: memberId={}, bizId={}, type={}", memberId, bizId, type);
+                return true;
+            }
+        }
+
         // 获取当前会员信息
-        Member member = this.getById(memberId);
+        Member member = this.getOne(new LambdaQueryWrapper<Member>()
+                .eq(Member::getId, memberId)
+                .last("FOR UPDATE"));
         if (member == null) {
             return false;
         }
 
         // 1. 积分变动计算
-        long beforePoint = member.getPoint();
+        long beforePoint = Convert.toLong(member.getPoint(), 0L);
         long currentPoint;
-        long totalPoint = member.getTotalPoint();
+        long totalPoint = Convert.toLong(member.getTotalPoint(), 0L);
         
         if (type.equals(PointTypeEnum.INCREASE.name())) {
             currentPoint = beforePoint + point;
             totalPoint = totalPoint + point;
         } else {
-            currentPoint = beforePoint - point < 0 ? 0 : beforePoint - point;
+            if (beforePoint < point) {
+                log.warn("【积分扣减拒绝】余额不足: memberId={}, bizId={}, beforePoint={}, deductPoint={}",
+                        memberId, bizId, beforePoint, point);
+                return false;
+            }
+            currentPoint = beforePoint - point;
         }
 
         // 2. 构造账本记录 (先占坑，实现强幂等)

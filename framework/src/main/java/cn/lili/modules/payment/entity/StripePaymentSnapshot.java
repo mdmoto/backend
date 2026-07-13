@@ -41,6 +41,12 @@ public class StripePaymentSnapshot extends BaseIdEntity {
     @ApiModelProperty(value = "Stripe Balance Transaction ID")
     private String balanceTransactionId;
 
+    @ApiModelProperty(value = "Stripe Event ID")
+    private String stripeEventId;
+
+    @ApiModelProperty(value = "Stripe Event Type")
+    private String stripeEventType;
+
     @ApiModelProperty(value = "真实净收款 (USD)")
     private BigDecimal amountNetUsd;
 
@@ -58,6 +64,9 @@ public class StripePaymentSnapshot extends BaseIdEntity {
 
     @ApiModelProperty(value = "Stripe 原始数据快照 (JSON)")
     private String rawData;
+
+    @ApiModelProperty(value = "Stripe 原始数据 SHA-256")
+    private String rawDataHash;
 
     @CreatedDate
     @JsonFormat(timezone = "GMT+8", pattern = "yyyy-MM-dd HH:mm:ss")

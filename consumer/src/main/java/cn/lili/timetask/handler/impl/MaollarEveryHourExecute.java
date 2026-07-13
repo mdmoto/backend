@@ -12,6 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -37,17 +39,29 @@ public class MaollarEveryHourExecute implements EveryHourExecute {
     @Value("${lili.maollar.solana.gateway-secret}")
     private String gatewaySecret;
 
+    @Value("${lili.maollar.solana.report-gmv-enabled:false}")
+    private Boolean reportGmvEnabled;
+
     @Override
     public void execute() {
+        if (!Boolean.TRUE.equals(reportGmvEnabled)) {
+            log.info("【Maollar 心跳】GMV 链上上报未启用，跳过本次任务。");
+            return;
+        }
+
         log.info("【Maollar 心跳】开始上报每小时 GMV 数据...");
         try {
             // 1. 获取基于 Stripe 真实收款的全局销售额 (USD)
             double totalSalesUSD = stripePaymentSnapshotService.getCompletedTotalSalesUSD();
+            long hourBucket = System.currentTimeMillis() / 3600000L;
 
             // 3. 构造请求体
             Map<String, Object> body = new HashMap<>();
             body.put("type", "REPORT_GMV");
+            body.put("request_id", "REPORT_GMV_" + hourBucket);
             body.put("total_gmv_usd", totalSalesUSD);
+            body.put("audit_hash", buildGmvAuditHash(hourBucket, totalSalesUSD));
+            body.put("audit_scope", "STRIPE_COMPLETED_TOTAL_SALES_USD");
 
             String timestamp = String.valueOf(System.currentTimeMillis());
             String bodyStr = JSONUtil.toJsonStr(body);
@@ -67,5 +81,13 @@ public class MaollarEveryHourExecute implements EveryHourExecute {
         } catch (Exception e) {
             log.error("【Maollar 心跳】GMV 上报异常: ", e);
         }
+    }
+
+    private String buildGmvAuditHash(long hourBucket, double totalSalesUSD) {
+        String normalizedSales = BigDecimal.valueOf(totalSalesUSD)
+                .setScale(6, RoundingMode.HALF_UP)
+                .stripTrailingZeros()
+                .toPlainString();
+        return SecureUtil.sha256("MAOLLAR_GMV_REPORT_V1|REPORT_GMV_" + hourBucket + "|" + normalizedSales);
     }
 }

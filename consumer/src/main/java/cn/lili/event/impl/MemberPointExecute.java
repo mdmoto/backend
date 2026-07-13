@@ -88,11 +88,7 @@ public class MemberPointExecute
                     return;
                 }
 
-                // 1. 获取基于 Stripe 真实收款的全局销售额 (USD) 用于确定汇率
-                double totalSalesUSD = stripePaymentSnapshotService.getCompletedTotalSalesUSD();
-                double rate = maollarTierService.getCurrentRate(totalSalesUSD);
-
-                // 2. 获取本单 Stripe 真实收款快照 (USD)
+                // 1. 获取本单 Stripe 真实收款快照 (USD)
                 StripePaymentSnapshot snapshot = stripePaymentSnapshotService.getConfirmedSnapshot(order.getSn());
                 
                 if (snapshot == null || snapshot.getAmountNetUsd() == null) {
@@ -108,17 +104,19 @@ public class MemberPointExecute
                     log.info("【Mao Mall 计价跳过】订单 {} 的 Stripe 快照金额为 {}，跳过发币。", order.getSn(), amountNetUsd);
                     return;
                 }
-                
-                // 3. 计算拨备金 (基于动态比例：每达到一个里程碑降低 0.2%)
-                double fundRate = maollarTierService.getFundRate(totalSalesUSD);
-                BigDecimal fundReserve = amountNetUsd.multiply(BigDecimal.valueOf(fundRate)).setScale(8, RoundingMode.HALF_UP);
 
-                // 4. 计算赠送喵币 (真实 USD * 汇率 * 精度)
-                // 采用 HALF_UP 舍入，确保财务逻辑一致性
-                long point = amountNetUsd.multiply(BigDecimal.valueOf(rate))
-                                        .multiply(BigDecimal.valueOf(MEOW_COIN_SCALE))
-                                        .setScale(0, RoundingMode.HALF_UP)
-                                        .longValue();
+                // 2. 以 Stripe 已确认总销售额倒推出本单前累计销售额，避免跨档订单被单一汇率错误计价
+                BigDecimal totalSalesUSD = stripePaymentSnapshotService.getCompletedTotalSalesAmountUSDUpTo(snapshot);
+                if (totalSalesUSD == null) {
+                    totalSalesUSD = BigDecimal.ZERO;
+                }
+                BigDecimal totalSalesBeforeUSD = totalSalesUSD
+                        .subtract(amountNetUsd)
+                        .max(BigDecimal.ZERO);
+
+                // 3. 按档位区间分段计算喵币与基金拨备，保证跨档订单可复算
+                BigDecimal fundReserve = maollarTierService.calculateFundReserve(amountNetUsd, totalSalesBeforeUSD);
+                long point = maollarTierService.calculateRewardPoints(amountNetUsd, totalSalesBeforeUSD);
 
                 if (point > 0) {
                     memberService.updateMemberPoint(point, PointTypeEnum.INCREASE.name(), order.getMemberId(),
@@ -126,7 +124,7 @@ public class MemberPointExecute
                 }
 
                 checkSettlementReminder();
-                maollarTierService.checkAndTriggerMilestone(totalSalesUSD);
+                maollarTierService.checkAndTriggerMilestone(totalSalesUSD.doubleValue());
                 break;
             }
             default:
