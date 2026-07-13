@@ -41,6 +41,11 @@ public class ThaiQrPaymentSetting {
     private String currency = "THB";
 
     /**
+     * Cashier amount source currency.
+     */
+    private String sourceCurrency = "CNY";
+
+    /**
      * 收单主体。
      */
     private String merchantEntity = "TH_COMPANY";

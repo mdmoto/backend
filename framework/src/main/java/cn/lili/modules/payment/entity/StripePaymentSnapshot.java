@@ -83,7 +83,7 @@ public class StripePaymentSnapshot extends BaseIdEntity {
     @ApiModelProperty(value = "币种")
     private String currency;
 
-    @ApiModelProperty(value = "支付状态: UNCONFIRMED, CONFIRMED, REFUNDED")
+    @ApiModelProperty(value = "支付状态: UNCONFIRMED, PAID_PENDING_RECONCILIATION, CONFIRMED, REFUNDED")
     private String paymentStatus;
 
     @ApiModelProperty(value = "Stripe 原始数据快照 (JSON)")

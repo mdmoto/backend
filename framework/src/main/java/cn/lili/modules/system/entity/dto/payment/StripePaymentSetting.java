@@ -34,6 +34,11 @@ public class StripePaymentSetting {
     private String cancelUrl;
 
     /**
+     * Cashier amount source currency. Existing Maollar order totals are CNY.
+     */
+    private String sourceCurrency = "CNY";
+
+    /**
      * 展示给客户的币种。泰国主体建议 THB，新加坡主体可用 SGD/USD。
      */
     private String currency = "THB";

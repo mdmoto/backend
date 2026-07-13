@@ -7,6 +7,7 @@ import cn.lili.common.enums.ResultUtil;
 import cn.lili.common.exception.ServiceException;
 import cn.lili.common.vo.ResultMessage;
 import cn.lili.modules.payment.kit.CashierSupport;
+import cn.lili.modules.payment.kit.PaymentCurrencyConverter;
 import cn.lili.modules.payment.kit.Payment;
 import cn.lili.modules.payment.kit.dto.PayParam;
 import cn.lili.modules.payment.kit.params.dto.CashierParam;
@@ -22,6 +23,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.math.BigDecimal;
 
 /**
  * Thai QR / PromptPay 收款。
@@ -35,6 +37,9 @@ public class ThaiQrPlugin implements Payment {
 
     @Autowired
     private CashierSupport cashierSupport;
+
+    @Autowired
+    private PaymentCurrencyConverter paymentCurrencyConverter;
 
     @Override
     public ResultMessage<Object> h5pay(HttpServletRequest request, HttpServletResponse response, PayParam payParam) {
@@ -64,6 +69,12 @@ public class ThaiQrPlugin implements Payment {
     private ResultMessage<Object> buildQrPayment(PayParam payParam) {
         ThaiQrPaymentSetting setting = thaiQrPaymentSetting();
         CashierParam cashierParam = cashierSupport.cashierParam(payParam);
+        BigDecimal sourceAmount = BigDecimal.valueOf(cashierParam.getPrice());
+        BigDecimal paymentAmount = paymentCurrencyConverter.convert(
+                sourceAmount,
+                setting.getSourceCurrency(),
+                setting.getCurrency()
+        );
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("provider", "THAI_QR");
@@ -72,8 +83,10 @@ public class ThaiQrPlugin implements Payment {
         result.put("merchantEntity", setting.getMerchantEntity());
         result.put("acquirerAccount", setting.getAcquirerAccount());
         result.put("settlementEntity", setting.getSettlementEntity());
-        result.put("amount", cashierParam.getPrice());
+        result.put("amount", paymentAmount);
         result.put("currency", setting.getCurrency());
+        result.put("sourceAmount", sourceAmount);
+        result.put("sourceCurrency", setting.getSourceCurrency());
         result.put("referenceNo", payParam.getSn());
         result.put("orderType", payParam.getOrderType());
         result.put("qrPayload", setting.getQrPayload());
@@ -82,7 +95,7 @@ public class ThaiQrPlugin implements Payment {
         result.put("instructions", setting.getInstructions());
 
         log.info("Thai QR支付展示：订单：{}, 金额：{}, 主体：{}",
-                payParam.getSn(), cashierParam.getPrice(), setting.getMerchantEntity());
+                payParam.getSn(), paymentAmount, setting.getMerchantEntity());
         return ResultUtil.data(result);
     }
 

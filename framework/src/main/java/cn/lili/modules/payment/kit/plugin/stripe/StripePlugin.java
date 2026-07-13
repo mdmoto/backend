@@ -10,13 +10,13 @@ import cn.hutool.json.JSONUtil;
 import cn.lili.common.enums.ResultCode;
 import cn.lili.common.enums.ResultUtil;
 import cn.lili.common.exception.ServiceException;
-import cn.lili.common.utils.CurrencyUtil;
 import cn.lili.common.utils.SnowFlake;
 import cn.lili.common.vo.ResultMessage;
 import cn.lili.modules.payment.entity.StripePaymentSnapshot;
 import cn.lili.modules.payment.entity.enums.PaymentMethodEnum;
 import cn.lili.modules.payment.kit.CashierSupport;
 import cn.lili.modules.payment.kit.Payment;
+import cn.lili.modules.payment.kit.PaymentCurrencyConverter;
 import cn.lili.modules.payment.kit.dto.PayParam;
 import cn.lili.modules.payment.kit.dto.PaymentSuccessParams;
 import cn.lili.modules.payment.kit.params.dto.CashierParam;
@@ -33,11 +33,9 @@ import org.springframework.stereotype.Component;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -57,16 +55,15 @@ public class StripePlugin implements Payment {
 
     private static final String STRIPE_CHECKOUT_SESSION_URL = "https://api.stripe.com/v1/checkout/sessions";
     private static final long WEBHOOK_TOLERANCE_SECONDS = 300L;
-    private static final Set<String> ZERO_DECIMAL_CURRENCIES = new LinkedHashSet<>(Arrays.asList(
-            "BIF", "CLP", "DJF", "GNF", "JPY", "KMF", "KRW", "MGA", "PYG", "RWF",
-            "UGX", "VND", "VUV", "XAF", "XOF", "XPF"
-    ));
 
     @Autowired
     private SettingService settingService;
 
     @Autowired
     private CashierSupport cashierSupport;
+
+    @Autowired
+    private PaymentCurrencyConverter paymentCurrencyConverter;
 
     @Autowired
     private PaymentService paymentService;
@@ -113,6 +110,10 @@ public class StripePlugin implements Payment {
         StripePaymentSetting setting = stripePaymentSetting();
         CashierParam cashierParam = cashierSupport.cashierParam(payParam);
         String currency = normalizedCurrency(setting.getCurrency(), "THB");
+        String sourceCurrency = normalizedCurrency(setting.getSourceCurrency(), "CNY");
+        BigDecimal sourceAmount = BigDecimal.valueOf(cashierParam.getPrice());
+        BigDecimal paymentAmount = paymentCurrencyConverter.convert(sourceAmount, sourceCurrency, currency);
+        long paymentAmountMinor = paymentCurrencyConverter.toMinorUnits(paymentAmount, currency);
 
         Map<String, String> params = new LinkedHashMap<>();
         params.put("mode", "payment");
@@ -120,14 +121,15 @@ public class StripePlugin implements Payment {
         params.put("cancel_url", setting.getCancelUrl());
         params.put("line_items[0][quantity]", "1");
         params.put("line_items[0][price_data][currency]", currency.toLowerCase(Locale.ROOT));
-        params.put("line_items[0][price_data][unit_amount]", String.valueOf(toStripeAmount(cashierParam.getPrice(), currency)));
+        params.put("line_items[0][price_data][unit_amount]", String.valueOf(paymentAmountMinor));
         params.put("line_items[0][price_data][product_data][name]", cashierParam.getDetail());
-        params.put("metadata[order_sn]", payParam.getSn());
-        params.put("metadata[order_type]", payParam.getOrderType());
-        params.put("metadata[client_type]", payParam.getClientType());
-        params.put("metadata[merchant_entity]", defaultString(setting.getMerchantEntity(), "TH_COMPANY"));
-        params.put("metadata[acquirer_account]", defaultString(setting.getAcquirerAccount(), "stripe_th"));
-        params.put("metadata[settlement_entity]", defaultString(setting.getSettlementEntity(), "TH_BANK"));
+        Map<String, String> metadata = checkoutMetadata(
+                payParam, setting, sourceAmount, sourceCurrency, currency, paymentAmountMinor
+        );
+        metadata.forEach((key, value) -> {
+            params.put("metadata[" + key + "]", value);
+            params.put("payment_intent_data[metadata][" + key + "]", value);
+        });
 
         List<String> paymentMethodTypes = paymentMethodTypes(setting);
         for (int i = 0; i < paymentMethodTypes.size(); i++) {
@@ -137,6 +139,7 @@ public class StripePlugin implements Payment {
         try (HttpResponse response = HttpRequest.post(STRIPE_CHECKOUT_SESSION_URL)
                 .basicAuth(setting.getSecretKey(), "")
                 .header("Content-Type", "application/x-www-form-urlencoded")
+                .header("Idempotency-Key", checkoutIdempotencyKey(payParam, currency, paymentAmountMinor))
                 .body(formEncode(params))
                 .execute()) {
 
@@ -155,7 +158,9 @@ public class StripePlugin implements Payment {
             result.put("acquirerAccount", setting.getAcquirerAccount());
             result.put("settlementEntity", setting.getSettlementEntity());
             result.put("currency", currency);
-            result.put("amount", cashierParam.getPrice());
+            result.put("amount", paymentAmount);
+            result.put("sourceAmount", sourceAmount);
+            result.put("sourceCurrency", sourceCurrency);
             result.put("paymentMethodTypes", paymentMethodTypes);
 
             log.info("Stripe Checkout Session创建成功：订单：{}，Session：{}，主体：{}",
@@ -180,14 +185,26 @@ public class StripePlugin implements Payment {
         }
 
         JSONObject event = JSONUtil.parseObj(payload);
+        if (CharSequenceUtil.isBlank(event.getStr("id"))) {
+            throw new ServiceException(ResultCode.PAY_ERROR);
+        }
         String eventType = event.getStr("type");
-        if (!"checkout.session.completed".equals(eventType) && !"payment_intent.succeeded".equals(eventType)) {
+        if (!"checkout.session.completed".equals(eventType)
+                && !"checkout.session.async_payment_succeeded".equals(eventType)) {
             log.info("Stripe Webhook事件暂不处理：{}", eventType);
             return;
         }
 
         JSONObject object = event.getJSONObject("data").getJSONObject("object");
+        if (!"paid".equalsIgnoreCase(object.getStr("payment_status"))) {
+            log.info("Stripe Checkout尚未支付完成：Session：{}，状态：{}",
+                    object.getStr("id"), object.getStr("payment_status"));
+            return;
+        }
         JSONObject metadata = object.getJSONObject("metadata");
+        if (metadata == null) {
+            throw new ServiceException(ResultCode.PAY_ERROR);
+        }
         PayParam payParam = new PayParam();
         payParam.setSn(metadata.getStr("order_sn"));
         payParam.setOrderType(metadata.getStr("order_type"));
@@ -195,13 +212,19 @@ public class StripePlugin implements Payment {
 
         if (CharSequenceUtil.isBlank(payParam.getSn()) || CharSequenceUtil.isBlank(payParam.getOrderType())) {
             log.warn("Stripe Webhook缺少订单元数据：事件：{}", event.getStr("id"));
-            return;
+            throw new ServiceException(ResultCode.PAY_ERROR);
         }
 
         String currency = normalizedCurrency(object.getStr("currency"), setting.getCurrency());
-        Long amountTotal = eventAmount(object, eventType);
-        BigDecimal amountPresentment = fromStripeAmount(amountTotal, currency);
+        Long amountTotal = object.getLong("amount_total");
+        verifyWebhookAmountAndCurrency(metadata, currency, amountTotal);
+        BigDecimal amountPresentment = paymentCurrencyConverter.fromMinorUnits(amountTotal, currency);
         String receivableNo = defaultString(object.getStr("payment_intent"), object.getStr("id"));
+
+        if (alreadyProcessed(event.getStr("id"), receivableNo)) {
+            log.info("Stripe Webhook重复事件已忽略：事件：{}，流水：{}", event.getStr("id"), receivableNo);
+            return;
+        }
 
         saveSnapshot(setting, event, object, metadata, currency, amountPresentment, receivableNo);
 
@@ -243,11 +266,13 @@ public class StripePlugin implements Payment {
         snapshot.setPayerWallet(resolvePayerWallet(object));
         snapshot.setSupplierPayoutStatus("PENDING");
         snapshot.setCurrency(currency);
-        snapshot.setPaymentStatus("CONFIRMED");
-        snapshot.setAmountGrossUsd("USD".equals(currency) ? amountPresentment : BigDecimal.ZERO);
-        snapshot.setAmountNetUsd("USD".equals(currency) ? amountPresentment : BigDecimal.ZERO);
+        // Checkout Session does not contain the balance transaction's exact fee/net values.
+        // Keep rewards closed until a reconciliation job records real Stripe net settlement.
+        snapshot.setPaymentStatus("PAID_PENDING_RECONCILIATION");
+        snapshot.setAmountGrossUsd(BigDecimal.ZERO);
+        snapshot.setAmountNetUsd(BigDecimal.ZERO);
         snapshot.setFeeUsd(BigDecimal.ZERO);
-        snapshot.setRawData(JSONUtil.toJsonStr(event));
+        snapshot.setRawData(financialAuditData(event, object, metadata));
         snapshot.setRawDataHash(SecureUtil.sha256(snapshot.getRawData()));
         stripePaymentSnapshotService.saveOrUpdate(snapshot);
     }
@@ -269,7 +294,7 @@ public class StripePlugin implements Payment {
 
     private List<String> paymentMethodTypes(StripePaymentSetting setting) {
         if (setting.getPaymentMethodTypes() == null || setting.getPaymentMethodTypes().isEmpty()) {
-            return Arrays.asList("card", "promptpay");
+            return List.of("card", "promptpay");
         }
         return setting.getPaymentMethodTypes().stream()
                 .filter(CharSequenceUtil::isNotBlank)
@@ -309,7 +334,12 @@ public class StripePlugin implements Payment {
             return false;
         }
 
-        long eventTime = Long.parseLong(timestamp);
+        long eventTime;
+        try {
+            eventTime = Long.parseLong(timestamp);
+        } catch (NumberFormatException e) {
+            return false;
+        }
         long now = System.currentTimeMillis() / 1000L;
         if (Math.abs(now - eventTime) > WEBHOOK_TOLERANCE_SECONDS) {
             log.warn("Stripe Webhook时间戳超出容忍窗口：eventTime={}，now={}", eventTime, now);
@@ -348,30 +378,6 @@ public class StripePlugin implements Payment {
         return URLEncoder.encode(defaultString(value, ""), StandardCharsets.UTF_8);
     }
 
-    private long toStripeAmount(Double price, String currency) {
-        if (ZERO_DECIMAL_CURRENCIES.contains(currency)) {
-            return BigDecimal.valueOf(price).setScale(0, RoundingMode.HALF_UP).longValue();
-        }
-        return CurrencyUtil.getFenLong(price);
-    }
-
-    private BigDecimal fromStripeAmount(Long amount, String currency) {
-        if (amount == null) {
-            return BigDecimal.ZERO;
-        }
-        if (ZERO_DECIMAL_CURRENCIES.contains(currency)) {
-            return BigDecimal.valueOf(amount);
-        }
-        return BigDecimal.valueOf(amount, 2);
-    }
-
-    private Long eventAmount(JSONObject object, String eventType) {
-        if ("checkout.session.completed".equals(eventType)) {
-            return object.getLong("amount_total");
-        }
-        return object.getLong("amount");
-    }
-
     private String resolvePayerWallet(JSONObject object) {
         JSONArray paymentMethodTypes = object.getJSONArray("payment_method_types");
         if (paymentMethodTypes == null || paymentMethodTypes.isEmpty()) {
@@ -399,5 +405,63 @@ public class StripePlugin implements Payment {
 
     private String defaultString(String value, String fallback) {
         return CharSequenceUtil.isBlank(value) ? fallback : value;
+    }
+
+    private Map<String, String> checkoutMetadata(PayParam payParam, StripePaymentSetting setting,
+                                                  BigDecimal sourceAmount, String sourceCurrency,
+                                                  String currency, long paymentAmountMinor) {
+        Map<String, String> metadata = new LinkedHashMap<>();
+        metadata.put("order_sn", payParam.getSn());
+        metadata.put("order_type", payParam.getOrderType());
+        metadata.put("client_type", payParam.getClientType());
+        metadata.put("merchant_entity", defaultString(setting.getMerchantEntity(), "TH_COMPANY"));
+        metadata.put("acquirer_account", defaultString(setting.getAcquirerAccount(), "stripe_th"));
+        metadata.put("settlement_entity", defaultString(setting.getSettlementEntity(), "TH_BANK"));
+        metadata.put("source_amount", sourceAmount.toPlainString());
+        metadata.put("source_currency", sourceCurrency);
+        metadata.put("payment_currency", currency);
+        metadata.put("payment_amount_minor", String.valueOf(paymentAmountMinor));
+        return metadata;
+    }
+
+    private String checkoutIdempotencyKey(PayParam payParam, String currency, long paymentAmountMinor) {
+        return SecureUtil.sha256(payParam.getOrderType() + ":" + payParam.getSn() + ":"
+                + currency + ":" + paymentAmountMinor);
+    }
+
+    private void verifyWebhookAmountAndCurrency(JSONObject metadata, String currency, Long amountTotal) {
+        if (metadata == null || amountTotal == null) {
+            throw new ServiceException(ResultCode.PAY_ERROR);
+        }
+        String expectedCurrency = normalizedCurrency(metadata.getStr("payment_currency"), "");
+        Long expectedAmount = metadata.getLong("payment_amount_minor");
+        if (!currency.equals(expectedCurrency) || !amountTotal.equals(expectedAmount)) {
+            log.error("Stripe Webhook金额或币种不一致：actual={} {}, expected={} {}",
+                    amountTotal, currency, expectedAmount, expectedCurrency);
+            throw new ServiceException(ResultCode.PAY_ERROR);
+        }
+    }
+
+    private boolean alreadyProcessed(String eventId, String paymentIntentId) {
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<StripePaymentSnapshot> query =
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        query.and(wrapper -> wrapper
+                .eq(StripePaymentSnapshot::getStripeEventId, eventId)
+                .or()
+                .eq(StripePaymentSnapshot::getPaymentIntentId, paymentIntentId));
+        return stripePaymentSnapshotService.count(query) > 0;
+    }
+
+    private String financialAuditData(JSONObject event, JSONObject object, JSONObject metadata) {
+        Map<String, Object> audit = new LinkedHashMap<>();
+        audit.put("eventId", event.getStr("id"));
+        audit.put("eventType", event.getStr("type"));
+        audit.put("sessionId", object.getStr("id"));
+        audit.put("paymentIntentId", object.getStr("payment_intent"));
+        audit.put("paymentStatus", object.getStr("payment_status"));
+        audit.put("amountTotal", object.getLong("amount_total"));
+        audit.put("currency", object.getStr("currency"));
+        audit.put("metadata", metadata);
+        return JSONUtil.toJsonStr(audit);
     }
 }

@@ -97,7 +97,7 @@ VALUES (
     b'0',
     'admin',
     NOW(),
-    '{"secretKey":"","webhookSecret":"","successUrl":"","cancelUrl":"","currency":"THB","settlementCurrency":"THB","merchantEntity":"TH_COMPANY","acquirerAccount":"stripe_th","settlementEntity":"TH_BANK","paymentMethodTypes":["card","promptpay"]}'
+    '{"secretKey":"","webhookSecret":"","successUrl":"","cancelUrl":"","sourceCurrency":"CNY","currency":"THB","settlementCurrency":"THB","merchantEntity":"TH_COMPANY","acquirerAccount":"stripe_th","settlementEntity":"TH_BANK","paymentMethodTypes":["card","promptpay"]}'
 )
 ON DUPLICATE KEY UPDATE id = id;
 
@@ -109,6 +109,6 @@ VALUES (
     b'0',
     'admin',
     NOW(),
-    '{"enabled":false,"qrPayload":"","qrCodeUrl":"","merchantName":"","providerName":"Thai QR","currency":"THB","merchantEntity":"TH_COMPANY","acquirerAccount":"thai_bank_qr","settlementEntity":"TH_BANK","instructions":"Please scan the Thai QR / PromptPay code and include the order number as reference."}'
+    '{"enabled":false,"qrPayload":"","qrCodeUrl":"","merchantName":"","providerName":"Thai QR","sourceCurrency":"CNY","currency":"THB","merchantEntity":"TH_COMPANY","acquirerAccount":"thai_bank_qr","settlementEntity":"TH_BANK","instructions":"Please scan the Thai QR / PromptPay code and include the order number as reference."}'
 )
 ON DUPLICATE KEY UPDATE id = id;
