@@ -40,6 +40,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -51,6 +53,8 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class PageDataServiceImpl extends ServiceImpl<PageDataMapper, PageData> implements PageDataService {
+
+    private static final Pattern SKU_ID_QUERY_PATTERN = Pattern.compile("(?:[?&])(?:skuId|id)=([^&#]+)");
 
 
     @Autowired
@@ -242,8 +246,9 @@ public class PageDataServiceImpl extends ServiceImpl<PageDataMapper, PageData> i
                 return pageDataJson;
             }
 
-            // 2. 批量获取商品状态
-            List<GoodsSku> skus = goodsSkuService.getGoodsSkuByIdFromCache(skuIds);
+            // 2. 批量获取数据库中的商品状态。首页过滤不能只信任长期缓存，否则数据库已删除、
+            // 缓存尚未淘汰的 SKU 仍会生成可点击的“幽灵商品”。
+            List<GoodsSku> skus = goodsSkuService.listByIds(skuIds);
             Map<String, GoodsSku> skuMap = skus.stream()
                     .filter(Objects::nonNull)
                     .collect(Collectors.toMap(GoodsSku::getId, s -> s));
@@ -280,18 +285,9 @@ public class PageDataServiceImpl extends ServiceImpl<PageDataMapper, PageData> i
             }
         } else if (obj instanceof JSONObject) {
             JSONObject json = (JSONObject) obj;
-            // 尝试从 url 中提取 id
-            String url = json.getStr("url");
-            if (CharSequenceUtil.isNotEmpty(url)) {
-                String skuId = extractSkuId(url);
-                if (skuId != null && !skuIds.contains(skuId)) {
-                    skuIds.add(skuId);
-                }
-            }
-            // 尝试直接获取 skuId 字段
-            String skuIdField = json.getStr("skuId");
-            if (CharSequenceUtil.isNotEmpty(skuIdField) && !skuIds.contains(skuIdField)) {
-                skuIds.add(skuIdField);
+            String skuId = resolveSkuId(json);
+            if (CharSequenceUtil.isNotEmpty(skuId) && !skuIds.contains(skuId)) {
+                skuIds.add(skuId);
             }
             // 递归遍历所有值
             for (Object value : json.values()) {
@@ -319,6 +315,11 @@ public class PageDataServiceImpl extends ServiceImpl<PageDataMapper, PageData> i
             }
         } else if (obj instanceof JSONObject) {
             JSONObject json = (JSONObject) obj;
+            // 某些 PC 装修组件把“更多”链接放在固定的对象字段里，不能删除整个对象，
+            // 否则前端仍会读取标题、颜色和列表而报错；只清空已失效的跳转链接。
+            if (shouldRemove(json, skuMap) && json.get("url") instanceof CharSequence) {
+                json.set("url", "");
+            }
             for (String key : json.keySet()) {
                 Object value = json.get(key);
                 if (value instanceof JSONArray) {
@@ -340,11 +341,7 @@ public class PageDataServiceImpl extends ServiceImpl<PageDataMapper, PageData> i
     }
 
     private boolean shouldRemove(JSONObject json, Map<String, GoodsSku> skuMap) {
-        String url = json.getStr("url");
-        String skuId = json.getStr("skuId");
-        if (CharSequenceUtil.isEmpty(skuId) && CharSequenceUtil.isNotEmpty(url)) {
-            skuId = extractSkuId(url);
-        }
+        String skuId = resolveSkuId(json);
 
         if (CharSequenceUtil.isNotEmpty(skuId)) {
             GoodsSku sku = skuMap.get(skuId);
@@ -358,19 +355,39 @@ public class PageDataServiceImpl extends ServiceImpl<PageDataMapper, PageData> i
         return false;
     }
 
-    private String extractSkuId(String url) {
-        if (url == null) return null;
-        // 匹配 ?id=... 或 &id=...
-        int index = url.indexOf("id=");
-        if (index != -1) {
-            String substring = url.substring(index + 3);
-            int nextAmp = substring.indexOf("&");
-            if (nextAmp != -1) {
-                return substring.substring(0, nextAmp);
+    /**
+     * 兼容页面装修中三种商品引用：PC 的 skuId 查询参数、旧 H5 的 id 查询参数，
+     * 以及 H5 把完整商品对象放进 url 字段的历史结构。
+     */
+    private String resolveSkuId(JSONObject json) {
+        String skuId = json.getStr("skuId");
+        if (CharSequenceUtil.isNotEmpty(skuId)) {
+            return skuId;
+        }
+
+        if (json.containsKey("goodsId") || "goods".equals(json.getStr("___type"))) {
+            String embeddedSkuId = json.getStr("id");
+            if (CharSequenceUtil.isNotEmpty(embeddedSkuId)) {
+                return embeddedSkuId;
             }
-            return substring;
+        }
+
+        Object url = json.get("url");
+        if (url instanceof JSONObject) {
+            return resolveSkuId((JSONObject) url);
+        }
+        if (url instanceof CharSequence) {
+            return extractSkuId(url.toString());
         }
         return null;
+    }
+
+    private String extractSkuId(String url) {
+        if (url == null) {
+            return null;
+        }
+        Matcher matcher = SKU_ID_QUERY_PATTERN.matcher(url);
+        return matcher.find() ? matcher.group(1) : null;
     }
 
     @Override

@@ -36,9 +36,42 @@ class PageDataServiceImplTest {
         assertEquals(0, cn.hutool.json.JSONUtil.parseArray(filtered).size());
     }
 
+    @Test
+    void filtersMissingSkuFromPcGoodsDetailUrl() throws Exception {
+        PageDataServiceImpl service = serviceWithNoMatchingSkus();
+        String source = "{\"items\":[{\"url\":\"/goodsDetail?skuId=missing-sku&goodsId=old-goods\"}]}";
+
+        String filtered = invokeFilter(service, source);
+
+        assertEquals(0, cn.hutool.json.JSONUtil.parseObj(filtered).getJSONArray("items").size());
+    }
+
+    @Test
+    void filtersMissingSkuFromNestedH5GoodsPayload() throws Exception {
+        PageDataServiceImpl service = serviceWithNoMatchingSkus();
+        String source = "{\"items\":[{\"url\":{\"id\":\"missing-sku\",\"goodsId\":\"old-goods\",\"___type\":\"goods\"}}]}";
+
+        String filtered = invokeFilter(service, source);
+
+        assertEquals(0, cn.hutool.json.JSONUtil.parseObj(filtered).getJSONArray("items").size());
+    }
+
+    @Test
+    void sanitizesMissingSkuLinkFromFixedObjectField() throws Exception {
+        PageDataServiceImpl service = serviceWithNoMatchingSkus();
+        String source = "{\"options\":{\"contentRight\":{\"title\":\"推荐\",\"url\":\"/goodsDetail?skuId=missing-sku&goodsId=old-goods\",\"list\":[]}}}";
+
+        String filtered = invokeFilter(service, source);
+
+        cn.hutool.json.JSONObject contentRight = cn.hutool.json.JSONUtil.parseObj(filtered)
+                .getJSONObject("options").getJSONObject("contentRight");
+        assertEquals("推荐", contentRight.getStr("title"));
+        assertEquals("", contentRight.getStr("url"));
+    }
+
     private PageDataServiceImpl serviceWithNoMatchingSkus() throws Exception {
         GoodsSkuService goodsSkuService = mock(GoodsSkuService.class);
-        when(goodsSkuService.getGoodsSkuByIdFromCache(anyList())).thenReturn(Collections.emptyList());
+        when(goodsSkuService.listByIds(anyList())).thenReturn(Collections.emptyList());
 
         PageDataServiceImpl service = new PageDataServiceImpl();
         Field field = PageDataServiceImpl.class.getDeclaredField("goodsSkuService");
