@@ -55,8 +55,8 @@
 
 ## 五、前端发布基准与剩余技术债
 
-- PC 生产基准为 GitHub `frontend/master`；日常开发继续使用 `work/reconcile-20260713`，发布前备份为 `backup/frontend-master-pre-auth-20260715`。
-- Cloudflare Pages 已固定 Node `22.22.0`，构建命令为 `npm run build`，输出目录为 `buyer/dist`。
+- PC 生产基准为 GitHub `frontend/master` 的 `19fe5226`；日常开发继续使用 `work/reconcile-20260713`，发布前备份为 `backup/frontend-master-pre-auth-20260715`。
+- Cloudflare Pages 已固定 Node `22.22.0`，构建命令为 `npm run build`，输出目录为 `buyer/dist`；最终生产部署 `e21aed6f-b747-41ab-9bb4-79ca416158e3` 成功。
 - 当前仍是 Vue 2 老依赖栈，`npm audit` 报告 117 项依赖风险，其中 9 项为 critical；不能直接强制升级，需要按功能回归逐批替换。
 - Sass 仍有旧语法弃用警告，但不影响本次生产构建；应在后续依赖升级中同步清理。
 
